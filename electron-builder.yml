@@ -1,0 +1,65 @@
+# Configuración de electron-builder.
+#
+# YAML y no `.js`/`.cjs`: `package.json` es `type: module`, y electron-builder
+# carga su config como CommonJS — con `.js` toca discutir con Node.
+#
+# Lo importante está en `extraResources`: el `dist/` construido por Astro viaja
+# **fuera** de `app.asar`. Un proceso hijo lanzado con ELECTRON_RUN_AS_NODE no
+# tiene el parche de `fs` que resuelve rutas dentro del asar, y el adapter de Node
+# hace `fs.stat` sobre `dist/client` para servir los estáticos.
+appId: dev.trebor.astroagentconsumer
+productName: Astro Agent Consumer
+copyright: Copyright © 2026
+
+# `deb` y `rpm` exigen homepage y author en el package.json; sin ellos,
+# electron-builder aborta el target aunque el AppImage haya salido bien.
+# Cambiarlos al iniciar el producto real (ver README).
+
+directories:
+  output: release
+  buildResources: build-res
+
+files:
+  - electron/**/*
+  - package.json
+  - '!**/*.map'
+
+extraResources:
+  - from: dist
+    to: astro
+
+# Nativos (si algún día aparecen: better-sqlite3, tokenizers de fastembed…).
+asarUnpack:
+  - '**/*.node'
+
+linux:
+  target:
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64]
+  category: Development
+  maintainer: Trebor <dev@trebor.local>
+  synopsis: Consumidor de agentes de IA construido sobre Astro.
+
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  # Necesario si el renderer JIT-ea (lo hace): sin esto, la notarización rechaza.
+  entitlementsInherit: build-res/entitlements.mac.plist
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-setup.${ext}
+
+publish: null

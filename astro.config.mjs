@@ -112,6 +112,25 @@ export default defineConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          /**
+           * `@mastra/client-js` vive en un chunk propio por construcción, no por
+           * casualidad del chunking automático. Sin esto, Rollup puede fusionar
+           * los helpers de interop CJS (compartidos por el grafo del cliente y
+           * por `src/vue-app.ts`) dentro del chunk del proveedor, y entonces el
+           * entrypoint de las islas importa **estáticamente** los ~480 KB de
+           * `MastraClient`: exactamente la regresión que vigila
+           * `npm run verify:bundle`.
+           */
+          manualChunks(id) {
+            if (id.includes('node_modules/@mastra')) return 'mastra-vendor';
+            return undefined;
+          },
+        },
+      },
+    },
     server: {
       // 127.0.0.1 y no 0.0.0.0: Electron carga el renderer desde ese literal y
       // el WebSocket de HMR debe resolver a la misma interfaz.

@@ -8,8 +8,9 @@ import { computed, ref } from 'vue';
  * se escribe: mantenerlo en el mismo composable que el transcript obligaría a
  * re-evaluar el historial en cada tecla.
  *
- * Enter envía, Shift+Enter salta línea. Es la convención que la gente ya tiene
- * en cualquier chat, y por eso se implementa aquí y no "por vista".
+ * La lógica de teclas (Enter envía, Shift+Enter salta línea) vive en
+ * `ChatComposer.vue`, que es el único sitio donde existe un `KeyboardEvent`:
+ * duplicarla aquí "por si acaso" es exactamente la deriva que este slice prohíbe.
  */
 export function useChatComposer(options: { disabled?: () => boolean } = {}) {
   const text = ref('');
@@ -21,20 +22,5 @@ export function useChatComposer(options: { disabled?: () => boolean } = {}) {
     text.value = '';
   }
 
-  function set(value: string): void {
-    text.value = value;
-  }
-
-  /**
-   * Devuelve el prompt si corresponde enviarlo, o `undefined` si el evento debe
-   * dejarse pasar (Shift+Enter, tecla con mark, composición de IME).
-   */
-  function onSubmitKeymap(event: KeyboardEvent): string | undefined {
-    if (event.isComposing || event.shiftKey || event.key !== 'Enter') return undefined;
-    event.preventDefault();
-    if (!canSubmit.value) return undefined;
-    return trimmed.value;
-  }
-
-  return { text, trimmed, canSubmit, clear, set, onSubmitKeymap };
+  return { text, trimmed, canSubmit, clear };
 }

@@ -71,6 +71,7 @@ montarla (véase `src/vue-app.ts` y `astro.config.mjs`).
 | Superficie | Directiva |
 |---|---|
 | Isla de chat (transcript + composer) | `client:only="vue"` + `transition:persist` + `slot="fallback"` |
+| Atajos globales (`ShellShortcuts`, sin UI) | `client:only="vue"`, una sola vez en `AppLayout` |
 | Sidebar de hilos | `client:idle` |
 | Listas por debajo del pliegue | `client:visible` |
 | UI solo para móvil | `client:media="(max-width: 60rem)"` |

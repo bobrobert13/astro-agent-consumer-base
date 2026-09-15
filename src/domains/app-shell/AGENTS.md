@@ -1,8 +1,20 @@
 # AGENTS.md — `src/domains/app-shell`
 
-Navegación, atajos, tema y puente con el escritorio. **Esqueleto**: `useShortcuts`
-y el store global existen; el menú nativo de desktop y el centro de notificaciones
-están por escribir.
+Navegación, atajos, tema y puente con el escritorio. **Esqueleto funcional**: la
+isla `ShellShortcuts`, `useShortcuts` y el store global existen; el menú nativo
+de desktop y el centro de notificaciones están por escribir.
+
+## Superficie
+
+- `@domains/app-shell` → `ShellShortcuts` (isla sin UI), `useShortcuts`, `useAppShellStore`.
+
+## Atajos
+
+`ShellShortcuts.vue` se monta **una sola vez** en `AppLayout` con
+`client:only="vue"`: toca `document` y el store de Pinia, así que nunca debe
+renderizarse en el servidor. Sin esa isla, los atajos que `/settings` anuncia no
+existen. El atajo de detener el stream (Escape) **no** es global: vive en
+`ChatIsland.vue` y solo actúa con una ejecución viva.
 
 ## Estado
 

@@ -23,12 +23,12 @@ const rawAgentSchema = z
     instructions: z.unknown().optional(),
     tools: z.unknown().optional(),
   })
-  .passthrough();
+  .loose();
 
 const rawAgentListSchema = z.union([
   z.array(rawAgentSchema),
   z.record(z.string(), rawAgentSchema),
-  z.object({ agents: z.union([z.array(rawAgentSchema), z.record(z.string(), rawAgentSchema)]) }).passthrough(),
+  z.object({ agents: z.union([z.array(rawAgentSchema), z.record(z.string(), rawAgentSchema)]) }).loose(),
 ]);
 
 export async function listAgents(): Promise<Result<AgentSummary[]>> {

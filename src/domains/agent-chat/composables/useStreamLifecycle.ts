@@ -1,8 +1,7 @@
 import { markRaw, onScopeDispose, ref, shallowRef } from 'vue';
 
-import { resultError, resultOk, type Result } from '@shared/result/result.pattern';
+import { resultOk, type Result } from '@shared/result/result.pattern';
 import { STREAM_STALL_MS } from '@config/app';
-import { CHAT_ERROR_CODES } from './services/chat/chat.e';
 import type { StreamState } from '../types/chat.types';
 
 /**
@@ -24,7 +23,6 @@ import type { StreamState } from '../types/chat.types';
  */
 export function useStreamLifecycle() {
   const state = ref<StreamState>('idle');
-  const errorMessage = ref<string | undefined>(undefined);
 
   const controller = shallowRef<AbortController | null>(null);
   let stallTimer: ReturnType<typeof setTimeout> | undefined;
@@ -37,7 +35,10 @@ export function useStreamLifecycle() {
   function armStallWatchdog(): void {
     clearStallTimer();
     stallTimer = setTimeout(() => {
-      if (state.value === 'streaming') state.value = 'stalled';
+      // También desde `connecting`: un upstream que ni siquiera responde con
+      // cabeceras dejaría la UI en "Conectando…" para siempre si solo se vigila
+      // el estado `streaming`.
+      if (state.value === 'connecting' || state.value === 'streaming') state.value = 'stalled';
     }, STREAM_STALL_MS);
     // En Node (tests SSR-adjacentes) no debe mantener el proceso vivo.
     stallTimer.unref?.();
@@ -46,7 +47,6 @@ export function useStreamLifecycle() {
   /** Inicia una ejecución. `run` recibe el signal y debe respetarlo. */
   async function start(run: (signal: AbortSignal) => Promise<Result<void>>): Promise<Result<void>> {
     stop();
-    errorMessage.value = undefined;
     state.value = 'connecting';
     armStallWatchdog();
 
@@ -64,7 +64,6 @@ export function useStreamLifecycle() {
     }
     if (!result.ok) {
       state.value = 'error';
-      errorMessage.value = result.error.message;
       return result;
     }
 
@@ -87,17 +86,6 @@ export function useStreamLifecycle() {
     if (state.value !== 'idle' && state.value !== 'error') state.value = 'idle';
   }
 
-  /** Se quedó sin respuesta: se cancela el upstream y se reporta el código. */
-  function reportStall(): Result<void> {
-    stop();
-    state.value = 'error';
-    return resultError<void>({
-      statusCode: 504,
-      code: CHAT_ERROR_CODES.streamStalled,
-      message: 'El agente dejó de responder.',
-    });
-  }
-
   const isRunning = (): boolean => state.value === 'connecting' || state.value === 'streaming' || state.value === 'stalled';
 
   onScopeDispose(() => {
@@ -105,5 +93,5 @@ export function useStreamLifecycle() {
     controller.value?.abort();
   });
 
-  return { state, errorMessage, isRunning, start, stop, markActivity, reportStall };
+  return { state, isRunning, start, stop, markActivity };
 }

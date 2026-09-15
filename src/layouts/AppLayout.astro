@@ -3,13 +3,17 @@
  * @file src/layouts/AppLayout.astro
  * @description Layout de producto: shell + título + slots de contenido.
  *
- * Deliberadamente **no** monta ninguna isla de un slice: la isla vive en la
- * página que la necesita, porque es la página quien conoce los `params`. Lo que
- * sí garantiza este layout es que el contenedor (`main`) tenga altura contenida
- * y `min-w-0`, que es el prerequisito de cualquier transcript con scroll.
+ * Deliberadamente **no** monta islas de contenido: la isla vive en la página que
+ * la necesita, porque es la página quien conoce los `params`. La única excepción
+ * es `ShellShortcuts` (sin UI, `client:only`): los atajos globales que /settings
+ * anuncia deben existir en todas las páginas del shell, y montarlos página a
+ * página los duplicaría. Lo que sí garantiza este layout es que el contenedor
+ * (`main`) tenga altura contenida y `min-w-0`, que es el prerequisito de
+ * cualquier transcript con scroll.
  */
 import RootLayout from './RootLayout.astro';
 import AppShell from '@components/AppShell.astro';
+import { ShellShortcuts } from '@domains/app-shell';
 
 interface Props {
   title: string;
@@ -22,6 +26,8 @@ const { title, description, active = 'chat', subtitle } = Astro.props;
 ---
 
 <RootLayout title={title} description={description}>
+  <ShellShortcuts client:only="vue" />
+
   <AppShell {active} {title} {subtitle}>
     <!--
       Envoltor con `contents` para no alterar la rejilla del TopBar: Astro

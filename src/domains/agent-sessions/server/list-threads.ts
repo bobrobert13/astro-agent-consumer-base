@@ -21,12 +21,12 @@ const rawThreadSchema = z
     updatedAt: z.string().optional(),
     createdAt: z.string().optional(),
   })
-  .passthrough();
+  .loose();
 
 const rawThreadListSchema = z.union([
   z.array(rawThreadSchema),
   z.record(z.string(), rawThreadSchema),
-  z.object({ threads: z.union([z.array(rawThreadSchema), z.record(z.string(), rawThreadSchema)]) }).passthrough(),
+  z.object({ threads: z.union([z.array(rawThreadSchema), z.record(z.string(), rawThreadSchema)]) }).loose(),
 ]);
 
 export async function listThreads(resource: string): Promise<Result<Page<ThreadSummary>>> {

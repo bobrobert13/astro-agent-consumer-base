@@ -6,9 +6,10 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { mockTransport } from '@domains/agent-chat/transport/mock';
-import { answerFor } from '@domains/agent-chat/composables/services/chat/data/chat.tokens';
+import { answerFor, stallFor, streamMockChunks } from '@domains/agent-chat/composables/services/chat/data/chat.tokens';
 import { transport } from '@domains/agent-chat/transport';
 import type { StreamChunk } from '@domains/agent-chat/transport/types';
+import { STREAM_STALL_MS } from '@config/app';
 
 const baseInput = { agentId: 'research', prompt: 'hola', thread: 't1' };
 
@@ -27,16 +28,55 @@ describe('answerFor', () => {
     expect(chunk).toMatchObject({ type: 'error', code: 'upstream_unreachable' });
   });
 
-  it('/slow produce silencio suficiente para que el watchdog lo vea', () => {
-    const chunks = answerFor('default', '/slow');
-    // El marcador de retraso se inserta en la posición 2, no al final.
-    expect(chunks[2]?.type).toBe('text-delta');
-  });
-
   it('un agente sin frase asignada usa el texto genérico', () => {
     const chunks = answerFor('inexistente', 'cualquier cosa');
     const first = chunks[0];
     expect(first?.type).toBe('text-delta');
+  });
+});
+
+describe('stallFor', () => {
+  it('/slow planifica un silencio más largo que el watchdog del cliente', () => {
+    const stall = stallFor('/slow');
+    expect(stall).toBeDefined();
+    expect(stall?.ms).toBeGreaterThan(STREAM_STALL_MS);
+    expect(stall?.after).toBeGreaterThan(0);
+  });
+
+  it('cualquier otro prompt no planifica silencio', () => {
+    expect(stallFor('normal')).toBeUndefined();
+    expect(stallFor('/error')).toBeUndefined();
+  });
+});
+
+describe('streamMockChunks', () => {
+  it('el silencio de /slow es real y el abort lo interrumpe', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const seen: StreamChunk[] = [];
+    const stall = stallFor('/slow');
+    expect(stall).toBeDefined();
+
+    const running = streamMockChunks(answerFor('research', '/slow base'), {
+      signal: controller.signal,
+      onChunk: (chunk) => seen.push(chunk),
+      ...(stall !== undefined ? { stall } : {}),
+    });
+
+    // Emite hasta el punto del silencio y se calla.
+    await vi.advanceTimersByTimeAsync(500);
+    const duringStall = seen.length;
+    expect(duringStall).toBe(2);
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(seen.length).toBe(duringStall);
+
+    // El abort corta el silencio sin esperar los 27 s.
+    controller.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    const completed = await running;
+
+    vi.useRealTimers();
+    expect(completed).toBe(false);
   });
 });
 

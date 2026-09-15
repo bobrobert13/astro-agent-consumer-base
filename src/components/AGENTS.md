@@ -33,7 +33,9 @@ no va aquí: va a la carpeta `components/` de su slice, o a
 `RootLayout` es el **único** `<html>`/`<head>`/`<body>`: no existe
 `<Meta framework="vue">` en Astro 7, así que el `<head>` se escribe a mano, con
 `viewport-fit=cover` para el notch en desktop. `AppLayout` añade el shell con
-slots; `BareLayout` es para onboarding y errores.
+slots y monta una única isla, `ShellShortcuts` (`client:only`, sin UI): los
+atajos globales que `/settings` anuncia; `BareLayout` es para onboarding y
+errores.
 
 Dos trampas de Astro 7 que afectan a esta carpeta:
 

@@ -1,3 +1,4 @@
+import { STREAM_STALL_MS } from '@config/app';
 import type { StreamChunk } from '../../../../transport/types';
 
 /**
@@ -9,9 +10,10 @@ import type { StreamChunk } from '../../../../transport/types';
  *  - deltas de tamaño irregular (así llegan los modelos reales, palabra a palabra);
  *  - un `tool-call` en medio, para que `ToolCallCard` se vea alguna vez;
  *  - `/error` → chunk de error con código del catálogo;
- *  - `/slow` → silencio largo a mitad, para provocar el estado `stalled`;
- *  - comprobación de `signal.aborted` **antes de cada** chunk, para poder probar
- *    la cancelación sin red.
+ *  - `/slow` → silencio real más largo que `STREAM_STALL_MS`, para provocar el
+ *    estado `stalled` igual que lo haría un agente de verdad callado;
+ *  - comprobación de `signal.aborted` **antes de cada** chunk (y el silencio es
+ *    interrumpible), para poder probar la cancelación sin red.
  */
 
 const SENTENCE_BANK: Record<string, string> = {
@@ -28,6 +30,20 @@ export interface MockStreamOptions {
   onChunk: (chunk: StreamChunk) => void;
   /** Chunks por segundo simulados. Bajo para poder ver el efecto. */
   cps?: number;
+  /** Silencio real a mitad de la secuencia: el watchdog del cliente debe marcar `stalled`. */
+  stall?: MockStall;
+}
+
+/** Plan de silencio: tras emitir `after` chunks, callar `ms` milisegundos. */
+export interface MockStall {
+  after: number;
+  ms: number;
+}
+
+/** `/slow` → silencio más largo que el watchdog del cliente. Otro prompt → nada. */
+export function stallFor(prompt: string): MockStall | undefined {
+  if (!prompt.trim().toLowerCase().startsWith('/slow')) return undefined;
+  return { after: 2, ms: STREAM_STALL_MS + 2_000 };
 }
 
 /** Construye la secuencia de chunks que respondería un agente para `prompt`. */
@@ -46,12 +62,6 @@ export function answerFor(agentId: string, prompt: string): StreamChunk[] {
   sequence.push({ type: 'text-end' });
   sequence.push({ type: 'tool-call', toolName: 'buscar_documentacion', args: { q: prompt.slice(0, 32) } });
   sequence.push({ type: 'tool-result', toolName: 'buscar_documentacion', result: { hits: 3 } });
-
-  if (prompt.trim().toLowerCase().startsWith('/slow')) {
-    // Silencio deliberado a mitad: el watchdog del cliente debe marcar `stalled`.
-    sequence.splice(2, 0, { type: 'text-delta', text: '(silencio simulado)… ' });
-  }
-
   sequence.push({ type: 'finish', usage: { prompt: prompt.length, completion: text.length, total: prompt.length + text.length } });
   return sequence;
 }
@@ -61,12 +71,18 @@ export function answerFor(agentId: string, prompt: string): StreamChunk[] {
  * `false` si se abortó por el signal.
  */
 export async function streamMockChunks(chunks: StreamChunk[], options: MockStreamOptions): Promise<boolean> {
-  const { signal, onChunk, cps = 18 } = options;
+  const { signal, onChunk, cps = 18, stall } = options;
   const base = Math.round(1000 / cps);
 
-  for (const chunk of chunks) {
+  for (const [index, chunk] of chunks.entries()) {
     if (signal.aborted) return false;
-    await sleep(jitter(chunk.type === 'tool-call' || chunk.type === 'tool-result' ? base * 3 : base));
+
+    if (stall !== undefined && index === stall.after) {
+      await sleep(stall.ms, signal);
+      if (signal.aborted) return false;
+    }
+
+    await sleep(jitter(chunk.type === 'tool-call' || chunk.type === 'tool-result' ? base * 3 : base), signal);
     if (signal.aborted) return false;
     onChunk(chunk);
   }
@@ -77,6 +93,19 @@ function jitter(ms: number): number {
   return Math.round(ms * (0.6 + Math.random() * 0.9));
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Espera interrumpible: un silencio de 27 s no puede sobrevivir al abort. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted === true) {
+      resolve();
+      return;
+    }
+    const timer = setTimeout(finish, ms);
+    function finish(): void {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', finish);
+      resolve();
+    }
+    signal?.addEventListener('abort', finish, { once: true });
+  });
 }

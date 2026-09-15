@@ -17,7 +17,7 @@
  * No usar `reactive()` sobre el objeto devuelto como atajo: volvería a proxyear la
  * lista de mensajes y se pierde justo lo que `shallowRef` protege.
  */
-import { onMounted, watch } from 'vue';
+import { onMounted, onScopeDispose, watch } from 'vue';
 
 import ChatComposer from './ChatComposer.vue';
 import ChatTranscript from './ChatTranscript.vue';
@@ -76,6 +76,21 @@ function onRetry(): void {
   const prompt = last?.parts.find((part) => part.type === 'text')?.text;
   if (typeof prompt === 'string') void send(prompt);
 }
+
+/**
+ * `Escape` detiene la respuesta en curso (`SHORTCUTS.stopStream` en /settings).
+ * Es local a la isla, no global: sin ejecución no hay nada que detener, y así
+ * ningún otro contexto pierde la tecla. Solo actúa con stream vivo, por lo que
+ * Escape dentro del textarea sin ejecución sigue sin hacer nada.
+ */
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' || !isRunning()) return;
+  event.preventDefault();
+  stop();
+}
+
+onMounted(() => document.addEventListener('keydown', onKeydown));
+onScopeDispose(() => document.removeEventListener('keydown', onKeydown));
 </script>
 
 <template>

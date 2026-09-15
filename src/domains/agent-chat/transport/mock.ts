@@ -1,6 +1,6 @@
 import { resultOk } from '@shared/result/result.pattern';
 import type { AgentTransport, StreamContext, StreamInput } from './types';
-import { answerFor, streamMockChunks } from '../composables/services/chat/data/chat.tokens';
+import { answerFor, stallFor, streamMockChunks } from '../composables/services/chat/data/chat.tokens';
 
 /**
  * @file src/domains/agent-chat/transport/mock.ts
@@ -14,9 +14,11 @@ import { answerFor, streamMockChunks } from '../composables/services/chat/data/c
  */
 export const mockTransport: AgentTransport = {
   async stream(input: StreamInput, context: StreamContext) {
+    const stall = stallFor(input.prompt);
     const completed = await streamMockChunks(answerFor(input.agentId, input.prompt), {
       signal: context.signal,
       onChunk: context.onChunk,
+      ...(stall !== undefined ? { stall } : {}),
     });
 
     // Un abort no es un fallo: el llamador ya limpió su estado al cancelar.

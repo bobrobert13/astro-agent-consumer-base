@@ -17,9 +17,11 @@ import { STORAGE_KEYS } from '@config/ui/tokens';
  * Solo estado de interfaz. Los datos de dominio viven en su slice, y lo que se
  * comparte por URL no se duplica aquí.
  */
+export type ShellTheme = 'system' | 'light' | 'dark';
+
 export const useAppShellStore = defineStore('app-shell', () => {
   const sidebarOpen = ref(true);
-  const theme = ref<'system' | 'light' | 'dark'>('system');
+  const theme = ref<ShellTheme>('system');
 
   /** Isla activa que quiere notificar algo al chrome de la app. */
   const busy = ref(false);
@@ -31,15 +33,45 @@ export const useAppShellStore = defineStore('app-shell', () => {
     remember(STORAGE_KEYS.sidebarOpen, String(sidebarOpen.value));
   }
 
-  function setTheme(next: 'system' | 'light' | 'dark'): void {
+  function setTheme(next: ShellTheme): void {
     theme.value = next;
     remember(STORAGE_KEYS.theme, next);
-    document.documentElement.classList.toggle('dark', next === 'dark');
-    document.documentElement.classList.toggle('light', next === 'light');
+    applyThemeClasses(next);
   }
+
+  /**
+   * Hidratación al crear el store: sin esto, el tema y el sidebar persistidos
+   * morían en cada recarga (se guardaban para nadie). Falla en silencio con
+   * almacenamiento bloqueado o ausente — perder la preferencia no debe romper
+   * la app, igual que en `remember`.
+   */
+  function restore(): void {
+    try {
+      const savedTheme = localStorage.getItem(STORAGE_KEYS.theme);
+      if (savedTheme === 'system' || savedTheme === 'light' || savedTheme === 'dark') theme.value = savedTheme;
+      const savedSidebar = localStorage.getItem(STORAGE_KEYS.sidebarOpen);
+      if (savedSidebar !== null) sidebarOpen.value = savedSidebar !== 'false';
+    } catch {
+      /* almacenamiento no disponible: se mantienen los defaults */
+    }
+    applyThemeClasses(theme.value);
+  }
+
+  restore();
 
   return { sidebarOpen, theme, busy, sidebarLabel, toggleSidebar, setTheme };
 });
+
+/**
+ * `system` no toca clases: deja mandar a la media query de `global.css`. La
+ * variante `dark` de Tailwind y las variables `--aac-*` cubren los dos caminos
+ * (clase y media), así que forzar tema y seguir al sistema conviven.
+ */
+function applyThemeClasses(theme: ShellTheme): void {
+  if (typeof document === 'undefined') return;
+  document.documentElement.classList.toggle('dark', theme === 'dark');
+  document.documentElement.classList.toggle('light', theme === 'light');
+}
 
 /**
  * Persistencia mínima sin dependencia: solo claves nuestras y solo lo que no es

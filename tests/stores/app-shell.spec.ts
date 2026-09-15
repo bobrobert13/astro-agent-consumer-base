@@ -50,6 +50,24 @@ describe('useAppShellStore', () => {
     expect(second.busy).toBe(true);
   });
 
+  it('restaura el tema y el sidebar persistidos al crear el store', () => {
+    localStorage.setItem('aac.theme', 'dark');
+    localStorage.setItem('aac.sidebar', 'false');
+
+    const shell = useAppShellStore();
+    expect(shell.theme).toBe('dark');
+    expect(shell.sidebarOpen).toBe(false);
+    expect(document.documentElement.classList.toggle).toHaveBeenCalledWith('dark', true);
+  });
+
+  it('un valor guardado inválido no altera los defaults', () => {
+    localStorage.setItem('aac.theme', 'neón');
+
+    const shell = useAppShellStore();
+    expect(shell.theme).toBe('system');
+    expect(shell.sidebarOpen).toBe(true);
+  });
+
   it('no rompe si localStorage está bloqueado', () => {
     vi.stubGlobal('localStorage', {
       setItem: () => {

@@ -1,0 +1,58 @@
+---
+/**
+ * @file src/pages/history.astro
+ * @description Historial de hilos de la identidad actual.
+ *
+ * Cero JS: se lee en el servidor con el `resource` que fija la cookie, y cada
+ * fila es un `<a>` normal. Cuando el proyecto quiera borrar o renombrar desde la
+ * lista, eso sí es una isla — y entonces se suscribe a `session:renamed` /
+ * `session:deleted` del bus en vez de recargar a ciegas.
+ */
+import AppLayout from '@layouts/AppLayout.astro';
+import PageTitle from '@components/PageTitle.astro';
+import Panel from '@components/Panel.astro';
+import EmptyState from '@components/EmptyState.astro';
+import ButtonLink from '@components/ButtonLink.astro';
+import Badge from '@components/Badge.astro';
+import Icon from '@components/Icon.astro';
+import { listThreads } from '@domains/agent-sessions/server';
+import { resolveScope } from '@domains/agent-chat/server';
+import { routes } from '@config/routes';
+
+const { resource } = resolveScope(Astro.request);
+const result = await listThreads(resource);
+const threads = result.ok ? result.data.items : [];
+const failure = result.ok ? undefined : result.error.message;
+---
+
+<AppLayout title="Historial" active="history">
+  <div class="mx-auto h-full max-w-3xl overflow-y-auto px-6 py-8">
+    <PageTitle title="Tus conversaciones" description={failure ?? `Hilos de la identidad "${resource}".`} />
+
+    {threads.length === 0 ? (
+      <EmptyState
+        title="Todavía no hay hilos guardados"
+        description="Aparecen cuando el backend de agentes guarda memoria de la conversación."
+        icon="history"
+      >
+        <ButtonLink href={routes.chat()} variant="primary">Empezar una conversación</ButtonLink>
+      </EmptyState>
+    ) : (
+      <Panel pad="none">
+        <ul class="divide-y divide-line">
+          {threads.map((thread) => (
+            <li>
+              <a href={routes.chat(thread.id)} class="flex items-center gap-3 px-4 py-3 hover:bg-elevated">
+                <Icon name="chat" class="size-4 shrink-0 text-ink-muted" />
+                <span class="min-w-0 flex-1 truncate text-sm">{thread.title}</span>
+                {thread.updatedAt !== '' && (
+                  <Badge tone="neutral">{new Date(thread.updatedAt).toLocaleDateString('es', { day: '2-digit', month: 'short' })}</Badge>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </Panel>
+    )}
+  </div>
+</AppLayout>

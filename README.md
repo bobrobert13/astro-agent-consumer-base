@@ -131,7 +131,7 @@ loads `http://127.0.0.1:<dynamic-port>`, never `file://`.
 |---|---|
 | Framework | Astro 7.3 · `output: 'server'` · `@astrojs/node` standalone |
 | UI | Vue 3.5 · Pinia 4 · `@pinia/colada` · VueUse |
-| Styling | Tailwind CSS v4 (CSS-first `@theme`, no config file) · typography plugin |
+| Styling | Tailwind CSS v4 (CSS-first `@theme`, no config file) · typography plugin · shadcn-vue (reka-ui) in `src/components/ui/**` |
 | Agents | `@mastra/client-js` behind a provider-agnostic `AgentTransport` |
 | Desktop | Electron 44 · electron-builder 26 (NSIS, AppImage/deb, DMG) |
 | Quality | TypeScript 5.9 `strictest` · ESLint 10 flat · Vitest 5 · `astro check` |

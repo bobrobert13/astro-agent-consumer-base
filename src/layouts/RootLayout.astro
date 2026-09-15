@@ -1,0 +1,49 @@
+---
+/**
+ * @file src/layouts/RootLayout.astro
+ * @description Único `<html>`/`<head>`/`<body>` de la aplicación.
+ *
+ * Los otros layouts componen sobre este; nunca arrastran sus propias etiquetas
+ * de documento (el compilador de Astro 7 ya no corrige HTML inválido, y un
+ * `<html>` duplicado es un error duro, no un aviso).
+ *
+ * Nota de versión: en Astro 7 no existe un componente `<Meta framework="vue">`.
+ * El `<head>` se escribe a mano, como aquí.
+ */
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { APP_NAME_LABEL } from '@config/app';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+}
+
+const { title, description = '' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{`${title} · ${APP_NAME_LABEL}`}</title>
+    <meta name="description" content={description} />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <!--
+      SPA-feel sin router propio: ClientRouter intercepta la navegación y aplica
+      View Transitions. Es lo que permite que una isla con `transition:persist`
+      sobreviva a un cambio de ruta, que es a su vez lo que hace que un stream en
+      curso no se corte al navegar.
+    -->
+    <ClientRouter />
+
+    <slot name="head-extra" />
+  </head>
+  <body class="min-h-svh antialiased">
+    <slot />
+  </body>
+</html>

@@ -1,0 +1,30 @@
+---
+/**
+ * @file src/components/IslandFallback.astro
+ * @description Skeleton reutilizable para el `slot="fallback"` de una isla.
+ *
+ * Una isla con `client:only` no pinta nada hasta que carga su chunk: sin
+ * fallback el usuario ve un salto de layout. Este componente existe para que el
+ * placeholder sea el mismo en todas las islas y nadie improvise un gris suelto.
+ */
+interface Props {
+  /** Cuántas líneas de skeleton. */
+  lines?: number;
+  /** Altura de bloque contenedor, en clases de Tailwind. */
+  height?: string;
+}
+
+const { lines = 3, height = 'min-h-40' } = Astro.props;
+---
+
+<div class:list={['flex flex-col gap-2 p-4', height]} aria-hidden="true">
+  {Array.from({ length: lines }, (_, index) => index).map((index) => (
+    <div
+      class:list={[
+        'animate-pulse rounded bg-elevated',
+        index === lines - 1 ? 'h-3 w-2/3' : 'h-3 w-full',
+      ]}
+    >
+    </div>
+  ))}
+</div>

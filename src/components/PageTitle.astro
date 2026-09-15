@@ -1,0 +1,20 @@
+---
+/**
+ * @file src/components/PageTitle.astro
+ * @description Título de página dentro de un `main`. `TopBar` ya muestra el
+ * título visual; este es el `h1` semántico del documento.
+ */
+interface Props {
+  title: string;
+  description?: string | undefined;
+}
+
+const { title, description } = Astro.props;
+---
+
+<div class="mb-6">
+  <h1 class="text-xl font-semibold tracking-tight">{title}</h1>
+  {description !== undefined && description !== '' && (
+    <p class="mt-1 text-sm text-ink-muted">{description}</p>
+  )}
+</div>

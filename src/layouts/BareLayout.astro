@@ -1,0 +1,22 @@
+---
+/**
+ * @file src/layouts/BareLayout.astro
+ * @description Documento sin shell: onboarding, errores, páginas de estado.
+ */
+import RootLayout from './RootLayout.astro';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+}
+
+const { title, description } = Astro.props;
+---
+
+<RootLayout title={title} description={description}>
+  <main class="grid min-h-svh place-content-center px-6 py-12">
+    <div class="w-full max-w-md">
+      <slot />
+    </div>
+  </main>
+</RootLayout>

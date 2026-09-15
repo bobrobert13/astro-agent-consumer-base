@@ -1,0 +1,36 @@
+---
+/**
+ * @file src/layouts/AppLayout.astro
+ * @description Layout de producto: shell + título + slots de contenido.
+ *
+ * Deliberadamente **no** monta ninguna isla de un slice: la isla vive en la
+ * página que la necesita, porque es la página quien conoce los `params`. Lo que
+ * sí garantiza este layout es que el contenedor (`main`) tenga altura contenida
+ * y `min-w-0`, que es el prerequisito de cualquier transcript con scroll.
+ */
+import RootLayout from './RootLayout.astro';
+import AppShell from '@components/AppShell.astro';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+  active?: 'chat' | 'agents' | 'history' | 'settings';
+  subtitle?: string | undefined;
+}
+
+const { title, description, active = 'chat', subtitle } = Astro.props;
+---
+
+<RootLayout title={title} description={description}>
+  <AppShell {active} {title} {subtitle}>
+    <!--
+      Envoltor con `contents` para no alterar la rejilla del TopBar: Astro
+      proyecta el contenido por el atributo `slot`, y este patrón funciona igual
+      con o sin reenvío de slots entre componentes.
+    -->
+    <div slot="header-actions" class="contents">
+      <slot name="header-actions" />
+    </div>
+    <slot />
+  </AppShell>
+</RootLayout>

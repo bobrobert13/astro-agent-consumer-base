@@ -1,0 +1,38 @@
+---
+/**
+ * @file src/components/Icon.astro
+ * @description Sprite SVG inline. Sin librería de iconos: cada glifo es una
+ * entrada de `icon.paths.ts`, el `use` es same-origin y no cuesta petición.
+ *
+ * `currentColor` hace que el color se controle con `text-*`, que es lo que
+ * esperan los tokens de `@theme`.
+ */
+import { ICON_PATHS, type IconName } from '@components/icon.paths';
+import type { ClassValue } from '@shared/ui/variants';
+
+interface Props {
+  name: IconName;
+  class?: ClassValue;
+  /** Si se omite, el icono es decorativo (`aria-hidden`). */
+  label?: string | undefined;
+}
+
+const { name, class: className, label } = Astro.props;
+const decorative = label === undefined;
+---
+
+<svg
+  class:list={[className, 'size-4 shrink-0']}
+  aria-hidden={decorative ? 'true' : undefined}
+  aria-label={label}
+  role={decorative ? undefined : 'img'}
+  width="16"
+  height="16"
+  viewBox="0 0 16 16"
+  fill="none"
+  stroke="currentColor"
+  stroke-width="1.5"
+  stroke-linecap="round"
+  stroke-linejoin="round"
+  set:html={ICON_PATHS[name]}
+/>

@@ -1,0 +1,37 @@
+---
+/**
+ * @file src/components/Panel.astro
+ * @description Contenedor con borde, fondo y radio del tema. La primitiva sobre
+ * la que se construyen todas las superficies del producto.
+ */
+import { cn, variants, type ClassValue } from '@shared/ui/variants';
+
+interface Props {
+  tone?: 'default' | 'muted' | 'danger';
+  pad?: 'none' | 'sm' | 'md';
+  class?: ClassValue;
+}
+
+const { tone = 'default', pad = 'md', class: className } = Astro.props;
+
+const panel = variants({
+  base: 'rounded-panel border shadow-panel',
+  variants: {
+    tone: {
+      default: 'border-line bg-surface',
+      muted: 'border-line bg-elevated',
+      danger: 'border-danger bg-surface',
+    },
+    pad: {
+      none: '',
+      sm: 'p-3',
+      md: 'p-4',
+    },
+  },
+  defaultVariants: { tone: 'default', pad: 'md' },
+});
+---
+
+<section class={cn(panel({ tone, pad }), className)}>
+  <slot />
+</section>

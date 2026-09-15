@@ -1,0 +1,28 @@
+---
+/**
+ * @file src/components/EmptyState.astro
+ * @description Estado vacío con mensaje en el catálogo del slice, nunca un texto
+ * de relleno suelto en una vista.
+ */
+import Icon from '@components/Icon.astro';
+import type { IconName } from '@components/icon.paths';
+
+interface Props {
+  title: string;
+  description?: string | undefined;
+  icon?: IconName;
+}
+
+const { title, description, icon = 'spark' } = Astro.props;
+---
+
+<div class="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+  <Icon name={icon} class="size-6 text-ink-muted" />
+  <p class="text-sm font-medium">{title}</p>
+  {description !== undefined && description !== '' && (
+    <p class="max-w-sm text-xs text-ink-muted">{description}</p>
+  )}
+  <div class="mt-2">
+    <slot />
+  </div>
+</div>

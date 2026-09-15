@@ -1,0 +1,58 @@
+import { defineConfig } from 'vitest/config';
+import { fileURLToPath } from 'node:url';
+import { aliases } from './aliases.mjs';
+
+const r = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
+
+/**
+ * Dos proyectos en vez de uno, porque el repo mezcla lógica pura en Node (kernel,
+ * servicios, handlers del BFF) con componentes que necesitan DOM. Un único
+ * entorno `jsdom` para todo haría lentos y ambiguos los tests de transporte.
+ *
+ * - `node`: sin DOM. Aquí viven `shared/**`, `<scope>.api.ts`, `server/**` y el
+ *   test de fronteras de arquitectura.
+ * - `dom`: jsdom, para montar componentes `.vue` con @vue/test-utils.
+ */
+export default defineConfig({
+  resolve: {
+    alias: {
+      ...aliases,
+      // `astro:env/*` lo materializa Astro en el build; fuera de Astro el
+      // specifier no existe, así que se resuelve a los stubs espejo de
+      // `env.schema`. Solo aquí: `astro.config.mjs` NO debe mapearlos.
+      'astro:env/client': r('./tests/_stubs/env-client.ts'),
+      'astro:env/server': r('./tests/_stubs/env-server.ts'),
+    },
+  },
+  test: {
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'node',
+          environment: 'node',
+          include: ['tests/**/*.spec.ts'],
+          exclude: ['tests/dom/**', 'tests/e2e/**'],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'dom',
+          environment: 'jsdom',
+          include: ['tests/dom/**/*.spec.ts'],
+        },
+      },
+    ],
+    globals: false,
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/shared/**', 'src/domains/**'],
+      // El barrel de cada slice y los `.vue` se prueban por comportamiento, no
+      // por línea; medirlos aquí solo inflaría el número sin cazar nada.
+      exclude: ['**/*.vue', '**/index.ts'],
+      thresholds: { statements: 80, branches: 75, functions: 80, lines: 80 },
+    },
+  },
+});

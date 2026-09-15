@@ -133,7 +133,11 @@ Si alguien añade una variable de servidor nueva, que no la ponga `public`.
   `@theme` de `src/styles/global.css`, que es la **única** fuente de colores,
   radios y sombras. `src/config/ui/tokens.ts` solo guarda lo que JS necesita.
 - Variantes con `@shared/ui/variants` (`cn` + `variants`), no con CVA: hay que
-  poder llamarlas igual desde el frontmatter de un `.astro`.
+  poder llamarlas igual desde el frontmatter de un `.astro`. **Excepción:** los
+  componentes generados por shadcn-vue en `src/components/ui/**` usan su propio
+  `cn` (`src/lib/utils.ts`, clsx + tailwind-merge) y CVA; ver la sección
+  shadcn-vue. No unificar los dos `cn`: el de `variants.ts` concatena sin merge
+  y sus tests fijan esa semántica.
 - Nombres de slot en todo el repo: `default`, `header`, `footer`, `actions`,
   `aside`, `fallback`, `leading`, `trailing`.
 - UI y catálogos de error en **español**. Un código de error sin mensaje en
@@ -143,6 +147,33 @@ Si alguien añade una variable de servidor nueva, que no la ponga `public`.
   ESLint lo reporta como `no-unused-expressions` en una línea de comentario, lo
   que desconcierta la primera vez. Para nombrar rutas comodín en un JSDoc, usar
   la forma larga (`carpeta server de un slice`) o un solo `*`.
+
+## shadcn-vue
+
+Base instalada y verificada (CLI `shadcn-vue`, registry `new-york`, reka-ui).
+Los componentes generados viven en `src/components/ui/**` — la ubicación que ya
+reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
+
+- **Añadir un componente:** `npx shadcn-vue@latest add <nombre>`. El CLI lee
+  `components.json` (aliases `@/...`, CSS `src/styles/global.css`) y respeta el
+  tsconfig. No ejecutar `init` de nuevo: reescribiría `global.css` con la paleta
+  neutral por defecto.
+- **Sin paleta duplicada:** las variables semánticas de shadcn (`--background`,
+  `--primary`, `--border`…) apuntan a las `--aac-*` de toda la vida en el
+  `:root` de `global.css`. Reasignar un token de concepto mueve a la vez los
+  componentes propios y los del registry. `.dark` y la media query siguen
+  siendo la única fuente del modo oscuro.
+- **Variante `dark` híbrida** (`@custom-variant dark` en `global.css`): aplica
+  con la clase `.dark` (tema forzado por el store) **y** con
+  `prefers-color-scheme: dark` salvo `.light` explícito. Es lo que permite que
+  los `dark:` del registry y los del repo converjan.
+- `src/lib/utils.ts` es territorio shadcn (lo genera el CLI); el resto del repo
+  sigue con `@shared/ui/variants`.
+- ESLint exime `src/components/ui/**` de `vue/multi-word-component-names`: los
+  nombres los fija el registry (`Button.vue`), renombrar rompería `add`/`diff`.
+- Primer consumidor real: `StreamStatusBar.vue` (isla de chat) usa el `Button`.
+  En `.astro` sin directiva los componentes de ui se renderizan en el servidor
+  (cero JS); los interactivos (Dialog, Dropdown…) exigen isla hidratada.
 
 ## Astro 7: lo que rompe si uno viene de Astro 3/4
 
@@ -169,6 +200,10 @@ Si alguien añade una variable de servidor nueva, que no la ponga `public`.
   (`readSseLines`) implementa el mismo contrato `AgentTransport` sin él.
 - `eslint-plugin-jsx-a11y` **no** se instala: su peer llega hasta ESLint 9. Por eso
   no se usa `astro.configs['jsx-a11y-recommended']`.
+- Stack shadcn-vue instalado: `reka-ui`, `class-variance-authority`, `clsx`,
+  `tailwind-merge`, `tw-animate-css` y `@lucide/vue` (iconos del registry). El
+  CLI (`npx shadcn-vue@latest add …`) detecta Astro y Tailwind v4 por sí solo;
+  `components.json` fija aliases y el CSS. Ver la sección **shadcn-vue**.
 
 ## Verificación
 

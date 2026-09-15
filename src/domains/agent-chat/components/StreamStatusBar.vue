@@ -6,9 +6,13 @@
  *
  * Existe para que el estado de `useStreamLifecycle` sea visible: un chat que se
  * queda callado a media ejecución sin decir nada se lee como una app rota.
+ *
+ * Las acciones usan el `Button` de shadcn-vue (`@/components/ui/button`): es la
+ * primitiva compartida del registry, y esta franja es su primer consumidor real.
  */
 import { computed } from 'vue';
 
+import { Button } from '@/components/ui/button';
 import type { StreamState } from '../types/chat.types';
 
 const props = defineProps<{ state: StreamState }>();
@@ -37,11 +41,11 @@ const canStop = computed(() => props.state === 'connecting' || props.state === '
   >
     <span v-if="state === 'connecting' || state === 'streaming'" class="size-2 animate-pulse rounded-full bg-brand-500" aria-hidden="true" />
     <span>{{ label }}</span>
-    <button v-if="canStop" type="button" class="ml-auto underline hover:no-underline" @click="$emit('stop')">
+    <Button v-if="canStop" variant="ghost" size="xs" class="ml-auto" @click="$emit('stop')">
       Detener
-    </button>
-    <button v-else-if="state === 'stalled'" type="button" class="ml-auto underline hover:no-underline" @click="$emit('retry')">
+    </Button>
+    <Button v-else-if="state === 'stalled'" variant="ghost" size="xs" class="ml-auto" @click="$emit('retry')">
       Reintentar
-    </button>
+    </Button>
   </div>
 </template>

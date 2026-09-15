@@ -28,6 +28,23 @@ no va aquí: va a la carpeta `components/` de su slice, o a
 `Icon` lee su lista cerrada de `icon.paths.ts`; `IslandFallback` es el
 `slot="fallback"` estándar de toda isla con `client:only`.
 
+## `src/components/ui/**` (shadcn-vue)
+
+Excepción a la regla 1: aquí viven las primitivas `.vue` generadas por el CLI de
+shadcn-vue (`npx shadcn-vue@latest add <nombre>`), compartidas por dos o más
+slices. Reglas propias:
+
+- **No editar a mano** lo que genera el CLI: los cambios se pierden en el
+  siguiente `add`/`diff`. La apariencia se cambia por tokens
+  (`src/styles/global.css`), no por componente.
+- Importan su `cn` de `@/lib/utils` (clsx + tailwind-merge), no de
+  `@shared/ui/variants`. Ver la sección shadcn-vue del `AGENTS.md` raíz.
+- En un `.astro` sin directiva se renderizan en el servidor (cero JS); los
+  componentes interactivos del registry (Dialog, Dropdown…) exigen isla
+  hidratada.
+- ESLint los exime de `vue/multi-word-component-names`: el nombre lo fija el
+  registry.
+
 ## Layouts
 
 `RootLayout` es el **único** `<html>`/`<head>`/`<body>`: no existe

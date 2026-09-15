@@ -86,4 +86,13 @@ export default [
       'vue/define-macros-order': ['error', { order: ['defineOptions', 'defineProps', 'defineEmits', 'defineSlots'] }],
     },
   },
+  {
+    // `src/components/ui/**` lo escribe el CLI de shadcn-vue con los nombres del
+    // registry (`Button.vue`, `Input.vue`…): renombrarlos rompería `add`/`diff`.
+    // Es la única zona del repo exenta de multi-word.
+    files: ['src/components/ui/**/*.vue'],
+    rules: {
+      'vue/multi-word-component-names': 'off',
+    },
+  },
 ];

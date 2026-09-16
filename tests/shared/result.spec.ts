@@ -78,6 +78,14 @@ describe('normalizeServiceError', () => {
     await Promise.resolve();
   });
 
+  it('desenvuelve el sobre `{ ok:false, error:{…} }` del BFF', () => {
+    const error = normalizeServiceError({
+      ok: false,
+      error: { statusCode: 404, code: 'agent_not_found', message: 'no existe' },
+    });
+    expect(error).toMatchObject({ statusCode: 404, code: 'agent_not_found', message: 'no existe' });
+  });
+
   it('no revienta con basura que no es objeto', () => {
     expect(normalizeServiceError('texto suelto').statusCode).toBe(500);
     expect(normalizeServiceError(undefined).statusCode).toBe(500);

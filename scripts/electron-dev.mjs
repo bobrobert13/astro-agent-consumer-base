@@ -14,7 +14,10 @@
 import { spawn } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
 
+import { electronSandboxEnv } from './lib/electron-sandbox-env.mjs';
+
 const DEV_URL = process.env.AAC_DEV_URL ?? 'http://127.0.0.1:4321';
+const SANDBOX_ENV = electronSandboxEnv(process.cwd());
 const children = [];
 let shuttingDown = false;
 
@@ -24,6 +27,10 @@ main().catch((error) => {
 });
 
 async function main() {
+  if (SANDBOX_ENV.ELECTRON_DISABLE_SANDBOX !== undefined) {
+    console.warn('[electron-dev] chrome-sandbox no es SUID-root: la ventana corre sin sandbox del renderer.');
+  }
+
   const alreadyUp = await probe(`${DEV_URL}/api/health`);
   if (alreadyUp) {
     console.log(`[electron-dev] reutilizando el servidor de desarrollo en ${DEV_URL}`);
@@ -37,7 +44,7 @@ async function main() {
   console.log('[electron-dev] abriendo la ventana de Electron…');
   const electron = spawnOrFail('npx', ['electron', '.'], {
     label: 'electron',
-    env: { ELECTRON_START_URL: DEV_URL },
+    env: { ELECTRON_START_URL: DEV_URL, ...SANDBOX_ENV },
   });
 
   await new Promise((resolve) => {

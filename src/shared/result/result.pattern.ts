@@ -80,6 +80,13 @@ export function normalizeServiceError(
   }
 
   if (isRecord(input)) {
+    // El BFF envuelve los fallos como `{ ok: false, error: {…} }`. Sin este
+    // desarrollo, un 404 de `/api/sessions` llegaría a la pantalla como un 500
+    // genérico con el mensaje perdido.
+    if (input['ok'] === false && isRecord(input['error'])) {
+      return normalizeServiceError(input['error'], fallbackStatusCode);
+    }
+
     const status = pickNumber(input, ['status', 'statusCode']) ?? fallbackStatusCode;
     const code = pickString(input, ['code']);
     const field = pickString(input, ['field']);

@@ -174,6 +174,12 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 - Primer consumidor real: `StreamStatusBar.vue` (isla de chat) usa el `Button`.
   En `.astro` sin directiva los componentes de ui se renderizan en el servidor
   (cero JS); los interactivos (Dialog, Dropdown…) exigen isla hidratada.
+- **CSP:** `security.csp` lleva `style-src 'self' 'unsafe-inline'` y deja
+  `script-src` con hashes. Motivo: los hashes no cubren nunca un atributo
+  `style=""` (lo dice Chromium al negarlo) y el SSR de reka-ui/vue-sonner va lleno
+  de ellos. En dev no se ve, porque el CSP está apagado por HMR, así que lo
+  sostiene `npm run verify:electron`. Leer ADR-004 antes de tocar `security.csp`,
+  y correr el smoke al añadir dependencias de UI.
 
 ## Astro 7: lo que rompe si uno viene de Astro 3/4
 
@@ -215,8 +221,13 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   que se fuerza `no-transform` y que `checkOrigin` sigue bloqueando el cross-site.
 - `npm run verify:electron` → abre Chromium, levanta el servidor construido, verifica
   el `contextBridge` del preload, **escribe un prompt y espera a que la respuesta se
-  asiente en pantalla**, y deja `smoke/electron-chat.png`. Es la única prueba de lo
-  que el usuario ve: ningún test de Vitest puede sustituirla.
+  asiente en pantalla**, abre un `Select` de `/settings` contra el CSP de producción y
+  deja `smoke/electron-chat.png`. Es la única prueba de lo que el usuario ve: ningún
+  test de Vitest puede sustituirla. Es también el guardián del CSP (ADR-004), porque
+  corre la build y no dev.
+  En Linux sin `chrome-sandbox` SUID-root el lanzador desactiva el sandbox del
+  renderer y avisa; sin ese paso Electron abortaría con SIGTRAP antes de la primera
+  comprobación (`scripts/lib/electron-sandbox-env.mjs`).
 
 ## Definition of Done
 
@@ -236,7 +247,7 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 
 ## Qué mirar antes de culpar al código
 
-Tres fallos que se ven raros desde fuera:
+Cuatro fallos que se ven raros desde fuera:
 
 - Isla que no hidrata o puente `undefined` → `electron/AGENTS.md` (preload CJS, sin
   `require` propios, sin getters).
@@ -244,3 +255,6 @@ Tres fallos que se ven raros desde fuera:
   desenvuelven; hay que desestructurar en el componente).
 - `403` en un POST desde una herramienta CLI → `security.checkOrigin` de Astro
   trabajando: falta el header `Origin` same-origin.
+- Consola llena de avisos de CSP **solo en la build**, y en dev limpia: es la
+  política rechazando atributos `style=""`, ADR-004. El que lo reproduce es
+  `npm run verify:electron`; `npm run dev` no puede.

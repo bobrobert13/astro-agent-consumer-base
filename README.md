@@ -57,10 +57,10 @@ src/
 └── stores/                  one global Pinia store, and why it's only one
 electron/                    desktop shell: main, preload, lib/
 tests/                       unit · contracts · BFF · DOM · architecture boundaries
-docs/adr/                    three decisions, each with the cost it accepted
+docs/adr/                    four decisions, each with the cost it accepted
 ```
 
-### Architecture, in three decisions
+### Architecture, in four decisions
 
 - **[ADR-001](./docs/adr/001-relay-sse-verbatim.md) — the relay copies bytes.** The BFF rewrites
   the path, injects the credential, forces the right cache headers and propagates cancellation,
@@ -75,6 +75,11 @@ docs/adr/                    three decisions, each with the cost it accepted
 - **[ADR-003](./docs/adr/003-mock-first.md) — mock first.** The transport is an interface. The
   mock and the real client are exact substitutes, which is what makes the boilerplate testable
   offline and the provider replaceable in one file.
+- **[ADR-004](./docs/adr/004-csp-estilos-en-runtime.md) — CSP strict about scripts, honest about
+  styles.** `script-src` keeps Astro's per-chunk SHA-256 hashes with no inline exception, which is
+  the directive that stops an agent's answer from running code. `style-src` allows inline styles,
+  because component libraries compute CSS *after* the build and no build-time hash can cover a
+  value the browser invents.
 
 ### Also, because these bite later
 
@@ -94,15 +99,17 @@ This is the part most templates skip.
 
 | Command | What it proves |
 |---|---|
-| `npm run all` | ESLint, `astro check`, 113 Vitest tests, production build. |
+| `npm run all` | ESLint, `astro check`, 130 Vitest tests, production build. |
 | `npm run verify:bundle` | The agent provider's client lives only in a deferred chunk, outside the island's static import graph. |
 | `npm run verify:relay` | Against a fake agent backend: the relay forwards the SSE stream **byte for byte**, forces `no-transform`, leaks no cookies, and `checkOrigin` still blocks cross-site POSTs. |
-| `npm run verify:electron` | Boots the built server inside Electron, opens a real Chromium window, verifies the `contextBridge` preload, **types a prompt and waits until the streamed answer settles on screen**, and writes `smoke/electron-chat.png`. |
+| `npm run verify:electron` | Boots the built server inside Electron, opens a real Chromium window, verifies the `contextBridge` preload, **types a prompt and waits until the streamed answer settles on screen**, opens a `/settings` dropdown against the production CSP and fails on any policy violation, then writes `smoke/electron-chat.png`. |
 
-The last one is the only check that sees what the user sees. It found four bugs that every unit
+The last one is the only check that sees what the user sees — and the only one that runs the
+build with CSP enabled, since dev switches it off for HMR. It found five bugs that every unit
 test passed: a missing `duplex: 'half'` that made all real streams 502, response headers being
-overwritten by the upstream's, a sandboxed preload that silently never exposed its bridge, and
-nested refs rendering as `[object Object]`.
+overwritten by the upstream's, a sandboxed preload that silently never exposed its bridge,
+nested refs rendering as `[object Object]`, and a policy whose hashes never covered the
+`style=""` attributes the component library ships from the server.
 
 ## Desktop
 
@@ -115,6 +122,11 @@ The packaged app runs the same `dist/server/entry.mjs` as the web deploy — ver
 no `node_modules` alongside it. `dist/` ships **outside** `app.asar` on purpose, because the
 server runs as an `ELECTRON_RUN_AS_NODE` child that has no asar filesystem patch. It always
 loads `http://127.0.0.1:<dynamic-port>`, never `file://`.
+
+On Linux, Chromium needs a root-owned SUID `chrome-sandbox` to isolate renderers. Most clones
+don't have one — `npm install` loses the bit — so the Electron launchers detect that and drop
+the renderer sandbox with a printed warning, rather than letting Electron abort with SIGTRAP
+before the first check. Packaging is unaffected.
 
 ## Starting a product from this base
 
@@ -143,6 +155,8 @@ loads `http://127.0.0.1:<dynamic-port>`, never `file://`.
   `src/shared/streams/sse.ts` implements the same transport contract without it — that's the
   documented exit.
 - `eslint-plugin-jsx-a11y` isn't installed: its peer range stops at ESLint 9.
+- Production CSP allows `'unsafe-inline'` for `style-src` only (ADR-004). The accepted cost is
+  that an injectable agent answer could write CSS; it still cannot write script.
 - Repo docs (`AGENTS.md`, ADRs) are written in Spanish; the UI and its error catalogues too.
 - Playwright-style e2e is intentionally out of scope — `verify:electron` covers the browser path
   without adding a second browser stack.
@@ -151,7 +165,8 @@ loads `http://127.0.0.1:<dynamic-port>`, never `file://`.
 
 - [`AGENTS.md`](./AGENTS.md) — cross-cutting rules: boundaries, hydration policy, streaming
   performance, env gotchas, Astro 7 breaking changes, dependency state, Definition of Done.
-- Per-directory `AGENTS.md` files, plus [`electron/AGENTS.md`](./electron/AGENTS.md) and
+- Per-directory `AGENTS.md` files, the [ADR index](./docs/adr/README.md), plus
+  [`electron/AGENTS.md`](./electron/AGENTS.md) and
   [`docs/lenguaje-visual.md`](./docs/lenguaje-visual.md).
 - [Astro docs](https://docs.astro.build/en/install-and-setup/) — every config decision here was
   checked against them, not from memory.

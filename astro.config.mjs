@@ -60,7 +60,35 @@ export default defineConfig({
 
   security: {
     // CSP desactivado en dev: interfiere con el WebSocket de HMR de Vite.
-    csp: !isDev,
+    //
+    // `style-src` lleva `'unsafe-inline'` y `script-src` no, y esa asimetría es
+    // la decisión, no un descuido:
+    //
+    //  - Los hashes que genera Astro solo cubren hojas estáticas (`<style>`,
+    //    `<link>`) que existían en el momento del build. Vue escribe estilos en
+    //    runtime desde `runtime-dom` —variables CSS `--offset`, `--width`,
+    //    `--reka-*` para posicionar poppers y toasts—, y un valor calculado en el
+    //    navegador no tiene hash posible: la política nace rota.
+    //  - No lo arregla `style-src-attr 'unsafe-inline'` (medido con
+    //    `npm run verify:electron`): el popper se posiciona, pero el CSSOM sigue
+    //    cayendo contra `style-src`.
+    //  - El vector que importa es el script. Ahí Astro sigue firmando cada chunk
+    //    con SHA-256 y no hay ninguna excepción inline, así que inyectar
+    //    JavaScript desde una respuesta del agente sigue bloqueado. Lo que cambia
+    //    con estilos es que una respuesta hostil podría inyectar CSS: feo, no
+    //    ejecutable.
+    //
+    // Se afloja estilos en producción y en dev no se ve nunca (CSP apagado), así
+    // que el guardián es `verify:electron`, que corre contra la build.
+    csp: isDev
+      ? false
+      : {
+          styleDirective: {
+            // `'self'` hay que repetirlo: al dar `resources` Astro deja de
+            // añadirlo por defecto.
+            resources: ["'self'", "'unsafe-inline'"],
+          },
+        },
     checkOrigin: true,
   },
 

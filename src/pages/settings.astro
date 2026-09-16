@@ -1,74 +1,159 @@
 ---
 /**
  * @file src/pages/settings.astro
- * @description Ajustes: estado del entorno, atajos y tokens de la interfaz.
+ * @description Ajustes, en cuatro secciones con dos niveles de dinamismo.
  *
- * Muestra configuración **pública por diseño**. Lo que es secreto o del servidor
- * (host del backend, credenciales, timeouts) se menciona como existente pero no se
- * imprime: una página renderizada en el servidor termina en el HTML del
- * navegador, y ahí ya no hay distinción entre "interior" y "público".
+ * Lo que necesita cliente son dos islas (`AppearanceCard`, `AgentConfigCard`); lo
+ * que no se renderiza en el servidor con cero JS: el catálogo de atajos y el
+ * estado del entorno. La lista de agentes la resuelve esta página llamando al
+ * handler del slice y viaja como prop: así `agent-config` no depende de
+ * `agent-registry`.
+ *
+ * No se imprime nada secreto: el host del backend y las credenciales son
+ * server-only, y una página terminaría enviándolos al navegador.
  */
 import AppLayout from '@layouts/AppLayout.astro';
-import PageTitle from '@components/PageTitle.astro';
-import Panel from '@components/Panel.astro';
-import PanelHeader from '@components/PanelHeader.astro';
-import KeyHint from '@components/KeyHint.astro';
-import Badge from '@components/Badge.astro';
+import { AppearanceCard } from '@domains/app-shell';
+import { AgentConfigCard } from '@domains/agent-config';
+import { listAgents } from '@domains/agent-registry/server';
+import { Alert, AlertDescription, AlertTitle } from '@components/ui/alert';
+import { Badge } from '@components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@components/ui/card';
+import { Kbd, KbdGroup } from '@components/ui/kbd';
+import { Separator } from '@components/ui/separator';
+import { Info } from '@lucide/vue';
 import { APP_NAME_LABEL, APP_VERSION } from '@config/app';
 import { AGENT_TRANSPORT } from '@shared/env/client';
-import { SHORTCUTS, DURATIONS } from '@config/ui/tokens';
-import { routes } from '@config/routes';
+import { SHORTCUTS, STORAGE_KEYS } from '@config/ui/tokens';
+
+const sections = [
+  { id: 'apariencia', label: 'Apariencia' },
+  { id: 'agente', label: 'Agente y ejecución' },
+  { id: 'atajos', label: 'Atajos' },
+  { id: 'entorno', label: 'Entorno' },
+];
 
 const shortcuts = [
   { combo: SHORTCUTS.newThread, label: 'Hilo nuevo' },
-  { combo: SHORTCUTS.preferences, label: 'Preferencias' },
-  { combo: SHORTCUTS.toggleSidebar, label: 'Mostrar/ocultar navegación' },
+  { combo: SHORTCUTS.preferences, label: 'Ir a ajustes' },
+  { combo: SHORTCUTS.toggleSidebar, label: 'Mostrar u ocultar la navegación' },
   { combo: SHORTCUTS.stopStream, label: 'Detener la respuesta en curso' },
 ];
+
+/** `mod` es Cmd en macOS y Ctrl elsewhere: se pinta el literal neutro del teclado. */
+function prettyCombo(combo: string): string[] {
+  return combo.split('+').map((part) => (part === 'mod' ? 'Ctrl' : part === 'comma' ? ',' : part.toUpperCase()));
+}
+
+const agentsResult = await listAgents();
+const agents = agentsResult.ok ? agentsResult.data : [];
+const catalogUnavailable = !agentsResult.ok || agents.length === 0;
 
 const facts = [
   { label: 'Transporte de agentes', value: AGENT_TRANSPORT },
   { label: 'Versión', value: APP_VERSION },
-  { label: 'Duración de transición base', value: `${DURATIONS.base} ms` },
-  { label: 'Backend del proveedor', value: 'oculto a propósito (MASTRA_URL es server-only)' },
+  { label: 'Preferencias en', value: `localStorage (${STORAGE_KEYS.theme}, ${STORAGE_KEYS.sidebarOpen})` },
+  { label: 'Backend del proveedor', value: 'oculto a propósito: es server-only' },
 ];
 ---
 
-<AppLayout title="Ajustes" active="settings">
-  <div class="mx-auto h-full max-w-3xl overflow-y-auto px-6 py-8">
-    <PageTitle title={APP_NAME_LABEL} description="Lo que el boilerplate deja visible y editable sin recompilar." />
-
-    <div class="grid gap-3 sm:grid-cols-2">
-      <Panel pad="none">
-        <PanelHeader title="Entorno" description="Valores públicos del runtime." />
-        <dl class="flex flex-col gap-2 p-4 text-sm">
-          {facts.map((fact) => (
-            <div class="flex items-baseline justify-between gap-3">
-              <dt class="text-ink-muted">{fact.label}</dt>
-              <dd class="text-right font-mono text-xs">{fact.value}</dd>
-            </div>
+<AppLayout title="Ajustes" active="settings" description="Apariencia, perillas del agente y estado del entorno.">
+  <div class="h-full overflow-y-auto">
+    <div class="mx-auto grid max-w-5xl gap-6 px-6 py-8 lg:grid-cols-[12rem_1fr]">
+      <nav aria-label="Secciones" class="hidden lg:block">
+        <div class="sticky top-6 flex flex-col gap-1">
+          {sections.map((section) => (
+            <a
+              href={`#${section.id}`}
+              class="rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              {section.label}
+            </a>
           ))}
-        </dl>
-      </Panel>
+        </div>
+      </nav>
 
-      <Panel pad="none">
-        <PanelHeader title="Atajos" description="Registrados por useShortcuts() y la isla de chat, no por el menú nativo." />
-        <ul class="flex flex-col gap-2 p-4 text-sm">
-          {shortcuts.map((shortcut) => (
-            <li class="flex items-center justify-between gap-3">
-              <span class="text-ink-muted">{shortcut.label}</span>
-              <KeyHint combo={shortcut.combo} />
-            </li>
-          ))}
-        </ul>
-      </Panel>
-    </div>
+      <div class="flex min-w-0 flex-col gap-6">
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">{APP_NAME_LABEL}</h1>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Lo que se puede cambiar sin recompilar. Las preferencias de interfaz viven en este
+            dispositivo; las del agente se envían al backend.
+          </p>
+        </div>
 
-    <div class="mt-6 flex items-center gap-2">
-      <Badge tone={AGENT_TRANSPORT === 'mock' ? 'neutral' : 'brand'}>
-        transporte {AGENT_TRANSPORT}
-      </Badge>
-      <a href={routes.chat()} class="text-xs underline hover:no-underline">Volver al chat</a>
+        <section id="apariencia" class="scroll-mt-6">
+          <AppearanceCard client:visible />
+        </section>
+
+        <section id="agente" class="scroll-mt-6">
+          <AgentConfigCard client:visible agents={agents} />
+        </section>
+
+        <section id="atajos" class="scroll-mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Atajos</CardTitle>
+              <CardDescription>
+                Los registran <code class="font-mono text-xs">ShellShortcuts</code> en el shell y la
+                propia isla de chat, no el menú nativo — que en escritorio declara los mismos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
+              {shortcuts.map((shortcut) => (
+                <div class="flex items-center justify-between gap-4">
+                  <span class="text-sm text-muted-foreground">{shortcut.label}</span>
+                  <KbdGroup>
+                    {prettyCombo(shortcut.combo).map((key) => (<Kbd>{key}</Kbd>))}
+                  </KbdGroup>
+                </div>
+              ))}
+              <p class="text-xs text-muted-foreground">
+                En macOS, <code class="font-mono">Ctrl</code> equivale a <code class="font-mono">Cmd</code>.
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section id="entorno" class="scroll-mt-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Entorno</CardTitle>
+              <CardDescription>Valores públicos del runtime, leídos en el servidor.</CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-4">
+              <dl class="flex flex-col gap-2">
+                {facts.map((fact) => (
+                  <div class="flex items-baseline justify-between gap-4">
+                    <dt class="text-sm text-muted-foreground">{fact.label}</dt>
+                    <dd class="text-right font-mono text-xs">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <Separator />
+
+              {catalogUnavailable ? (
+                <Alert>
+                  <Info />
+                  <AlertTitle>Sin catálogo de agentes</AlertTitle>
+                  <AlertDescription>
+                    El backend no respondió a <code class="font-mono text-xs">GET /api/agents</code>. Con
+                    <code class="font-mono text-xs"> PUBLIC_AGENT_TRANSPORT=mock</code> el chat funciona igual sin
+                    levantar nada; para ver agentes reales arranca el servidor y apunta
+                    <code class="font-mono text-xs"> MASTRA_URL</code>.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-sm text-muted-foreground">Agentes alcanzables:</span>
+                  {agents.map((agent) => (<Badge variant="secondary">{agent.name}</Badge>))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+      </div>
     </div>
   </div>
 </AppLayout>

@@ -20,16 +20,36 @@ import { CONFIG_ERROR_CODES, resolveConfigErrorMessage } from './services/config
  *  - Si la carga falla se muestran los defaults, pero el formulario queda **no
  *    guardable**: escribir sobre defaults que no se leyeron sobrescribiría la config
  *    real del agente con valores inventados.
+ *
+ * Y una tercera vía de arranque: `initial`. Cuando el servidor ya resolvió la
+ * config, esto no se comporta como una precarga optimista sino como el estado
+ * definitivo —`saved` y `settings` nacen iguales, `dirty` es falso y `canSave` es
+ * verdadero—, así que no hay parpadeo ni un `GET` de más.
  */
 export type ConfigState = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
-export function useAgentConfig() {
-  const agentId = ref('');
-  const settings = ref<AgentRunSettings>({ ...DEFAULT_AGENT_SETTINGS });
-  const saved = ref<AgentRunSettings>({ ...DEFAULT_AGENT_SETTINGS });
-  const state = ref<ConfigState>('idle');
+export interface UseAgentConfigOptions {
+  /** Agente con el que arranca el formulario. */
+  agentId?: string | undefined;
+  /**
+   * Config ya resuelta en el servidor (la que pasa `settings.astro`).
+   *
+   * Con ella el formulario nace **guardable** en el propio HTML: sin ella hay que
+   * esperar a que la isla hidrate y a que vuelva el `GET`, y en ese hueco los
+   * controles están deshabilitados — que es exactamente el retardo que se percibe
+   * al entrar en la pantalla.
+   */
+  initial?: AgentRunSettings | undefined;
+}
+
+export function useAgentConfig(options: UseAgentConfigOptions = {}) {
+  const seeded = options.initial !== undefined;
+  const agentId = ref(options.agentId ?? '');
+  const settings = ref<AgentRunSettings>({ ...(options.initial ?? DEFAULT_AGENT_SETTINGS) });
+  const saved = ref<AgentRunSettings>({ ...(options.initial ?? DEFAULT_AGENT_SETTINGS) });
+  const state = ref<ConfigState>(seeded ? 'ready' : 'idle');
   const message = ref<string | undefined>(undefined);
-  const canSave = ref(false);
+  const canSave = ref(seeded);
 
   const temperature = computed({
     get: () => settings.value.temperature,

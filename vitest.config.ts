@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import vue from '@vitejs/plugin-vue';
 import { fileURLToPath } from 'node:url';
 import { aliases } from './aliases.mjs';
 
@@ -12,8 +13,14 @@ const r = (path: string): string => fileURLToPath(new URL(path, import.meta.url)
  * - `node`: sin DOM. Aquí viven `shared/**`, `<scope>.api.ts`, `server/**` y el
  *   test de fronteras de arquitectura.
  * - `dom`: jsdom, para montar componentes `.vue` con @vue/test-utils.
+ *
+ * El plugin de Vue es obligatorio para el proyecto `dom` y faltaba: sin él, Vite
+ * intenta parsear el `.vue` como JS y falla con "Install @vitejs/plugin-vue".
+ * Estaba instalado `@vue/test-utils` y `jsdom` pero ningún test podía montar un
+ * componente, así que la promesa del comentario de arriba era falsa.
  */
 export default defineConfig({
+  plugins: [vue()],
   resolve: {
     alias: {
       ...aliases,
@@ -41,6 +48,10 @@ export default defineConfig({
           name: 'dom',
           environment: 'jsdom',
           include: ['tests/dom/**/*.spec.ts'],
+          // jsdom no implementa `ResizeObserver` y reka-ui lo usa al montar
+          // Slider/Select; sin el doble, un test de componente falla por el
+          // entorno y parece un fallo del componente.
+          setupFiles: ['tests/_stubs/dom-setup.ts'],
         },
       },
     ],

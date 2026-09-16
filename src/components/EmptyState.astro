@@ -16,11 +16,11 @@ interface Props {
 const { title, description, icon = 'spark' } = Astro.props;
 ---
 
-<div class="flex flex-col items-center justify-center gap-2 px-6 py-12 text-center">
+<div class="flex flex-col items-center justify-center gap-2 px-gutter py-section text-center">
   <Icon name={icon} class="size-6 text-ink-muted" />
-  <p class="text-sm font-medium">{title}</p>
+  <p class="text-label">{title}</p>
   {description !== undefined && description !== '' && (
-    <p class="max-w-sm text-xs text-ink-muted">{description}</p>
+    <p class="max-w-prose text-caption text-ink-muted">{description}</p>
   )}
   <div class="mt-2">
     <slot />

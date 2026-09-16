@@ -13,7 +13,7 @@
  */
 import RootLayout from './RootLayout.astro';
 import AppShell from '@components/AppShell.astro';
-import { ShellShortcuts } from '@domains/app-shell';
+import { NavigationProgress, ShellShortcuts } from '@domains/app-shell';
 
 interface Props {
   title: string;
@@ -27,6 +27,12 @@ const { title, description, active = 'chat', subtitle } = Astro.props;
 
 <RootLayout title={title} description={description}>
   <ShellShortcuts client:only="vue" />
+  <!--
+    Con `transition:persist`: la barra tiene que ser **la misma** instancia en
+    todas las rutas. Si se remontara en cada navegación, llegaría tarde a la suya
+    —el evento que la arranca ya habría pasado— y nunca se vería.
+  -->
+  <NavigationProgress client:only="vue" transition:persist="nav-progress" />
 
   <AppShell {active} {title} {subtitle}>
     <!--
@@ -34,8 +40,8 @@ const { title, description, active = 'chat', subtitle } = Astro.props;
       proyecta el contenido por el atributo `slot`, y este patrón funciona igual
       con o sin reenvío de slots entre componentes.
     -->
-    <div slot="header-actions" class="contents">
-      <slot name="header-actions" />
+    <div slot="actions" class="contents">
+      <slot name="actions" />
     </div>
     <slot />
   </AppShell>

@@ -12,9 +12,9 @@ interface Props {
 const { title, description } = Astro.props;
 ---
 
-<div class="mb-6">
-  <h1 class="text-xl font-semibold tracking-tight">{title}</h1>
+<div class="mb-block">
+  <h1 class="text-title">{title}</h1>
   {description !== undefined && description !== '' && (
-    <p class="mt-1 text-sm text-ink-muted">{description}</p>
+    <p class="mt-1 text-lede text-ink-muted">{description}</p>
   )}
 </div>

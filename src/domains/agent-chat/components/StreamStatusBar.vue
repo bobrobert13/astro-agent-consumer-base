@@ -7,12 +7,22 @@
  * Existe para que el estado de `useStreamLifecycle` sea visible: un chat que se
  * queda callado a media ejecución sin decir nada se lee como una app rota.
  *
- * Las acciones usan el `Button` de shadcn-vue (`@/components/ui/button`): es la
- * primitiva compartida del registry, y esta franja es su primer consumidor real.
+ * Se pinta con el `Alert` del registry porque es una banda de aviso con acciones,
+ * no un div con colores: el borde, el fondo y el contraste salen de los tokens y
+ * no se repiten aquí. Dos desvíos, ambos deliberados:
+ *
+ *  - `role="status"` en vez del `role="alert"` que trae la primitiva. Esta franja
+ *    cambia de texto en cada fase de la ejecución; como región *assertive* un
+ *    lector de pantalla interrumpiría al usuario en cada transición. `polite` es
+ *    lo correcto para un estado que avanza solo.
+ *  - La forma es una fila (`flex`) y no la rejilla de dos columnas de `Alert`
+ *    (icono + contenido): aquí el contenido es una línea con un botón al final.
  */
 import { computed } from 'vue';
 
+import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { StreamState } from '../types/chat.types';
 
 const props = defineProps<{ state: StreamState }>();
@@ -28,24 +38,24 @@ const LABELS: Record<StreamState, string> = {
 
 const label = computed(() => LABELS[props.state]);
 const visible = computed(() => props.state !== 'idle');
-const canStop = computed(() => props.state === 'connecting' || props.state === 'streaming');
+const working = computed(() => props.state === 'connecting' || props.state === 'streaming');
+const canStop = computed(() => working.value);
 </script>
 
 <template>
-  <div
+  <Alert
     v-if="visible"
     role="status"
     aria-live="polite"
-    class="flex items-center gap-2 border-t border-line bg-elevated px-4 py-1.5 text-xs"
-    :class="state === 'error' ? 'text-danger' : state === 'stalled' ? 'text-warning' : 'text-ink-muted'"
+    :variant="state === 'error' ? 'destructive' : 'default'"
+    class="flex items-center gap-2 rounded-none border-x-0 border-b-0 bg-elevated px-gutter py-1.5 text-caption"
+    :class="state === 'stalled' ? 'text-warning' : state === 'error' ? '' : 'text-ink-muted'"
   >
-    <span v-if="state === 'connecting' || state === 'streaming'" class="size-2 animate-pulse rounded-full bg-brand-500" aria-hidden="true" />
+    <Skeleton v-if="working" class="size-2 rounded-full bg-brand-500" aria-hidden="true" />
     <span>{{ label }}</span>
-    <Button v-if="canStop" variant="ghost" size="xs" class="ml-auto" @click="$emit('stop')">
-      Detener
-    </Button>
+    <Button v-if="canStop" variant="ghost" size="xs" class="ml-auto" @click="$emit('stop')">Detener</Button>
     <Button v-else-if="state === 'stalled'" variant="ghost" size="xs" class="ml-auto" @click="$emit('retry')">
       Reintentar
     </Button>
-  </div>
+  </Alert>
 </template>

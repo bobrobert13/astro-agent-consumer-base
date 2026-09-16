@@ -9,7 +9,7 @@
  * propio": el shell llega por el router de Astro y la isla hace de BFF.
  */
 import AppLayout from '@layouts/AppLayout.astro';
-import Badge from '@components/Badge.astro';
+import { Badge } from '@components/ui/badge';
 import IslandFallback from '@components/IslandFallback.astro';
 import { ChatIsland } from '@domains/agent-chat';
 import { NEW_THREAD_ID } from '@config/app';
@@ -22,8 +22,8 @@ const agentId = Astro.url.searchParams.get('agente') ?? 'research-agent';
 ---
 
 <AppLayout title={isNew ? 'Hilo nuevo' : `Hilo ${threadId}`} active="chat" description="Conversación con el agente." subtitle={agentId}>
-  <template #header-actions>
-    <Badge tone="brand">/chat/{threadId}</Badge>
+  <template #actions>
+    <Badge variant="secondary">/chat/{threadId}</Badge>
   </template>
 
   <div class="h-full">

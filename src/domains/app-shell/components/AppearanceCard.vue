@@ -34,6 +34,19 @@ const prefersDark = ref(false);
 let media: MediaQueryList | undefined;
 
 /**
+ * La preferencia vive en `localStorage`, que en el servidor no existe: el HTML
+ * que llega dice "sigue a prefers-color-scheme · activo: claro" y el cliente, ya
+ * con el tema restaurado, dice "forzado · activo: oscuro". Vue lo canta como
+ * desajuste de hidratación y parchea el texto en el primer frame.
+ *
+ * Se resuelve no pintando nada derivado del tema hasta estar montados: en SSR y
+ * en el primer render del cliente `mounted` es `false` en ambos lados, así que no
+ * hay nada que comparar. Es la regla general de este repo para cualquier valor que
+ * solo el navegador conoce (el `sidebarOpen` persistido cae en lo mismo).
+ */
+const mounted = ref(false);
+
+/**
  * Se lee el media query en vivo en vez de duplicar la lógica en el store: el store
  * decide clases en el documento, aquí solo se informa de lo que resulta. El
  * listener se cierra al desmontar, que es lo que evita el leak que delata un
@@ -44,6 +57,7 @@ function onThemeChange(event: MediaQueryListEvent): void {
 }
 
 onMounted(() => {
+  mounted.value = true;
   media = window.matchMedia?.('(prefers-color-scheme: dark)');
   if (media === undefined) return;
   prefersDark.value = media.matches;
@@ -55,6 +69,8 @@ onBeforeUnmount(() => media?.removeEventListener('change', onThemeChange));
 const resolved = computed(() =>
   shell.theme === 'system' ? (prefersDark.value ? 'oscuro' : 'claro') : shell.theme === 'dark' ? 'oscuro' : 'claro'
 );
+
+const themeHint = computed(() => THEMES.find((item) => item.value === shell.theme)?.hint ?? '');
 
 const themeValue = computed({
   get: () => shell.theme,
@@ -74,7 +90,7 @@ const themeValue = computed({
         <div class="flex flex-col">
           <Label for="theme">Tema</Label>
           <span class="text-xs text-muted-foreground">
-            {{ THEMES.find((item) => item.value === shell.theme)?.hint ?? '' }} · activo: {{ resolved }}
+            <template v-if="mounted">{{ themeHint }} · activo: {{ resolved }}</template>
           </span>
         </div>
         <Select id="theme" v-model="themeValue">

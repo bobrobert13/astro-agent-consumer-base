@@ -7,9 +7,19 @@
  * La lista de agentes llega **por props**, resuelta en el servidor por la página.
  * Es lo que evita que este slice importe `@domains/agent-registry`: configurar un
  * agente no requiere conocer el contexto que lo cataloga.
+ *
+ * **Por qué los refs del composable se desestructuran** (trampa de ADR-002, con
+ * bug detrás): `useAgentConfig()` devuelve un objeto plano con refs dentro, y Vue
+ * solo desenvuelve los refs de nivel superior del `setup()`. Con
+ * `v-model="config.model"` el prop recibía el `ComputedRef` entero (de ahí
+ * "Invalid prop … got Object") y el compilador generaba una asignación a la
+ * propiedad del objeto, que **sustituía el computed por el texto tecleado**:
+ * el input se veía escribir, pero nada llegaba a `settings` y el formulario nunca
+ * se marcaba sucio. Desestructurar deja cada ref como binding de nivel superior,
+ * que es lo que el template sí desenvuelve (igual que `selectedAgent` y
+ * `temperatureRange`, que ya funcionaban por ser locales).
  */
-import { computed, onMounted, watch } from 'vue';
-import { toast } from 'vue-sonner';
+import { computed, defineAsyncComponent, onMounted, watch } from 'vue';
 
 import { Button } from '@components/ui/button';
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@components/ui/card';
@@ -21,58 +31,106 @@ import { Slider } from '@components/ui/slider';
 import { Switch } from '@components/ui/switch';
 import { Alert, AlertDescription } from '@components/ui/alert';
 import { Badge } from '@components/ui/badge';
-import { Toaster } from '@components/ui/sonner';
 import { CircleSlash, TriangleAlert } from '@lucide/vue';
 
 import { useAgentConfig } from '../composables/useAgentConfig';
+import type { AgentRunSettings } from '../types/agent-config.types';
 
 interface AgentOption {
   id: string;
   name: string;
 }
 
-const props = withDefaults(defineProps<{ agents?: AgentOption[]; initialAgentId?: string }>(), {
-  initialAgentId: 'research-agent',
-});
+const props = withDefaults(
+  defineProps<{
+    agents?: AgentOption[];
+    initialAgentId?: string;
+    /**
+     * Config resuelta por la página durante el render. Es lo que hace que el
+     * formulario llegue **habilitado** en el HTML, en vez de esperar a hidratar y
+     * a que vuelva un `GET` (ver `settings.astro`).
+     */
+    initialSettings?: AgentRunSettings | undefined;
+  }>(),
+  { initialAgentId: 'research-agent' }
+);
 
-const config = useAgentConfig();
+const {
+  agentId,
+  busy,
+  canSave,
+  dirty,
+  load,
+  memoryEnabled,
+  message,
+  model,
+  revert,
+  save,
+  settings,
+  state,
+  temperature,
+} = useAgentConfig({ agentId: props.initialAgentId, initial: props.initialSettings });
+
 const selectedAgent = computed({
-  get: () => config.agentId.value,
-  set: (id: string) => void config.load(id),
+  get: () => agentId.value,
+  set: (id: string) => void load(id),
 });
 
 /** El slider de reka trabaja con arrays; esta capa lo devuelve a un número. */
 const temperatureRange = computed({
-  get: () => [config.temperature.value],
+  get: () => [temperature.value],
   set: (value: number[]) => {
     const next = value[0];
-    if (next !== undefined) config.temperature.value = next;
+    if (next !== undefined) temperature.value = next;
   },
 });
 
 onMounted(() => {
-  const first = props.agents?.[0]?.id ?? props.initialAgentId;
-  void config.load(first);
+  // Con la config ya resuelta no hay nada que pedir: pedirla otra vez era gastar
+  // un viaje para volver al mismo sitio.
+  if (props.initialSettings !== undefined) return;
+  void load(props.agents?.[0]?.id ?? props.initialAgentId);
 });
 
 watch(
   () => props.initialAgentId,
-  (id) => void config.load(id)
+  (id) => void load(id)
 );
 
+/**
+ * `vue-sonner` entra por `import()` al primer aviso, y el `Toaster` como
+ * componente asíncrono: son ~20 KB que no hacen falta para *editar* el
+ * formulario, y antes venían dentro del chunk de esta isla, así que había que
+ * descargarlos y parsearlos antes de poder hidratar la tarjeta.
+ *
+ * El `Toaster` se sigue montando casi enseguida (Vue resuelve los componentes
+ * asíncronos al primer render), así que cuando alguien pulsa Guardar ya está
+ * listo y el aviso no se pierde.
+ */
+const Toaster = defineAsyncComponent(() => import('@/components/ui/sonner/Sonner.vue'));
+
+async function notify(kind: 'success' | 'error', title: string, description: string | undefined): Promise<void> {
+  const { toast } = await import('vue-sonner');
+  const options = description === undefined ? {} : { description };
+  if (kind === 'success') toast.success(title, options);
+  else toast.error(title, options);
+}
+
 async function onSave(): Promise<void> {
-  const result = await config.save();
+  const result = await save();
   if (result.ok) {
-    toast.success('Configuración guardada', {
-      description: `${config.settings.value.model === '' ? 'modelo por defecto' : config.settings.value.model} · temperatura ${config.settings.value.temperature}`,
-    });
+    await notify(
+      'success',
+      'Configuración guardada',
+      `${settings.value.model === '' ? 'modelo por defecto' : settings.value.model} · temperatura ${settings.value.temperature}`
+    );
     return;
   }
-  toast.error('No se pudo guardar', { description: config.message.value ?? undefined });
+  await notify('error', 'No se pudo guardar', message.value);
 }
 
 const temperatureLabel = computed(() =>
-  config.temperature.value <= 0.3 ? 'determinista' : config.temperature.value <= 0.9 ? 'equilibrada' : 'creativa'
+  temperature.value <= 0.3 ? 'determinista' : temperature.value <= 0.9 ? 'equilibrada' : 'creativa'
 );
 </script>
 
@@ -82,8 +140,8 @@ const temperatureLabel = computed(() =>
       <CardTitle>Agente y ejecución</CardTitle>
       <CardDescription>Modelo, temperatura y memoria para las próximas respuestas.</CardDescription>
       <CardAction>
-        <Badge v-if="config.dirty.value" variant="secondary">sin guardar</Badge>
-        <Badge v-else-if="config.state.value === 'ready'" variant="outline">sincronizado</Badge>
+        <Badge v-if="dirty" variant="secondary">sin guardar</Badge>
+        <Badge v-else-if="state === 'ready'" variant="outline">sincronizado</Badge>
       </CardAction>
     </CardHeader>
 
@@ -98,13 +156,13 @@ const temperatureLabel = computed(() =>
         </Alert>
         <div class="flex flex-col gap-2">
           <Label for="agent-id">Id del agente</Label>
-          <Input id="agent-id" :model-value="config.agentId.value" @update:model-value="config.load(String($event))" />
+          <Input id="agent-id" :model-value="agentId" @update:model-value="load(String($event))" />
         </div>
       </div>
 
       <div v-else class="flex flex-col gap-2">
         <Label for="agent-select">Agente</Label>
-        <Select id="agent-select" v-model="selectedAgent" :disabled="config.busy.value">
+        <Select id="agent-select" v-model="selectedAgent" :disabled="busy">
           <SelectTrigger class="w-full">
             <SelectValue placeholder="Elige un agente" />
           </SelectTrigger>
@@ -120,8 +178,8 @@ const temperatureLabel = computed(() =>
         <Label for="model">Modelo</Label>
         <Input
           id="model"
-          v-model="config.model"
-          :disabled="!config.canSave.value"
+          v-model="model"
+          :disabled="!canSave"
           placeholder="déjalo vacío para usar el del servidor"
           autocomplete="off"
         />
@@ -134,7 +192,7 @@ const temperatureLabel = computed(() =>
         <div class="flex items-baseline justify-between gap-3">
           <Label for="temperature">Temperatura</Label>
           <span class="font-mono text-xs text-muted-foreground">
-            {{ config.temperature.value.toFixed(1) }} · {{ temperatureLabel }}
+            {{ temperature.toFixed(1) }} · {{ temperatureLabel }}
           </span>
         </div>
         <Slider
@@ -143,7 +201,7 @@ const temperatureLabel = computed(() =>
           :min="0"
           :max="2"
           :step="0.1"
-          :disabled="!config.canSave.value"
+          :disabled="!canSave"
         />
       </div>
 
@@ -154,26 +212,21 @@ const temperatureLabel = computed(() =>
             Con ella apagada, cada mensaje se responde sin historial.
           </span>
         </div>
-        <Switch
-          id="memory"
-          v-model="config.memoryEnabled"
-          :disabled="!config.canSave.value"
-          class="shrink-0"
-        />
+        <Switch id="memory" v-model="memoryEnabled" :disabled="!canSave" class="shrink-0" />
       </div>
 
-      <Alert v-if="config.message.value !== undefined" variant="destructive">
+      <Alert v-if="message !== undefined" variant="destructive">
         <CircleSlash />
-        <AlertDescription>{{ config.message.value }}</AlertDescription>
+        <AlertDescription>{{ message }}</AlertDescription>
       </Alert>
     </CardContent>
 
     <CardFooter class="flex-col items-stretch gap-0">
       <Separator class="mb-4" />
       <div class="flex items-center justify-end gap-2">
-        <Button variant="ghost" :disabled="!config.dirty.value" @click="config.revert()">Descartar</Button>
-        <Button :disabled="!config.dirty.value || config.busy.value" @click="onSave">
-          {{ config.state.value === 'saving' ? 'Guardando…' : 'Guardar' }}
+        <Button variant="ghost" :disabled="!dirty" @click="revert()">Descartar</Button>
+        <Button :disabled="!dirty || busy" @click="onSave">
+          {{ state === 'saving' ? 'Guardando…' : 'Guardar' }}
         </Button>
       </div>
     </CardFooter>

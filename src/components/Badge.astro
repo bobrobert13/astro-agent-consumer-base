@@ -2,6 +2,12 @@
 /**
  * @file src/components/Badge.astro
  * @description Etiqueta corta de estado o categoría.
+ *
+ * @deprecated Para pantallas nuevas, usa `@components/ui/badge`. Esta versión
+ * sobrevive solo para el chrome sin isla de las pantallas heredadas (`/`,
+ * `/agents`, `/history`), que están en la lista de borrado. No añadas
+ * consumidores nuevos aquí: dos badges con la misma función es exactamente la
+ * duplicación que el registry vino a quitar.
  */
 import { cn, variants, type ClassValue } from '@shared/ui/variants';
 
@@ -13,7 +19,7 @@ interface Props {
 const { tone = 'neutral', class: className } = Astro.props;
 
 const badge = variants({
-  base: 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+  base: 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label',
   variants: {
     tone: {
       neutral: 'bg-elevated text-ink-muted',

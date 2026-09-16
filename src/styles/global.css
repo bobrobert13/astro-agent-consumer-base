@@ -1,19 +1,23 @@
 /*
- * Tailwind CSS v4 en Astro: no existe `tailwind.config.js`. Los tokens se
- * declaran aquí con `@theme` y son la ÚNICA fuente de verdad de la apariencia;
- * `src/config/ui/tokens.ts` solo guarda lo que JS necesita (duraciones, teclas).
+ * global.css — entrada de estilos y documento.
  *
- * Se usa `@theme inline` a propósito: las utilidades generadas quedan apuntando
- * a la variable de concepto (`var(--surface)`) y no al valor literal, que es lo
- * que permite reasignar el tema en `.dark` sin duplicar la paleta.
+ * Los tokens (familias, escala tipográfica, ritmo, medidas, radios, sombras,
+ * color) y la tipografía por defecto de los elementos viven en `theme.css`.
+ * Aquí queda solo lo que no es un token: los plugins, la variante de tema, el
+ * documento base y la rejilla del shell.
+ *
+ * Tailwind CSS v4 en Astro: no existe `tailwind.config.js`. Todo el sistema
+ * visual se declara en CSS y `src/config/ui/tokens.ts` solo guarda lo que JS
+ * necesita (duraciones, teclas, claves de almacenamiento).
  *
  * shadcn-vue vive sobre estos mismos tokens: sus variables semánticas
  * (`--background`, `--primary`, …) no traen una paleta nueva, apuntan a las
  * `--aac-*`. Reasignar `--aac-canvas` en `.dark` mueve a la vez los componentes
- * propios y los de `src/components/ui/**`.
+ * propios y los del registry.
  */
 @import 'tailwindcss';
 @import 'tw-animate-css';
+@import './theme.css';
 @plugin '@tailwindcss/typography';
 
 /*
@@ -31,122 +35,6 @@
     &:not(.light, .light *) {
       @slot;
     }
-  }
-}
-
-@theme inline {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
-
-  --color-canvas: var(--aac-canvas);
-  --color-surface: var(--aac-surface);
-  --color-elevated: var(--aac-elevated);
-  --color-line: var(--aac-line);
-  --color-ink: var(--aac-ink);
-  --color-ink-muted: var(--aac-ink-muted);
-
-  --color-brand-500: var(--aac-brand);
-  --color-brand-600: var(--aac-brand-strong);
-  --color-brand-050: var(--aac-brand-soft);
-
-  --color-danger: var(--aac-danger);
-  --color-warning: var(--aac-warning);
-
-  /* Mapa semántico de shadcn-vue: mismas fuentes, nombres del registry. */
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  --radius-panel: 0.75rem;
-  --radius-bubble: 1.125rem;
-
-  /* Escala de radios de shadcn-vue, derivada de un solo `--radius`. */
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-
-  --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.06);
-  --shadow-float: 0 12px 32px -12px rgb(0 0 0 / 0.28);
-
-  --text-bubble: 0.9375rem;
-}
-
-/* Tokens de concepto reasignables por tema. */
-:root {
-  --aac-canvas: oklch(0.985 0.002 250);
-  --aac-surface: oklch(1 0 0);
-  --aac-elevated: oklch(0.97 0.003 250);
-  --aac-line: oklch(0.9 0.005 250);
-  --aac-ink: oklch(0.24 0.01 250);
-  --aac-ink-muted: oklch(0.5 0.01 250);
-
-  --aac-brand: oklch(0.62 0.19 152);
-  --aac-brand-strong: oklch(0.55 0.17 152);
-  --aac-brand-soft: oklch(0.96 0.03 152);
-  --aac-on-brand: oklch(1 0 0);
-  --aac-danger: oklch(0.58 0.21 22);
-  --aac-warning: oklch(0.75 0.16 78);
-
-  /* shadcn-vue: semántica propia apuntando a los tokens de arriba. No hay
-   * bloque `.dark` para estas variables a propósito: heredan de las `--aac-*`. */
-  --background: var(--aac-canvas);
-  --foreground: var(--aac-ink);
-  --card: var(--aac-surface);
-  --card-foreground: var(--aac-ink);
-  --popover: var(--aac-surface);
-  --popover-foreground: var(--aac-ink);
-  --primary: var(--aac-brand);
-  --primary-foreground: var(--aac-on-brand);
-  --secondary: var(--aac-elevated);
-  --secondary-foreground: var(--aac-ink);
-  --muted: var(--aac-elevated);
-  --muted-foreground: var(--aac-ink-muted);
-  --accent: var(--aac-elevated);
-  --accent-foreground: var(--aac-ink);
-  --destructive: var(--aac-danger);
-  --destructive-foreground: var(--aac-on-brand);
-  --border: var(--aac-line);
-  --input: var(--aac-line);
-  --ring: var(--aac-brand);
-  --radius: 0.625rem;
-}
-
-.dark,
-:root.dark {
-  --aac-canvas: oklch(0.17 0.006 255);
-  --aac-surface: oklch(0.21 0.006 255);
-  --aac-elevated: oklch(0.25 0.006 255);
-  --aac-line: oklch(0.32 0.008 255);
-  --aac-ink: oklch(0.94 0.005 255);
-  --aac-ink-muted: oklch(0.7 0.01 255);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not(.light) {
-    --aac-canvas: oklch(0.17 0.006 255);
-    --aac-surface: oklch(0.21 0.006 255);
-    --aac-elevated: oklch(0.25 0.006 255);
-    --aac-line: oklch(0.32 0.008 255);
-    --aac-ink: oklch(0.94 0.005 255);
-    --aac-ink-muted: oklch(0.7 0.01 255);
   }
 }
 
@@ -187,7 +75,11 @@
 }
 
 /* Rejilla del shell. Vive aquí y no en un componente para que `AppLayout` sea
- * legible sin un <style> incrustado por vista. */
+ * legible sin un <style> incrustado por vista.
+ *
+ * El ancho del rail se lee del token con `theme()` en vez de repetir el literal:
+ * `@theme inline` no publica las escalas como variables de runtime, así que
+ * `var(--container-rail)` no existiría aquí. `theme()` lo resuelve en build. */
 .aac-shell {
   display: grid;
   grid-template-rows: auto 1fr;
@@ -196,7 +88,7 @@
 
 @media (width >= 48rem) {
   .aac-shell {
-    grid-template-columns: 16rem 1fr;
+    grid-template-columns: theme(--container-rail) 1fr;
     grid-template-rows: 1fr;
   }
 }

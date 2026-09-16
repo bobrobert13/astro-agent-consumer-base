@@ -39,7 +39,6 @@
   "author": "Trebor <dev@trebor.local>",
   "homepage": "https://PLACEHOLDER.example/astro-agent-consumer",
   "dependencies": {
-    "@astrojs/markdown-remark": "^7.3.1",
     "@astrojs/node": "^11.1.5",
     "@astrojs/vue": "^7.0.2",
     "@lucide/vue": "^1.46.0",
@@ -66,6 +65,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.2",
     "@typescript-eslint/parser": "^8.70.0",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@vitest/coverage-v8": "^5.0.1",
     "@vue/test-utils": "^2.5.0",
     "electron": "^44.3.0",

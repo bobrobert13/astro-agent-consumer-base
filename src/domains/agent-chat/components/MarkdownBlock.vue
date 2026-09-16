@@ -69,9 +69,9 @@ const blocks = computed<Block[]>(() => {
     <template v-for="(block, index) in blocks" :key="index">
       <pre
         v-if="block.kind === 'code'"
-        class="overflow-x-auto rounded-panel border border-line bg-elevated p-3 font-mono text-xs not-prose"
+        class="overflow-x-auto rounded-panel border border-line bg-elevated p-3 text-code not-prose"
       ><code>{{ block.text }}</code></pre>
-      <p v-else class="whitespace-pre-wrap text-sm leading-relaxed">{{ block.text }}</p>
+      <p v-else class="whitespace-pre-wrap text-body-sm">{{ block.text }}</p>
     </template>
   </div>
 </template>

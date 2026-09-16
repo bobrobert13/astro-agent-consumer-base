@@ -16,6 +16,10 @@
  *
  * No usar `reactive()` sobre el objeto devuelto como atajo: volvería a proxyear la
  * lista de mensajes y se pierde justo lo que `shallowRef` protege.
+ *
+ * La acción "limpiar conversación" vive en el composer (ver `ChatComposer`), no
+ * en un botón escondido con `sr-only`: borrar un hilo sin preguntar y sin nada
+ * visible que lo anuncie es lo que hacía antes, y no había forma de descubrirlo.
  */
 import { onMounted, onScopeDispose, watch } from 'vue';
 
@@ -97,12 +101,12 @@ onScopeDispose(() => document.removeEventListener('keydown', onKeydown));
   <section class="flex h-full min-h-0 flex-col" aria-label="Conversación con el agente">
     <ChatTranscript :messages="messages" :streaming-text="streamingText">
       <template #empty>
-        <div class="mx-auto max-w-lg py-16 text-center">
-          <p class="text-sm font-medium">Cuéntale al agente qué necesitas</p>
-          <p class="mt-1 text-xs text-ink-muted">
-            Transporte <code class="font-mono">{{ transportLabel }}</code>. Prueba
-            <code class="font-mono">/error</code> para ver el catálogo de errores o
-            <code class="font-mono">/slow</code> para provocar el estado sin respuesta.
+        <div class="mx-auto max-w-prose py-section text-center">
+          <p class="text-label">Cuéntale al agente qué necesitas</p>
+          <p class="mt-1 text-caption text-ink-muted">
+            Transporte <code>{{ transportLabel }}</code>. Prueba
+            <code>/error</code> para ver el catálogo de errores o
+            <code>/slow</code> para provocar el estado sin respuesta.
           </p>
         </div>
       </template>
@@ -117,14 +121,7 @@ onScopeDispose(() => document.removeEventListener('keydown', onKeydown));
       @update:text="onInput"
       @submit="onSubmit"
       @stop="stop"
+      @clear="clearConversation()"
     />
-
-    <button
-      type="button"
-      class="sr-only focus:not-sr-only focus:absolute focus:right-3 focus:top-3 focus:z-10"
-      @click="clearConversation()"
-    >
-      Limpiar conversación
-    </button>
   </section>
 </template>

@@ -26,7 +26,7 @@ const { active = 'chat', title, subtitle } = Astro.props;
 
   <div class="contents max-md:*:block md:grid md:grid-rows-[auto_1fr] md:min-w-0">
     <TopBar {title} {subtitle}>
-      <slot name="header-actions" />
+      <slot name="actions" />
     </TopBar>
 
     <main class="min-h-0 min-w-0 overflow-hidden">

@@ -5,9 +5,17 @@
  *
  * Lo que necesita cliente son dos islas (`AppearanceCard`, `AgentConfigCard`); lo
  * que no se renderiza en el servidor con cero JS: el catálogo de atajos y el
- * estado del entorno. La lista de agentes la resuelve esta página llamando al
- * handler del slice y viaja como prop: así `agent-config` no depende de
- * `agent-registry`.
+ * estado del entorno. La lista de agentes **y la config del agente activo** las
+ * resuelve esta página en el servidor y viajan como props: así `agent-config` no
+ * depende de `agent-registry`, y el formulario llega habilitado en el HTML en vez
+ * de esperar a hidratar y a que vuelva un `GET`.
+ *
+ * Las islas van con `client:visible`: hidratan cuando la tarjeta está en pantalla,
+ * y como la config viaja resuelta en el HTML no hay nada que ganar adelantando la
+ * hidratación. Se probó `client:idle` para eso y **no vale**: `requestIdleCallback`
+ * se difiere mientras la página no está visible, así que en una ventana en segundo
+ * plano las islas no hidrataban nunca (el `Select` no llegaba a abrirse; lo cazó
+ * `verify:electron`).
  *
  * No se imprime nada secreto: el host del backend y las credenciales son
  * server-only, y una página terminaría enviándolos al navegador.
@@ -15,6 +23,7 @@
 import AppLayout from '@layouts/AppLayout.astro';
 import { AppearanceCard } from '@domains/app-shell';
 import { AgentConfigCard } from '@domains/agent-config';
+import { readAgentConfig } from '@domains/agent-config/server';
 import { listAgents } from '@domains/agent-registry/server';
 import { Alert, AlertDescription, AlertTitle } from '@components/ui/alert';
 import { Badge } from '@components/ui/badge';
@@ -25,6 +34,16 @@ import { Info } from '@lucide/vue';
 import { APP_NAME_LABEL, APP_VERSION } from '@config/app';
 import { AGENT_TRANSPORT } from '@shared/env/client';
 import { SHORTCUTS, STORAGE_KEYS } from '@config/ui/tokens';
+
+/**
+ * Cuánto puede esperar el render a la config del agente.
+ *
+ * Resolverla aquí ahorra el viaje de ida y vuelta al hidratar, pero no a costa del
+ * TTFB: si el backend tarda más que esto, la página sale igual (con el formulario
+ * pidiéndola desde el cliente, como antes) en vez de quedarse colgada hasta el
+ * timeout de conexión del relay, que son 10 s.
+ */
+const CONFIG_RENDER_BUDGET_MS = 1_200;
 
 const sections = [
   { id: 'apariencia', label: 'Apariencia' },
@@ -48,6 +67,15 @@ function prettyCombo(combo: string): string[] {
 const agentsResult = await listAgents();
 const agents = agentsResult.ok ? agentsResult.data : [];
 const catalogUnavailable = !agentsResult.ok || agents.length === 0;
+
+const initialAgentId = agents[0]?.id ?? 'research-agent';
+// Se lee siempre, también cuando el catálogo no respondió: este lector no falla
+// por el backend ausente, devuelve los valores por defecto (es lo que hace que una
+// config no disponible no bloquee el chat). Saltárselo "para ahorrar un viaje"
+// dejaba el formulario deshabilitado justo en el caso más común —sin backend—,
+// que es el retardo que se venía a quitar.
+const configResult = await readAgentConfig(initialAgentId, { signal: AbortSignal.timeout(CONFIG_RENDER_BUDGET_MS) });
+const initialSettings = configResult.ok ? configResult.data : undefined;
 
 const facts = [
   { label: 'Transporte de agentes', value: AGENT_TRANSPORT },
@@ -87,7 +115,17 @@ const facts = [
         </section>
 
         <section id="agente" class="scroll-mt-6">
-          <AgentConfigCard client:visible agents={agents} />
+          <!--
+            Props en camelCase, como `agents`: Astro serializa este objeto tal cual
+            en el `props` de la isla, así que escribirlas en kebab dependería de
+            que Vue camelice claves que aquí llegan como datos, no como atributos.
+          -->
+          <AgentConfigCard
+            client:visible
+            agents={agents}
+            initialAgentId={initialAgentId}
+            initialSettings={initialSettings}
+          />
         </section>
 
         <section id="atajos" class="scroll-mt-6">

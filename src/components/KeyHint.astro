@@ -18,6 +18,6 @@ const keys = combo
   .map((part) => ({ mod: '⌘/Ctrl', escape: 'Esc', comma: ',' , shift: '⇧', k: 'K', b: 'B' })[part] ?? part.toUpperCase());
 ---
 
-<kbd class="inline-flex items-center gap-0.5 rounded border border-line bg-elevated px-1.5 font-mono text-[0.6875rem] text-ink-muted">
+<kbd class="inline-flex items-center gap-0.5 rounded border border-line bg-elevated px-1.5 text-code text-ink-muted">
   {keys.join(' + ')}
 </kbd>

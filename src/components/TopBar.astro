@@ -12,14 +12,16 @@ interface Props {
 const { title, subtitle } = Astro.props;
 ---
 
-<header class="flex items-center gap-3 border-b border-line bg-surface px-4 py-2.5">
+<header class="flex items-center gap-3 border-b border-line bg-surface px-gutter py-2.5">
   <div class="min-w-0 flex-1">
-    <h1 class="truncate text-sm font-semibold">{title}</h1>
+    <h1 class="truncate text-title-sm">{title}</h1>
     {subtitle !== undefined && subtitle !== '' && (
-      <p class="truncate text-xs text-ink-muted">{subtitle}</p>
+      <p class="truncate text-caption text-ink-muted">{subtitle}</p>
     )}
   </div>
   <div class="flex shrink-0 items-center gap-2">
-    <slot />
+    <!-- `actions` y no el slot por defecto: el nombre viene de la lista cerrada
+         del repo, y así `AppShell`/`AppLayout` proyectan sin adivinar cuál es. -->
+    <slot name="actions" />
   </div>
 </header>

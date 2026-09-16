@@ -13,11 +13,15 @@ no va aquí: va a la carpeta `components/` de su slice, o a
    (`@shared/ui/variants`). Nada de clases sueltas concatenadas a mano: el mismo
    helper lo usan las islas `.vue`, y así un botón y su isla no divergen.
 3. **Slots nombrados y cerrados**: `default`, `header`, `footer`, `actions`,
-   `aside`, `fallback`, `leading`, `trailing`. Un slot nuevo se añade en el
-   componente, no en el consumidor.
+   `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
+   añade en el componente, no en el consumidor.
 4. **Sin scoped slots.** Si un padre necesita pasar datos a un slot, eso es un
    componente `.vue` o se renderiza en el servidor con props.
 5. **`class:list` para lo condicional**, `class` para lo fijo.
+6. **La tipografía no se repite.** El tamaño, el peso y el interlineado de un
+   titular salen de un token de `theme.css` (`text-title-sm`), no de
+   `text-sm font-semibold`. Un `h1`/`p` desnudo ya se ve bien: la capa base los
+   pinta.
 
 ## Inventario
 
@@ -26,7 +30,13 @@ no va aquí: va a la carpeta `components/` de su slice, o a
 `Spinner` · `KeyHint` · `IslandFallback`.
 
 `Icon` lee su lista cerrada de `icon.paths.ts`; `IslandFallback` es el
-`slot="fallback"` estándar de toda isla con `client:only`.
+`slot="fallback"` estándar de toda isla con `client:only` y pinta la primitiva
+`Skeleton` del registry (en un `.astro` sin directiva, cero JS).
+
+`Badge.astro` está **deprecado** en favor de `@components/ui/badge`: dos badges
+con la misma función son la duplicación que el registry vino a quitar. Sobrevive
+solo para el chrome sin isla de las pantallas heredadas y no admite consumidores
+nuevos.
 
 ## `src/components/ui/**` (shadcn-vue)
 
@@ -36,7 +46,11 @@ slices. Reglas propias:
 
 - **No editar a mano** lo que genera el CLI: los cambios se pierden en el
   siguiente `add`/`diff`. La apariencia se cambia por tokens
-  (`src/styles/global.css`), no por componente.
+  (`src/styles/theme.css`), no por componente. Sobreescribir una clase suelta del
+  registry tampoco vale: en cuanto haya que cambiar algo de verdad, se mueve el
+  token que el componente ya usa.
+- El código propio **no** usa los nombres semánticos del registry: dentro de
+  `src/components/ui/**` se escribe `text-muted-foreground`; fuera, `text-ink-muted`.
 - Importan su `cn` de `@/lib/utils` (clsx + tailwind-merge), no de
   `@shared/ui/variants`. Ver la sección shadcn-vue del `AGENTS.md` raíz.
 - En un `.astro` sin directiva se renderizan en el servidor (cero JS); los

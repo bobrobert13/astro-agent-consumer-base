@@ -57,10 +57,10 @@ src/
 └── stores/                  one global Pinia store, and why it's only one
 electron/                    desktop shell: main, preload, lib/
 tests/                       unit · contracts · BFF · DOM · architecture boundaries
-docs/adr/                    four decisions, each with the cost it accepted
+docs/adr/                    six decisions, each with the cost it accepted
 ```
 
-### Architecture, in four decisions
+### Architecture, in six decisions
 
 - **[ADR-001](./docs/adr/001-relay-sse-verbatim.md) — the relay copies bytes.** The BFF rewrites
   the path, injects the credential, forces the right cache headers and propagates cancellation,
@@ -80,6 +80,16 @@ docs/adr/                    four decisions, each with the cost it accepted
   the directive that stops an agent's answer from running code. `style-src` allows inline styles,
   because component libraries compute CSS *after* the build and no build-time hash can cover a
   value the browser invents.
+- **[ADR-005](./docs/adr/005-tokens-centralizados-y-escala-fluida.md) — one theme file, fluid
+  scale.** `src/styles/theme.css` owns colour, radii, shadows, the type scale, the rhythm and
+  the default styling of `h1`…`h6`/`p`/`code`. One token carries its own line-height, weight and
+  tracking, so a heading is `text-title` instead of four utilities repeated in thirty call
+  sites. Sizes and spacing breathe with `clamp()` instead of per-breakpoint variants, and a test
+  fails on any `text-[13px]`, literal `text-white` or hardcoded colour.
+- **[ADR-006](./docs/adr/006-identidad-de-memoria-en-el-bff.md) — the BFF owns memory identity.**
+  The browser sends the thread, never the `resource` (which is what the provider keys history
+  by). The relay opens the request body in exactly one place to bound its size and inject the
+  server-decided identity, while the *response* keeps streaming byte for byte.
 
 ### Also, because these bite later
 
@@ -89,8 +99,10 @@ docs/adr/                    four decisions, each with the cost it accepted
 - **Hydration policy per surface** — `client:only` + `transition:persist` for the chat so a
   stream survives navigation, `client:idle` for the sidebar, `client:media` for mobile-only
   controls, and plain `.astro` for everything that needs no JS.
-- **One source of visual truth.** Tailwind v4 `@theme` tokens in a single CSS file; the same
-  `variants()` helper is callable from `.astro` frontmatter and from `<script setup>`.
+- **One source of visual truth.** Tailwind v4 `@theme` tokens in a single CSS file
+  (`src/styles/theme.css`), including a fluid type scale and the base typography of the document;
+  the same `variants()` helper is callable from `.astro` frontmatter and from `<script setup>`,
+  and the shadcn-vue primitives read the same palette through semantic aliases.
 - **Spanish UI and error catalogues** — no error reaches the screen without a written message.
 
 ## Verification
@@ -143,7 +155,7 @@ before the first check. Packaging is unaffected.
 |---|---|
 | Framework | Astro 7.3 · `output: 'server'` · `@astrojs/node` standalone |
 | UI | Vue 3.5 · Pinia 4 · `@pinia/colada` · VueUse |
-| Styling | Tailwind CSS v4 (CSS-first `@theme`, no config file) · typography plugin · shadcn-vue (reka-ui) in `src/components/ui/**` |
+| Styling | Tailwind CSS v4 (CSS-first `@theme` in `src/styles/theme.css`, no config file) · typography plugin · shadcn-vue (reka-ui) in `src/components/ui/**` |
 | Agents | `@mastra/client-js` behind a provider-agnostic `AgentTransport` |
 | Desktop | Electron 44 · electron-builder 26 (NSIS, AppImage/deb, DMG) |
 | Quality | TypeScript 5.9 `strictest` · ESLint 10 flat · Vitest 5 · `astro check` |

@@ -72,11 +72,25 @@ montarla (véase `src/vue-app.ts` y `astro.config.mjs`).
 |---|---|
 | Isla de chat (transcript + composer) | `client:only="vue"` + `transition:persist` + `slot="fallback"` |
 | Atajos globales (`ShellShortcuts`, sin UI) | `client:only="vue"`, una sola vez en `AppLayout` |
-| Sidebar de hilos | `client:idle` |
+| Barra de navegación (`NavigationProgress`) | `client:only="vue"` + `transition:persist`, una vez en `AppLayout` |
+| Contenido interactivo que ya está en pantalla (ajustes) | `client:visible` |
 | Listas por debajo del pliegue | `client:visible` |
 | UI solo para móvil | `client:media="(max-width: 60rem)"` |
 | Datos por-request sin JS | `server:defer` |
 | Chrome, navegación, paneles | `.astro` sin directiva (cero JS) |
+
+**`client:idle` no se usa para contenido de página, y está medido**: se probó en
+`/settings` para hidratar sin esperar al observer y `requestIdleCallback` se difiere
+mientras la página no está visible, así que con la ventana en segundo plano la isla
+no hidrataba nunca (el `Select` de ajustes no llegaba a abrirse; lo cazó
+`verify:electron`). Donde importa que la isla responda al primer gesto, `visible`.
+
+**Datos que la isla necesita nada más nacer se resuelven en el servidor y viajan
+como props** (`/settings` pasa el catálogo *y* la config del agente activo). Una
+isla que tiene que hidratar, pedir y esperar antes de ser usable llega tarde por
+diseño: el usuario ve controles deshabilitados y lo lee como que la app va lenta.
+Si la lectura del servidor puede tardar, se le pone presupuesto (`AbortSignal`) y
+la isla cae a pedirlo ella misma si se agota.
 
 Prohibido `client:load` en `agent-chat`: paga el chunk del cliente del proveedor
 antes de que exista un prompt.
@@ -98,9 +112,20 @@ antes de que exista un prompt.
 
 - Toda la lógica vive en `src/domains/<slice>/server/`; `src/pages/api/**` son
   envoltorios de tres líneas. Así los handlers se prueban sin arrancar Astro.
-- **Los streams nunca se parsean en el servidor.** `agent-rpc` reenvía el cuerpo
-  verbatim. **El JSON siempre se normaliza en el servidor** antes de llegar al
-  navegador (recortando instrucciones de sistema, costos e ids internos).
+- **Los streams nunca se parsean en el servidor.** `agent-rpc` reenvía la
+  **respuesta** byte a byte, sin re-encodear. **El JSON siempre se normaliza en el
+  servidor** antes de llegar al navegador (recortando instrucciones de sistema,
+  costos e ids internos).
+- **El cuerpo de la petición sí se abre, y en un solo sitio**
+  (`agent-chat/server/relay-body.ts`), por dos motivos que no admiten otra vía: el
+  límite de tamaño y la identidad de memoria, que **no puede decidirla el
+  navegador** (`session-scope.ts`). Solo se reescriben `memory.resource` y
+  `memory.thread`; el resto del cuerpo se devuelve intacto. Leer ADR-006 antes de
+  tocar el relay.
+- **Los handlers del BFF validan con su propio schema, no con el del proveedor.**
+  El cuerpo que llega al relay lo construye `@mastra/client-js`: pasarlo por
+  `runRequestSchema` rechazaría todas las peticiones reales. Ese schema describe el
+  contrato propio (el plan B del riesgo R1), no el wire format del SDK.
 - Secretos: solo `src/shared/server/upstream.ts` lee `@shared/env/server`. La regla
   es estructural: **cualquier módulo de `shared` que toque el servidor vive bajo
   `src/shared/server/`**, igual que en los slices. Así el test de fronteras decide
@@ -117,12 +142,22 @@ El contrato está en `env.schema` de `astro.config.mjs`. Cambiarlo exige
 (`@shared/env/client` o `@shared/env/server`). `HOST`/`PORT` no van en el schema:
 los lee `dist/server/entry.mjs` directamente.
 
-**Trampa verificada de `astro:env`:** una variable con `access: 'public'` se
-**inlinea en el momento del build**, incluso declarada `context: 'server'`. Por
-eso `MASTRA_URL` y los timeouts son `access: 'secret'`: no por ser credenciales,
-sino porque necesitan resolverse **en el arranque del proceso** (web con env
-distinta por entorno, y el paquete de Electron, que no se recompila por cliente).
-Si alguien añade una variable de servidor nueva, que no la ponga `public`.
+**Trampa verificada de `astro:env` (dos partes):**
+
+1. **La clave del schema ES el nombre literal de la variable.** Astro la busca con
+   `loadEnv(mode, dir, '')` y hace `loadedEnv[key]`, así que una variable
+   `access: 'public'` se declara como `PUBLIC_ALGO` —con prefijo— y es
+   `@shared/env/client` quien la re-exporta sin prefijo. Sin el prefijo, la clave
+   no existe en el entorno, la validación no ve nada y **Astro inyecta el
+   `default` en cada build, en silencio**: así estuvo muerto el interruptor de
+   transporte. El stub `tests/_stubs/env-client.ts` refleja los nombres del schema.
+2. Una variable con `access: 'public'` se **inlinea en el momento del build**,
+   incluso declarada `context: 'server'`. Por
+   eso `MASTRA_URL` y los timeouts son `access: 'secret'`: no por ser credenciales,
+   sino porque necesitan resolverse **en el arranque del proceso** (web con env
+   distinta por entorno, y el paquete de Electron, que no se recompila por
+   cliente). Si alguien añade una variable de servidor nueva, que no la ponga
+   `public`.
 
 ## Lint, tipos y estilo
 
@@ -130,8 +165,16 @@ Si alguien añade una variable de servidor nueva, que no la ponga `public`.
   `import type`**. También `noUncheckedIndexedAccess` y `exactOptionalPropertyTypes`,
   que obligan a escribir `field?: string | undefined` y a no indexar sin guarda.
 - Tailwind v4: no existe `tailwind.config.js`. Los tokens se declaran en el
-  `@theme` de `src/styles/global.css`, que es la **única** fuente de colores,
-  radios y sombras. `src/config/ui/tokens.ts` solo guarda lo que JS necesita.
+  `@theme` de `src/styles/theme.css`, que es la **única** fuente de colores,
+  radios, sombras, **escala tipográfica, ritmo y medidas**. `global.css` importa
+  ese archivo y se queda con el documento base y la rejilla del shell.
+  `src/config/ui/tokens.ts` solo guarda lo que JS necesita.
+- La escala de texto es fluida (`clamp()`) y cada token lleva dentro su
+  interlineado, peso y tracking: un titular es `text-title`, no cuatro utilidades.
+  `theme.css` estiliza además `h1`…`h6`, `p`, `small` y `code` en `@layer base`,
+  así que un elemento desnudo ya se ve bien. El catálogo está en
+  `docs/lenguaje-visual.md` y lo vigila `tests/architecture/design-tokens.spec.ts`
+  (falla con un `text-[13px]`, un `text-white` o un color literal).
 - Variantes con `@shared/ui/variants` (`cn` + `variants`), no con CVA: hay que
   poder llamarlas igual desde el frontmatter de un `.astro`. **Excepción:** los
   componentes generados por shadcn-vue en `src/components/ui/**` usan su propio
@@ -139,7 +182,8 @@ Si alguien añade una variable de servidor nueva, que no la ponga `public`.
   shadcn-vue. No unificar los dos `cn`: el de `variants.ts` concatena sin merge
   y sus tests fijan esa semántica.
 - Nombres de slot en todo el repo: `default`, `header`, `footer`, `actions`,
-  `aside`, `fallback`, `leading`, `trailing`.
+  `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
+  añade a esta lista **y** al componente, no al consumidor.
 - UI y catálogos de error en **español**. Un código de error sin mensaje en
   `<scope>.e.ts` no puede llegar a la pantalla.
 - **Nunca escribir un glob `**/` dentro de un comentario `/** ... */`**: la
@@ -171,8 +215,18 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   sigue con `@shared/ui/variants`.
 - ESLint exime `src/components/ui/**` de `vue/multi-word-component-names`: los
   nombres los fija el registry (`Button.vue`), renombrar rompería `add`/`diff`.
-- Primer consumidor real: `StreamStatusBar.vue` (isla de chat) usa el `Button`.
-  En `.astro` sin directiva los componentes de ui se renderizan en el servidor
+- **Dos vocabularios, una paleta**: el código escrito a mano usa los tokens de
+  concepto (`text-ink-muted`, `bg-elevated`, `text-on-brand`); los nombres
+  semánticos del registry (`text-muted-foreground`, `bg-accent`) se usan **solo**
+  dentro de `src/components/ui/**`. Son las mismas variables por debajo, pero
+  mezclarlas en un archivo hace ilegible qué cambia el tema.
+- Consumidores reales: la isla de chat (`agent-chat/components/**`) usa
+  `Button`, `Textarea`, `ScrollArea`, `Collapsible`, `Dialog`, `DropdownMenu`,
+  `Alert`, `Badge`, `Skeleton`, `Kbd`, `Label`. `IslandFallback` monta `Skeleton`
+  en un `.astro` sin directiva (cero JS).
+- `Badge.astro` está **deprecado** a favor de `ui/badge`: solo sobrevive para el
+  chrome sin isla de las pantallas heredadas, que están en la lista de borrado.
+- Un `.vue` del registry en un `.astro` sin directiva se renderiza en el servidor
   (cero JS); los interactivos (Dialog, Dropdown…) exigen isla hidratada.
 - **CSP:** `security.csp` lleva `style-src 'self' 'unsafe-inline'` y deja
   `script-src` con hashes. Motivo: los hashes no cubren nunca un atributo
@@ -215,6 +269,14 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 
 `npm run all` (lint, check, test, build) es obligatorio. Además, según lo tocado:
 
+- `npm run test` corre en dos proyectos: `node` (kernel, servicios, BFF) y `dom`
+  (jsdom + `@vue/test-utils`, para montar componentes). El plugin de Vue del
+  proyecto `dom` es obligatorio: sin él Vite parsea el `.vue` como JS. Cubre, entre
+  otras cosas, la isla de chat completa contra el transporte mock
+  (`tests/dom/chat-island.spec.ts`) y las dependencias de `v-memo` del globo en
+  vuelo (`tests/dom/chat-message.spec.ts`).
+- `tests/architecture/design-tokens.spec.ts` es el guardián del lenguaje visual:
+  falla con un tamaño arbitrario, un blanco literal o un color escrito a mano.
 - `npm run verify:bundle` → el cliente del proveedor solo en chunk diferido.
 - `npm run verify:relay` → el relay reenvía byte a byte contra un backend de agentes
   falsificado (`tests/_fixtures/sse-stub.mjs`), y comprueba que no se filtran cookies,

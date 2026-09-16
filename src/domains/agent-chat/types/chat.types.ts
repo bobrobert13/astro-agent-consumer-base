@@ -40,11 +40,3 @@ export interface RunConfig {
   instructions?: string | undefined;
   memoryEnabled?: boolean | undefined;
 }
-
-/** Lo que el cliente manda al relay para arrancar una ejecución. */
-export interface StreamRequestBody {
-  prompt: string;
-  /** Opcional: el `resource` lo fija el servidor (ver `server/session-scope.ts`). */
-  thread?: string | undefined;
-  config?: RunConfig | undefined;
-}

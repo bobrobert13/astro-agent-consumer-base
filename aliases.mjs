@@ -15,7 +15,6 @@ export const aliases = {
   '@domains': src('domains'),
   '@components': src('components'),
   '@layouts': src('layouts'),
-  '@composables': src('composables'),
   '@stores': src('stores'),
   '@config': src('config'),
 };

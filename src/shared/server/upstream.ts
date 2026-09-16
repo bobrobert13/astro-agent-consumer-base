@@ -34,8 +34,3 @@ export function upstreamUrl(relativePath: string): URL {
   const base = MASTRA_URL.replace(/\/+$/, '');
   return new URL(`${base}/api/${relativePath.replace(/^\/+/, '')}`);
 }
-
-/** Host del upstream, para el `/api/health` informativo. */
-export function upstreamOrigin(): string {
-  return new URL(MASTRA_URL).origin;
-}

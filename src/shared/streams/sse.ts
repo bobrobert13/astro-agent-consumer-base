@@ -2,9 +2,9 @@
  * @file src/shared/streams/sse.ts
  * @description Utilidades de Server-Sent Events para los dos lados del relay.
  *
- * Lado servidor (`pipeVerbatim`, `relayHeaders`, `idleWatchdog`): reenvía el
- * stream **sin parsearlo**. Lado cliente (`readSseLines`): parsea frames cuando
- * no se usa el cliente del proveedor.
+ * Lado servidor (`relayHeaders`, `idleWatchdog`): reenvía el stream **sin
+ * parsearlo**. Lado cliente (`readSseLines`): parsea frames cuando no se usa el
+ * cliente del proveedor.
  *
  * La regla que hay que respetar al tocar este archivo: los streams nunca se
  * reescriben en el servidor. Re-encodear significaría reimplementar el contrato
@@ -59,22 +59,6 @@ export function relayHeaders(upstream: Headers): Headers {
   out.set('x-accel-buffering', 'no');
 
   return out;
-}
-
-/**
- * Reenvío verbatim de un cuerpo binario, con abortos encadenables.
- *
- * No inspecciona el contenido: solo copia bytes. Devuelve el `Response` ya
- * listo para devolver desde un endpoint de Astro.
- */
-export function pipeVerbatim(
-  upstreamBody: ReadableStream<Uint8Array> | null,
-  init: { status: number; headers: Headers }
-): Response {
-  if (upstreamBody === null) {
-    return new Response('', { status: init.status, headers: init.headers });
-  }
-  return new Response(upstreamBody, { status: init.status, headers: init.headers });
 }
 
 /**

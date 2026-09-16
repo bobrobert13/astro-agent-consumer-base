@@ -2,6 +2,7 @@ import { resultError, resultOk, normalizeServiceError, type Result } from '@shar
 import type { TokenUsage } from '../types/chat.types';
 import type { AgentTransport, StreamChunk, StreamContext, StreamInput, TransportHealth } from './types';
 import { checkTransport } from '../composables/services/chat/chat.api';
+import { chatEndpoints } from '../composables/services/chat/chat.endpoints';
 
 /**
  * @file src/domains/agent-chat/transport/mastra.ts
@@ -45,7 +46,9 @@ async function loadClient(): Promise<UpstreamClient> {
   const { MastraClient } = await import('@mastra/client-js');
   return new MastraClient({
     baseUrl: typeof window === 'undefined' ? 'http://127.0.0.1:4321' : window.location.origin,
-    apiPrefix: '/api/agent-rpc',
+    // Del mapa de rutas del slice, no un literal repetido: `chat.endpoints` es
+    // donde vive qué es público del BFF.
+    apiPrefix: chatEndpoints.rpcPrefix(),
   }) as unknown as UpstreamClient;
 }
 
@@ -79,7 +82,13 @@ export const mastraTransport: AgentTransport = {
       const agent = client.getAgent(input.agentId);
 
       const response = await agent.stream(input.prompt, {
-        memory: { thread: input.thread, resource: 'browser' },
+        /**
+         * Solo el hilo. El `resource` —la identidad con la que el backend agrupa
+         * la memoria— NO se manda desde aquí: lo inyecta el BFF en
+         * `server/session-scope.ts`. Si el navegador pudiera fijarlo, cualquiera
+         * leería el historial de otro poniendo su id en el cuerpo.
+         */
+        memory: { thread: input.thread },
         abortSignal: context.signal,
       });
 

@@ -65,8 +65,13 @@ describe('resolveScope', () => {
     expect(resolveScope(request, 't1')).toEqual({ resource: 'usuario-7', thread: 't1' });
   });
 
-  it('cae en identidad anónima si no hay cookie', () => {
-    expect(resolveScope(new Request('http://localhost/api/sessions')).resource).toBe('anonymous');
+  it('acuña identidad por navegador cuando no hay cookie', () => {
+    // Antes devolvía la constante `'anonymous'`, así que todos los navegadores
+    // compartían memoria: la regla "el resource lo decide el servidor" se
+    // cumplía en la forma pero no en el efecto.
+    const scope = resolveScope(new Request('http://localhost/api/sessions'));
+    expect(scope.resource).toMatch(/^[0-9a-f]{32}$/);
+    expect(scope.setCookie).toContain(`aac_resource=${scope.resource}`);
   });
 });
 

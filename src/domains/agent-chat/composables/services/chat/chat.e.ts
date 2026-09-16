@@ -17,12 +17,18 @@ export const CHAT_ERROR_CODES = {
   invalidRequest: 'invalid_request',
   transportUnavailable: 'transport_unavailable',
   agentError: 'agent_error',
+  /** El mensaje supera lo que el BFF acepta reenviar. */
+  payloadTooLarge: 'payload_too_large',
+  /** Ruta del relay mal formada (traversal, vacía). */
+  invalidPath: 'invalid_path',
+  /** Fallo no clasificado del propio BFF. */
+  bffError: 'bff_error',
 } as const;
 
 const MESSAGES: Record<string, string> = {
   [CHAT_ERROR_CODES.upstreamUnreachable]:
     'No puedo hablar con el backend de agentes. Comprueba que esté levantado o deja el transporte en mock.',
-  [CHAT_ERROR_CODES.agentNotFound]: 'Ese agente no existe. Selecciona otro en el catálogo.',
+  [CHAT_ERROR_CODES.agentNotFound]: 'Ese agente no existe. Selecciónalo de nuevo en el catálogo.',
   [CHAT_ERROR_CODES.streamStalled]:
     'El agente lleva un rato sin responder. Puedes detener el intento y volver a lanzarlo.',
   [CHAT_ERROR_CODES.aborted]: 'Se canceló la respuesta.',
@@ -30,6 +36,10 @@ const MESSAGES: Record<string, string> = {
   [CHAT_ERROR_CODES.transportUnavailable]: 'El transporte de agentes no está disponible.',
   [CHAT_ERROR_CODES.agentError]:
     'El agente no pudo terminar la respuesta. Si el problema persiste, revisa el estado del backend en el log del servidor.',
+  [CHAT_ERROR_CODES.payloadTooLarge]:
+    'El mensaje es demasiado largo para enviarlo. Divídelo en varios o adjunta menos contenido.',
+  [CHAT_ERROR_CODES.invalidPath]: 'La dirección de la ejecución no es válida. Vuelve a abrir el hilo.',
+  [CHAT_ERROR_CODES.bffError]: 'El servidor de la aplicación falló al atender la petición.',
 };
 
 /** Mensaje presentable para un error de servicio, con degradación razonable. */
@@ -59,6 +69,8 @@ function messagesByStatus(statusCode: number): string | undefined {
       return MESSAGES[CHAT_ERROR_CODES.agentNotFound];
     case 400:
       return MESSAGES[CHAT_ERROR_CODES.invalidRequest];
+    case 413:
+      return MESSAGES[CHAT_ERROR_CODES.payloadTooLarge];
     case 504:
       return MESSAGES[CHAT_ERROR_CODES.streamStalled];
     case 429:

@@ -41,16 +41,26 @@ export function withGateway(scope: string, handler: GatewayHandler): GatewayHand
 
 /** Lectura de JSON con cota de tamaño, para no bufferizar un cuerpo arbitrario. */
 export async function readJsonBody<T>(request: Request, maxBytes: number): Promise<T | undefined> {
+  const raw = await readBodyText(request, maxBytes);
+  if (raw.trim() === '') return undefined;
+  return JSON.parse(raw) as T;
+}
+
+/**
+ * Lectura de texto con cota de tamaño. Es la primitiva de `readJsonBody`, y
+ * existe aparte porque el relay necesita además el texto **original**: sin él no
+ * puede reenviar intacto un cuerpo que no debe tocar.
+ */
+export async function readBodyText(request: Request, maxBytes: number): Promise<string> {
   const contentLength = Number(request.headers.get('content-length') ?? '0');
   if (Number.isFinite(contentLength) && contentLength > maxBytes) {
     throw new BodyTooLargeError(maxBytes);
   }
 
   const buffer = await request.arrayBuffer();
-  if (buffer.byteLength === 0) return undefined;
   if (buffer.byteLength > maxBytes) throw new BodyTooLargeError(maxBytes);
 
-  return JSON.parse(new TextDecoder().decode(buffer)) as T;
+  return new TextDecoder().decode(buffer);
 }
 
 export class BodyTooLargeError extends Error {

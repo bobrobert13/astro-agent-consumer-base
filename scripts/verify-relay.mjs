@@ -90,7 +90,20 @@ try {
       String(relayed.headers.get('cache-control')).includes('no-transform'),
       String(relayed.headers.get('cache-control'))
     );
-    check('el relay no filtra cookies del upstream', relayed.headers.get('set-cookie') === null);
+    // El stub manda `set-cookie: secreto-del-upstream=1`. Esa cookie es del
+    // backend y no puede llegar al navegador; la que sí sale es la identidad de
+    // memoria que acuña el BFF cuando el navegador no la trae.
+    const relayCookie = String(relayed.headers.get('set-cookie') ?? '');
+    check(
+      'el relay no filtra cookies del upstream',
+      !relayCookie.includes('secreto-del-upstream'),
+      relayCookie
+    );
+    check(
+      'el relay fija la identidad de memoria del navegador',
+      relayCookie.includes('aac_resource=') && relayCookie.includes('HttpOnly'),
+      relayCookie
+    );
     check('el gateway aporta x-request-id', relayed.headers.get('x-request-id') !== null);
 
     // Un cross-origin con content-type "simple" tiene que seguir bloqueado.

@@ -3,9 +3,10 @@
  * @description Escribe `PUBLIC_AGENT_TRANSPORT` en `.env.local` para alternar entre
  * el chat simulado y el backend real, sin editar `.env` a mano.
  *
- * Por qué `.env.local` y no `.env`: `.env` está versioneado como plantilla viva
- * del equipo y puede llevar ints personales; `.env.local` tiene prioridad en
- * Astro y está en `.gitignore`.
+ * Por qué `.env.local` y no `.env`: `.env` no está versionado (lo ignora
+ * `.gitignore`; lo único versionado es `.env.example`, la plantilla), pero puede
+ * llevar ajustes personales de quien trabaja el repo. `.env.local` tiene
+ * prioridad en Astro, así que la alternancia no pisa nada de nadie.
  *
  * Uso: `npm run transport:mock` | `npm run transport:mastra`
  */

@@ -7,7 +7,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { agentConfigSchema } from '@domains/agent-chat/server';
+import { agentConfigSchema } from '@domains/agent-config/server';
 import { readAgentConfig, writeAgentConfig } from '@domains/agent-config/composables/services/config/config.api';
 import { CONFIG_ERROR_CODES, resolveConfigErrorMessage } from '@domains/agent-config/composables/services/config/config.e';
 import { configEndpoints } from '@domains/agent-config/composables/services/config/config.endpoints';

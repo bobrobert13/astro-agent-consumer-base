@@ -1,12 +1,17 @@
 import type { APIRoute } from 'astro';
 
-import { agentConfigSchema, withGateway } from '@domains/agent-chat/server';
-import { upstreamJson } from '@shared/server/fetch-json';
+import { CONFIG_ERROR_CODES } from '@domains/agent-config';
+import { agentConfigSchema, readAgentConfig } from '@domains/agent-config/server';
+import { withGateway } from '@domains/agent-chat/server';
 import { resultOk } from '@shared/result/result.pattern';
 
 /**
  * @file src/pages/api/agents/[agentId]/config.ts
  * @description Perillas de ejecución del agente (modelo, temperatura, memoria).
+ *
+ * Envoltorio: la lectura vive en `@domains/agent-config/server`, porque
+ * `settings.astro` necesita **la misma** durante el render. Duplicarla aquí era
+ * la forma segura de que las dos se separaran.
  *
  * El BFF responde siempre con el DTO propio: si el upstream no expone el campo,
  * se devuelve el valor por defecto del schema en vez de propagar un 502 a una
@@ -16,15 +21,8 @@ export const prerender = false;
 
 export const GET: APIRoute = ({ request, params }) =>
   withGateway('api/agents/[agentId]/config', async () => {
-    const agentId = params['agentId'] ?? '';
-    const upstream = await upstreamJson<unknown>(`agents/${encodeURIComponent(agentId)}/config`);
-
-    // Forma desconocida o proveedor sin el endpoint: defaults.
-    const candidate = upstream.ok ? upstream.data : {};
-    const parsed = agentConfigSchema.safeParse(candidate);
-    const data = parsed.success ? parsed.data : agentConfigSchema.parse({});
-
-    return Response.json({ ok: true, data });
+    const result = await readAgentConfig(params['agentId'] ?? '');
+    return Response.json({ ok: true, data: result.ok ? result.data : agentConfigSchema.parse({}) });
   })(request);
 
 export const PUT: APIRoute = ({ request }) =>
@@ -42,7 +40,10 @@ export const PUT: APIRoute = ({ request }) =>
           ok: false,
           error: {
             statusCode: 400,
-            code: 'invalid_request',
+            // El código declarado en `config.e.ts` es `invalid_config`; emitir
+            // `invalid_request` dejaba el catálogo sin usar y la UI traduciendo
+            // por estado HTTP en vez de por código.
+            code: CONFIG_ERROR_CODES.invalidConfig,
             message: issue?.message ?? 'Configuración inválida.',
             field: issue?.path.join('.'),
           },

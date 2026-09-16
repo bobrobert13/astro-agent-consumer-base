@@ -9,7 +9,12 @@
  *
  * Regla: `@shared/env/client` lo importan composables, componentes `.vue` y
  * `<scope>.api.ts`. Nunca un módulo bajo `server/`.
+ *
+ * El alias `PUBLIC_X as X` no es decoración: la clave de `env.schema` tiene que
+ * ser el nombre literal de la variable —con su prefijo— o Astro no la encuentra
+ * y usa el `default` en silencio. El resto del repo importa el nombre corto.
  */
-export { AGENT_TRANSPORT, APP_NAME } from 'astro:env/client';
-
-export type AgentTransportKind = 'mock' | 'mastra';
+export {
+  PUBLIC_AGENT_TRANSPORT as AGENT_TRANSPORT,
+  PUBLIC_APP_NAME as APP_NAME,
+} from 'astro:env/client';

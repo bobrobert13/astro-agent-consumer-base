@@ -109,10 +109,23 @@ export default defineConfig({
 
   env: {
     schema: {
-      APP_NAME: envField.string({ context: 'client', access: 'public', default: 'Astro Agent Consumer' }),
+      // ⚠️ La clave del schema ES el nombre de la variable: Astro la busca con
+      // `loadEnv(mode, dir, '')` y hace `loadedEnv[key]`. Sin el prefijo
+      // `PUBLIC_`, `loadedEnv['AGENT_TRANSPORT']` no existe, la validación no ve
+      // nada y Astro inyecta el `default` en cada build — el interruptor de
+      // transporte queda muerto sin que nada falle. Verificado.
+      //
+      // El prefijo no es cosmético: es la convención de Vite/Astro para "esto
+      // acaba en el bundle del cliente", y `src/shared/env/client.ts` lo
+      // re-exporta sin prefijo para que el resto del repo no lo arrastre.
+      PUBLIC_APP_NAME: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'Astro Agent Consumer',
+      }),
 
       // `mock` arranca la app completa sin ningún backend.
-      AGENT_TRANSPORT: envField.enum({
+      PUBLIC_AGENT_TRANSPORT: envField.enum({
         context: 'client',
         access: 'public',
         values: ['mock', 'mastra'],

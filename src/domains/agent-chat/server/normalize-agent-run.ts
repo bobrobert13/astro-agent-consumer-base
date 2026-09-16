@@ -66,23 +66,3 @@ export const agentSummarySchema = z.object({
 export const agentListSchema = z.object({
   agents: z.record(z.string(), agentSummarySchema).optional(),
 });
-
-/** Upstream responde `{ agents: { id: {...} } }` o un array: se aceptan las dos. */
-export const agentListFlexibleSchema = z.union([
-  z.array(z.unknown()),
-  z.record(z.string(), z.unknown()),
-  agentListSchema,
-]);
-
-/** Forma recortada de un hilo de memoria. */
-export const threadSummarySchema = z.object({
-  id: z.string(),
-  title: z.string().default('Conversación'),
-  updatedAt: z.string().default(''),
-});
-
-export const agentConfigSchema = z.object({
-  model: z.string().default(''),
-  temperature: z.number().min(0).max(2).default(0.7),
-  memoryEnabled: z.boolean().default(true),
-});

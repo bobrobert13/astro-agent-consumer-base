@@ -2,17 +2,25 @@ import { AGENT_CONNECT_TIMEOUT, AGENT_IDLE_TIMEOUT } from '@shared/env/server';
 import { idleWatchdog, relayHeaders } from '@shared/streams/sse';
 import { reportError } from '@shared/observability/report-error';
 import { upstreamHeaders, upstreamUrl } from '@shared/server/upstream';
+import { BodyTooLargeError } from './gateway';
+import { bodyWithScope, readRelayBody, requestedThread } from './relay-body';
+import { resolveScope } from './session-scope';
 
 /**
  * @file src/domains/agent-chat/server/stream-relay.ts
  * @description Reenvío del stream del agente **verbatim**.
  *
- * Copia bytes, nunca parsea. Reescribir los frames significaría reimplementar el
- * contrato de wire format del SDK (`processDataStream`, su `[DONE]`, su
- * reconexión) y hacer `JSON.parse` + `stringify` **por token** en el mismo
- * proceso que sirve la interfaz. El valor del BFF es otro: inyectar el secreto,
- * esconder el origen, imponer límites, propagar la cancelación y observar. Todo
- * eso se hace con cabeceras y timeouts, no con parsing.
+ * Copia bytes, nunca parsea la **respuesta**. Reescribir los frames significaría
+ * reimplementar el contrato de wire format del SDK (`processDataStream`, su
+ * `[DONE]`, su reconexión) y hacer `JSON.parse` + `stringify` **por token** en el
+ * mismo proceso que sirve la interfaz. El valor del BFF es otro: inyectar el
+ * secreto, esconder el origen, imponer límites, propagar la cancelación y
+ * observar. Todo eso se hace con cabeceras y timeouts, no con parsing.
+ *
+ * El **cuerpo de la petición** es otra cosa y sí se abre, en un único punto
+ * acotado (`relay-body.ts`), por dos motivos que no admiten otra vía: el límite
+ * de tamaño y la identidad de memoria, que no puede decidirla el navegador. La
+ * respuesta sigue saliendo byte a byte por el mismo camino de antes.
  *
  * Cadena de aborto, en un solo sentido y sin temporizadores flotantes:
  *
@@ -35,6 +43,20 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
     return errorResponse(400, 'invalid_path', 'La ruta del relay no es válida.');
   }
 
+  // El cuerpo se prepara ANTES de resolver el scope: el hilo con el que el
+  // cliente quiere hablar viaja dentro, y es el que hay que sanear.
+  let relayBody;
+  try {
+    relayBody = await readRelayBody(request);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      return errorResponse(413, 'payload_too_large', `El mensaje supera el límite de ${error.maxBytes} bytes.`);
+    }
+    throw error;
+  }
+
+  const scope = resolveScope(request, requestedThread(relayBody.mode === 'json' ? relayBody.parsed : undefined));
+
   const target = upstreamUrl(relativePath);
   const upstreamAbort = new AbortController();
   const headers = upstreamHeaders(pickRequestHeaders(request));
@@ -46,11 +68,12 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
   connectTimer.unref?.();
 
   let upstream: Response;
-  const requestBody = bodyFor(request);
+  const requestBody = bodyWithScope(relayBody, scope);
   // `duplex` no está en el `RequestInit` del lib DOM que trae Astro, pero undici
   // lo exige: sin él, reenviar un cuerpo en streaming falla con "duplex option is
   // required" y TODO stream real devuelve 502, mientras los tests con `fetch`
-  // simulado siguen en verde.
+  // simulado siguen en verde. Solo hace falta con cuerpos que se reenvían como
+  // stream (`opaque`); un JSON acotado ya se leyó y viaja como texto.
   const init: RequestInit & { duplex?: 'half' } = {
     method: request.method,
     headers,
@@ -58,10 +81,18 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
   };
   if (requestBody !== null) {
     init.body = requestBody;
-    init.duplex = 'half';
+    if (requestBody instanceof ReadableStream) init.duplex = 'half';
   }
 
   try {
+    // Si el cliente ya se fue (abortó mientras se preparaba el cuerpo), no se
+    // abre conexión con el upstream: se responde 499 y el backend no se entera.
+    // Con el cuerpo leído en un paso previo esto dejó de ser teórico: hay un
+    // `await` antes del fetch, así que la ventana existe de verdad.
+    if (request.signal.aborted) {
+      clearTimeout(connectTimer);
+      return errorResponse(499, 'aborted', 'Operación cancelada.');
+    }
     upstream = await fetch(target, init);
   } catch (error) {
     clearTimeout(connectTimer);
@@ -74,6 +105,12 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
   clearTimeout(connectTimer);
 
   const outHeaders = relayHeaders(upstream.headers);
+  // La identidad de memoria se acuña aquí y se fija en el navegador. Se añade
+  // SIEMPRE que falte la cookie, no solo en las peticiones de ejecución: si el
+  // primer contacto con el BFF es un GET de catálogo, ese navegador queda con la
+  // misma identidad que usará luego para conversar.
+  if (scope.setCookie !== undefined) outHeaders.append('set-cookie', scope.setCookie);
+
   if (!upstream.body) {
     return new Response(null, { status: upstream.status, headers: outHeaders });
   }
@@ -82,15 +119,6 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
   const relayed = upstream.body.pipeThrough(watchdog);
 
   return new Response(relayed, { status: upstream.status, headers: outHeaders });
-}
-
-/**
- * El cuerpo se reenvía como stream, no se recrea: para un POST de JSON pequeño
- * da igual, pero mantiene el relay agnóstico del tamaño y del content-type.
- */
-function bodyFor(request: Request): BodyInit | null {
-  if (request.method === 'GET' || request.method === 'HEAD') return null;
-  return request.body;
 }
 
 function pickRequestHeaders(request: Request): Headers {

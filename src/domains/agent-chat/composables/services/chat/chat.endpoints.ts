@@ -14,8 +14,9 @@ const api = createEndpoints('/api');
 export const chatEndpoints = {
   /** Sondeo de disponibilidad del BFF y del transporte configurado. */
   health: () => api.url('health'),
-  /** Ruta de ejecución en streaming para un agente. */
-  run: (agentId: string) => agentRpc.url(`stream/${encodeURIComponent(agentId)}`),
-  /** Prefijo que el cliente del proveedor recibe como `apiPrefix`. */
-  rpcPrefix: () => '/api/agent-rpc',
+  /**
+   * Prefijo que el cliente del proveedor recibe como `apiPrefix`
+   * (ver `transport/mastra.ts`). Es la ruta que el relay reenvía.
+   */
+  rpcPrefix: () => agentRpc.url(''),
 } as const;

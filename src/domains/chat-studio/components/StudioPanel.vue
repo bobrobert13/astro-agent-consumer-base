@@ -20,6 +20,7 @@ import { computed } from 'vue';
 import { useAgentChat } from '@domains/agent-chat';
 import StudioComposer from './StudioComposer.vue';
 import StudioConnectBar from './StudioConnectBar.vue';
+import StudioFabs from './StudioFabs.vue';
 import StudioHero from './StudioHero.vue';
 import StudioMemoryNotice from './StudioMemoryNotice.vue';
 import StudioPanelHeader from './StudioPanelHeader.vue';
@@ -90,7 +91,12 @@ function onRetry(): void {
         <StudioComposer class="w-full shrink-0 px-8 pt-2 pb-4" />
       </template>
 
-      <footer class="shrink-0 px-8 pt-6 pb-5 text-center text-caption text-ink-muted">
+      <!--
+        El relleno lateral es ancho a propósito: deja libre la esquina donde
+        flotan las acciones (`StudioFabs`), que se apoyan sobre esta franja en
+        vez de sobre el composer.
+      -->
+      <footer class="shrink-0 px-20 pt-6 pb-5 text-center text-caption text-ink-muted max-nav:px-4">
         {{ STUDIO_COPY.disclaimer }}
         <button
           type="button"
@@ -101,5 +107,7 @@ function onRetry(): void {
         </button>
       </footer>
     </div>
+
+    <StudioFabs />
   </main>
 </template>

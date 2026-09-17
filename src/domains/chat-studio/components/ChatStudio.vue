@@ -24,7 +24,9 @@ import { PanelLeft } from '@lucide/vue';
 
 import { TooltipProvider } from '@components/ui/tooltip';
 import { useAgentChat } from '@domains/agent-chat';
+import StudioContextPanel from './StudioContextPanel.vue';
 import StudioPanel from './StudioPanel.vue';
+import StudioPreviewDialog from './StudioPreviewDialog.vue';
 import StudioSidebar from './StudioSidebar.vue';
 import { useStudioShortcuts } from '../composables/useStudioShortcuts';
 import { provideStudioShell } from '../composables/useStudioShell';
@@ -97,6 +99,14 @@ watch(
       <div class="flex min-w-0 flex-1 pt-4.5 pr-5 pb-4.5 max-nav:p-3">
         <StudioPanel />
       </div>
+
+      <StudioContextPanel />
+
+      <!--
+        El modal vive fuera de la fila y no dentro del panel: es una capa, y
+        anidarlo en un contenedor con `overflow-hidden` lo recortaría.
+      -->
+      <StudioPreviewDialog />
 
       <Toaster position="bottom-center" />
     </div>

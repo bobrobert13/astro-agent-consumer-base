@@ -12,13 +12,13 @@ import AppLayout from '@layouts/AppLayout.astro';
 import { Badge } from '@components/ui/badge';
 import IslandFallback from '@components/IslandFallback.astro';
 import { ChatIsland } from '@domains/agent-chat';
-import { NEW_THREAD_ID } from '@config/app';
+import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
 
 const threadId = Astro.params.threadId ?? NEW_THREAD_ID;
 const isNew = threadId === NEW_THREAD_ID;
 // El agente activo viaja en la URL, no en un store: es lo que hace que un enlace
 // a una conversación sea compartible y de que "cambiar de agente" sea navegar.
-const agentId = Astro.url.searchParams.get('agente') ?? 'research-agent';
+const agentId = Astro.url.searchParams.get('agente') ?? DEFAULT_AGENT_ID;
 ---
 
 <AppLayout title={isNew ? 'Hilo nuevo' : `Hilo ${threadId}`} active="chat" description="Conversación con el agente." subtitle={agentId}>

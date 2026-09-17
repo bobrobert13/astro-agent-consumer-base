@@ -21,7 +21,8 @@ Con `PUBLIC_AGENT_TRANSPORT=mock` (el default) **no hace falta ningún backend**
 el chat emite tokens simulados. Para apuntar al Mastra real,
 `npm run transport:mastra` y arranque `mastra-agente-ejemplo/mastra-boilerplate`
 en `:4111` (ids reales verificados: `research-agent`, `tasks-agent`, `files-agent`,
-`communication-agent` — el default del slice es `research-agent`).
+`communication-agent` — el default del slice es `communication-agent`, la única
+fuente es `DEFAULT_AGENT_ID` en `@config/app`; la URL lo puede pisar con `?agente=`).
 
 ## Arquitectura: slicing vertical
 
@@ -125,6 +126,23 @@ solo existe en el navegador (ADR-007).
   (`session-scope.ts`)— y el destino del reenvío, que también sale de él (el `agentId`
   de una ejecución de chat). Solo se reescriben `memory.resource` y `memory.thread`; el
   resto del cuerpo se devuelve intacto. Leer ADR-006 antes de tocar el relay.
+- **El hilo se acota SIEMPRE al resource** (`scopeThread()` → `<hilo>-<resource>`), no
+  solo el marcador `nuevo`: Mastra ata cada hilo a un resource y reusar un id literal
+  con otro dueño (cookies nuevas, otro navegador, `localhost` vs `127.0.0.1`) es un
+  `500 Internal Server Error` reproducido contra el backend real. El mismo navegador
+  conserva su conversación turno a turno; ningún otro la comparte (ADR-006).
+- **`AGENT_CONNECT_TIMEOUT` (30 s) es el presupuesto hasta las PRIMERAS CABECERAS del
+  upstream, y el backend las escribe tarde a propósito**: antes corre su memoria, su
+  scope guard y su detector de inyección (llamadas al modelo) y el primer token
+  —medido: 9-20 s con DeepInfra—. Bajarlo corta turnos sanos con un 502
+  `connect_timeout` que miente sobre la causa. `AGENT_IDLE_TIMEOUT` (60 s) es otra
+  cosa: silencio máximo a mitad de stream, medido entre chunks.
+- **Los fallos del relay se traducen al catálogo, nunca al mensaje genérico.** El AI
+  SDK entrega el *cuerpo* de la respuesta de error como `message`; `relayErrorFrom()`
+  (`chat.e.ts`) abre ese JSON (`{"ok":false,"error":{statusCode,code}}`) y
+  `resolveStreamErrorText` decide código → estado HTTP → genérico, sin pintar jamás el
+  texto crudo. Antes, todo 502/413 degradaba al genérico y el motivo real no llegaba
+  ni a la pantalla ni al log del servidor.
 - **Los handlers del BFF validan con su propio schema, no con el del proveedor.**
   `chatRequestSchema` describe el cuerpo que construye **nuestro** cliente
   (`prepareSendMessagesRequest`): un `agentId` estrecho —se interpola en una ruta, así

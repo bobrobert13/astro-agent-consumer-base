@@ -2,7 +2,7 @@ import { useChat } from '@ai-sdk/vue';
 import { createSharedComposable } from '@vueuse/shared';
 import { computed, ref, watch } from 'vue';
 
-import { NEW_THREAD_ID } from '@config/app';
+import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
 import { AGENT_TRANSPORT } from '@shared/env/client';
 import { reportError } from '@shared/observability/report-error';
 import { normalizeServiceError, resultError, resultOk, type Result } from '@shared/result/result.pattern';
@@ -45,7 +45,7 @@ const OM_STATUS_PART = 'data-om-status';
  */
 
 function defineAgentChat() {
-  const activeAgentId = ref('research-agent');
+  const activeAgentId = ref(DEFAULT_AGENT_ID);
   const threadId = ref(NEW_THREAD_ID);
   /** Error ya traducido por el catálogo; `undefined` mientras no haya fallo. */
   const errorText = ref<string | undefined>(undefined);

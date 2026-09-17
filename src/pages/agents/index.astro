@@ -19,6 +19,7 @@ import EmptyState from '@components/EmptyState.astro';
 import ButtonLink from '@components/ButtonLink.astro';
 import Icon from '@components/Icon.astro';
 import { listAgents } from '@domains/agent-registry/server';
+import { DEFAULT_AGENT_ID } from '@config/app';
 import { routes } from '@config/routes';
 
 const result = await listAgents();
@@ -54,7 +55,7 @@ const failure = result.ok ? undefined : result.error.message;
               <div class="mt-3 flex items-center gap-2">
                 <ButtonLink href={routes.chat()} size="sm" variant="primary">Abrir chat</ButtonLink>
                 <ButtonLink href={routes.agent(agent.id)} size="sm" variant="ghost">Ficha</ButtonLink>
-                <Badge tone="neutral">{agent.id === 'research-agent' ? 'default' : 'agente'}</Badge>
+                <Badge tone="neutral">{agent.id === DEFAULT_AGENT_ID ? 'default' : 'agente'}</Badge>
               </div>
             </Panel>
           </li>

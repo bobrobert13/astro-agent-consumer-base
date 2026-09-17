@@ -27,6 +27,7 @@ import ChatComposer from './ChatComposer.vue';
 import ChatTranscript from './ChatTranscript.vue';
 import MemoryNotice from './MemoryNotice.vue';
 import StreamStatusBar from './StreamStatusBar.vue';
+import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
 import { useAgentChat } from '../composables/useAgentChat';
 
 const props = withDefaults(
@@ -34,7 +35,7 @@ const props = withDefaults(
     agentId?: string;
     threadId?: string;
   }>(),
-  { agentId: 'research-agent', threadId: 'nuevo' }
+  { agentId: DEFAULT_AGENT_ID, threadId: NEW_THREAD_ID }
 );
 
 const {

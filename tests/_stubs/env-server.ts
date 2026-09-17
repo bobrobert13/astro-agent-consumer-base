@@ -7,5 +7,5 @@
  */
 export const MASTRA_URL = 'http://localhost:4111';
 export const MASTRA_API_KEY: string | undefined = undefined;
-export const AGENT_CONNECT_TIMEOUT = 10_000;
+export const AGENT_CONNECT_TIMEOUT = 30_000;
 export const AGENT_IDLE_TIMEOUT = 60_000;

@@ -146,7 +146,16 @@ export default defineConfig({
       }),
       MASTRA_API_KEY: envField.string({ context: 'server', access: 'secret', optional: true }),
 
-      AGENT_CONNECT_TIMEOUT: envField.number({ context: 'server', access: 'secret', default: 10_000 }),
+      // Presupuesto hasta las PRIMERAS CABECERAS del upstream, y por eso no puede
+      // ser corto: el backend no responde hasta que termina su trabajo previo —el
+      // scope guard y el detector de inyección son llamadas al modelo—, así que
+      // 10 s daban `connect_timeout` con un backend sano pero lento (medido: dos
+      // guardrails y un proveedor remoto lo superan). Un 502 aquí miente: la
+      // ejecución no falló, es que aún no había empezado a escribir.
+      AGENT_CONNECT_TIMEOUT: envField.number({ context: 'server', access: 'secret', default: 30_000 }),
+
+      // Máximo de silencio a mitad de stream. Se mide entre chunks, no de forma
+      // acumulada: una respuesta larga y sana no es un cuelgue.
       AGENT_IDLE_TIMEOUT: envField.number({ context: 'server', access: 'secret', default: 60_000 }),
     },
   },

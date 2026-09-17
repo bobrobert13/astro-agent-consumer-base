@@ -1,22 +1,42 @@
 /**
- * Única fuente de verdad del aserto "el cliente del proveedor no está en el
- * chunk inicial de la isla".
+ * @file scripts/verify-bundle.mjs
+ * @description Guardián de lo que NO puede entrar en el grafo estático de la isla.
+ *
+ * Cambió de aserto con el paso al AI SDK, y conviene tenerlo claro al leerlo:
+ * antes vigilaba que el cliente del proveedor (`@mastra/client-js`) quedara en un
+ * chunk **diferido**, porque la isla no debía pagarlo hasta el primer prompt.
+ * Ahora el núcleo de la isla **es** el AI SDK (`useChat`), así que ese aserto ya no
+ * significa nada: lo que se vigila es que el grafo inicial no arrastre **nada de
+ * servidor** — ni el cliente del proveedor, ni los nombres de las variables de
+ * entorno, ni el host del backend.
  *
  * Los tests unitarios no pueden comprobarlo (no hay bundle) y `astro build` no lo
- * rechaza: es una regresión silenciosa que solo se paga cuando alguien abre la
- * app. Por eso vive como script de verificación, en el DoD.
+ * rechaza: es una regresión silenciosa que solo se paga cuando alguien abre la app.
  *
- * Cómo lo hace: Astro ya no deja el HTML de las rutas SSR en `dist/client`, así
- * que el chunk de entrada de la isla se localiza por un literal que solo aparece
- * en su JSX, y desde ahí se recorren **solo imports estáticos** (un
- * `import("./otro.js")` se considera diferido, que es lo que queremos).
+ * Cómo lo hace: Astro ya no deja el HTML de las rutas SSR en `dist/client`, así que
+ * el chunk de entrada de la isla se localiza por un literal que solo aparece en su
+ * JSX, y desde ahí se recorren **solo imports estáticos** (un `import("./otro.js")`
+ * se cuenta como diferido).
  */
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const ASSET_DIR = 'dist/client/_astro';
 const ISLAND_MARKER = 'Conversación con el agente';
-const PROVENANCE_MARKERS = ['@mastra/core', 'MastraClient', 'processDataStream'];
+
+/**
+ * Lo que jamás debe aparecer en el grafo inicial de la isla. No es una lista de
+ * "código pesado" sino de **código de servidor o secreto**: si alguno sale aquí,
+ * el módulo que lo contiene cruzó una frontera que el test de arquitectura no ve
+ * porque se resuelve en el bundler, no en el fuente.
+ */
+const FORBIDDEN_MARKERS = [
+  'MastraClient', // el cliente del proveedor: el navegador ya no habla con Mastra
+  '@mastra/core',
+  'MASTRA_URL',
+  'MASTRA_API_KEY',
+  'localhost:4111', // el host por defecto del backend, último síntoma de filtración
+];
 
 const chunks = new Map();
 for (const file of readdirSync(ASSET_DIR)) {
@@ -28,7 +48,7 @@ if (chunks.size === 0) {
   fail(`no hay chunks en ${ASSET_DIR}: ejecuta \`npm run build\` antes de verificar`);
 }
 
-const entry = [...chunks].find(([, code]) => contains(code, PROVENANCE_MARKERS) === false && contains(code, [ISLAND_MARKER]));
+const entry = [...chunks].find(([, code]) => contains(code, [ISLAND_MARKER]));
 if (entry === undefined) {
   fail(
     `no se encontró el chunk de la isla (marcador "${ISLAND_MARKER}"). ` +
@@ -51,24 +71,23 @@ while (queue.length > 0) {
   }
 }
 
-const leaked = [...seen].filter((name) => contains(chunks.get(name) ?? '', PROVENANCE_MARKERS));
-const deferred = [...chunks.keys()].filter((name) => contains(chunks.get(name) ?? '', PROVENANCE_MARKERS));
+const leaked = [...seen].filter((name) => contains(chunks.get(name) ?? '', FORBIDDEN_MARKERS));
 
 if (leaked.length > 0) {
   fail(
-    `el cliente del proveedor está en el grafo estático de la isla: ${leaked.join(', ')}. ` +
-      'Debe cargarse con `await import()` dentro de transport/mastra.ts.'
+    `el grafo estático de la isla arrastra código de servidor o secretos: ${leaked.join(', ')}. ` +
+      'Los módulos bajo `server/` y `@shared/env/server` solo pueden importarse desde `src/pages/api/**`.'
   );
 }
 
-if (deferred.length === 0) {
-  console.log('  aviso  ningún chunk contiene el cliente del proveedor.');
-  console.log('           Ok si el build se hizo sin referenciarlo; Comprueba que transport/mastra.ts sigue importado dinámicamente.');
-} else {
-  console.log(`  ok     ${deferred.length} chunk(s) diferido(s) con el cliente del proveedor, fuera del grafo inicial de la isla.`);
-}
+const bytes = [...seen].reduce((total, name) => total + sizeOf(name), 0);
 
-console.log(`  ok     verify-bundle: cierre estático de la isla = ${seen.size} chunk(s)`);
+console.log(`  ok     ningún marcador prohibido en el cierre estático de la isla.`);
+console.log(`  ok     cierre estático de la isla = ${seen.size} chunk(s), ${(bytes / 1024).toFixed(0)} KB.`);
+
+function sizeOf(name) {
+  return statSync(join(ASSET_DIR, name)).size;
+}
 
 function contains(code, needles) {
   return needles.some((needle) => code.includes(needle));

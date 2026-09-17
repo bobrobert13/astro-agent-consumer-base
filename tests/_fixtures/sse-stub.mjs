@@ -1,7 +1,8 @@
 /**
  * @file tests/_fixtures/sse-stub.mjs
- * @description Backend de agentes falsificado: emite SSE con el formato de
- * UI-messages que usa el stack, y emula los endpoints que ejercita el relay.
+ * @description Backend de agentes falsificado: emula las dos rutas que ejercita el
+ * BFF —el catálogo JSON del API del framework y el stream de chat en la raíz— con
+ * el formato de UI-messages que usa el stack.
  *
  * Uso:
  *   node tests/_fixtures/sse-stub.mjs [puerto] [retardo-ms-por-frame]
@@ -35,9 +36,20 @@ createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname.startsWith('/api/stream/')) {
+  if (url.pathname === '/health/version') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', version: '0.0.0-stub', env: 'test' }));
+    return;
+  }
+
+  // Ruta custom de chat: cuelga de la RAÍZ, no de `/api` (el `/api` lo reserva
+  // Mastra para el framework). Emite el protocolo de UI-messages: un `data: <json>`
+  // por parte y `data: [DONE]` al final.
+  if (url.pathname.startsWith('/chat/')) {
     res.writeHead(200, {
       'content-type': 'text/event-stream',
+      // Hostiles a propósito: el relay tiene que forzar `no-transform` pese a
+      // este `max-age`, y no puede dejar pasar la cookie del backend.
       'cache-control': 'max-age=600',
       'set-cookie': 'secreto-del-upstream=1',
       date: 'siempre-ayer',
@@ -45,10 +57,12 @@ createServer(async (req, res) => {
 
     const agentId = url.pathname.split('/').pop();
     const frames = [
-      { type: 'start', payload: {} },
-      { type: 'text-delta', payload: { text: `Hola desde ${agentId}.` } },
-      { type: 'text-delta', payload: { text: ' Segundo fragmento.' } },
-      { type: 'finish', payload: {} },
+      { type: 'start', messageId: 'stub-message' },
+      { type: 'text-start', id: 'stub-text' },
+      { type: 'text-delta', id: 'stub-text', delta: `Hola desde ${agentId}.` },
+      { type: 'text-delta', id: 'stub-text', delta: ' Segundo fragmento.' },
+      { type: 'text-end', id: 'stub-text' },
+      { type: 'finish' },
     ];
 
     for (const frame of frames) {

@@ -165,15 +165,29 @@ describe('fronteras entre bounded contexts', () => {
     expect(offenders, `expónlo por el index.ts del slice.\n${offenders.join('\n')}`).toEqual([]);
   });
 
-  it('el cliente del proveedor de agentes solo se nombra en su transporte', () => {
+  it('ningún módulo nombra el cliente del proveedor: el navegador no habla con Mastra', () => {
+    // Antes esta regla aislaba `@mastra/client-js` en `transport/mastra.ts`. Con el
+    // AI SDK ese archivo desapareció: el chat pasa por el BFF y el navegador no
+    // tiene por qué poder nombrar Mastra ni siquiera en un import muerto.
     const offenders = modules
-      .filter((module) => !module.path.endsWith('transport/mastra.ts'))
       .filter((module) => /['"]@mastra\/(client-js|core)/.test(module.code))
       .map((module) => module.path);
 
     expect(
       offenders,
-      `@mastra/client-js debe quedar aislado en transport/mastra.ts para poder sustituirlo.\n${offenders.join('\n')}`
+      `el navegador solo habla con el BFF: si necesitas algo de Mastra, va detrás de src/pages/api.\n${offenders.join('\n')}`
     ).toEqual([]);
+  });
+
+  it('ningún componente .vue conoce el vocabulario del AI SDK', () => {
+    // La vista consume `ChatMessage`, no `UIMessage`. El puente es `ai/`, y esta
+    // regla es lo que impide que el vocabulario del SDK se filtre a los
+    // componentes en el primer `atajo` que alguien escriba.
+    const offenders = modules
+      .filter((module) => module.path.endsWith('.vue'))
+      .filter((module) => /['"](ai|@ai-sdk\/vue)['"]/.test(module.code))
+      .map((module) => module.path);
+
+    expect(offenders, `traduce en ai/adapt-ui-messages.ts, no en la vista.\n${offenders.join('\n')}`).toEqual([]);
   });
 });

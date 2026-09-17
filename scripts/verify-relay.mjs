@@ -61,17 +61,33 @@ try {
     const health = await (await fetch(`${APP}/api/health`)).json();
     check('/api/health responde ok:true', health.ok === true, JSON.stringify(health));
 
-    const direct = await fetch(`${UPSTREAM}/api/stream/research`, {
+    // Sonda profunda: es el único punto que confirma que el BFF llega al backend.
+    const probe = await (await fetch(`${APP}/api/health/upstream`)).json();
+    check(
+      '/api/health/upstream alcanza el backend y lee su versión',
+      probe.upstream?.reachable === true && probe.upstream?.version === '0.0.0-stub',
+      JSON.stringify(probe)
+    );
+
+    // Un solo cuerpo para las dos llamadas: el relay reescribe `memory` (identidad
+    // de memoria) pero el stub no lo mira, así que las respuestas deben ser iguales.
+    const chatBody = JSON.stringify({
+      agentId: 'research',
+      messages: [{ id: 'verify-1', role: 'user', parts: [{ type: 'text', text: 'hola' }] }],
+      memory: { thread: 'verify-relay' },
+    });
+
+    const direct = await fetch(`${UPSTREAM}/chat/research`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ prompt: 'hola' }),
+      body: chatBody,
     });
     const expected = await direct.text();
 
-    const relayed = await fetch(`${APP}/api/agent-rpc/stream/research`, {
+    const relayed = await fetch(`${APP}/api/agent-chat`, {
       method: 'POST',
       headers: browserHeaders,
-      body: JSON.stringify({ prompt: 'hola' }),
+      body: chatBody,
     });
     const actual = await relayed.text();
 
@@ -106,8 +122,16 @@ try {
     );
     check('el gateway aporta x-request-id', relayed.headers.get('x-request-id') !== null);
 
+    // El destino sale del cuerpo: sin `agentId` válido no se abre conexión.
+    const noAgent = await fetch(`${APP}/api/agent-chat`, {
+      method: 'POST',
+      headers: browserHeaders,
+      body: JSON.stringify({ messages: [{ id: 'x', role: 'user', parts: [] }] }),
+    });
+    check('sin agentId el BFF responde 400 y no reenvía', noAgent.status === 400, `status=${noAgent.status}`);
+
     // Un cross-origin con content-type "simple" tiene que seguir bloqueado.
-    const cross = await fetch(`${APP}/api/agent-rpc/stream/research`, {
+    const cross = await fetch(`${APP}/api/agent-chat`, {
       method: 'POST',
       headers: { 'content-type': 'text/plain', origin: 'http://evil.example' },
       body: 'x',

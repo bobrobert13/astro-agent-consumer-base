@@ -1,94 +1,19 @@
 ---
 /**
  * @file src/pages/index.astro
- * @description Raíz: shell prerenderizado y acceso a las vistas del boilerplate.
+ * @description Raíz del producto: el estudio de chat a pantalla completa.
  *
- * `prerender = true` es el punto donde se demuestra el modo mixto de Astro 7: con
- * `output: 'server'` todo se sirve bajo demanda salvo lo que opta explícitamente
- * a estático. Esta página no depende de datos por-request, así que se consolida
- * en `dist/client` y puede servirla un CDN.
+ * `prerender = true` se mantiene a propósito: esta página no depende de datos
+ * por-request, así que se consolida en `dist/client` y es el sitio donde el
+ * boilerplate demuestra el modo mixto de Astro 7 (`output: 'server'` con una
+ * página estática). Como consecuencia, el `?agente=` de la URL **no** se puede
+ * leer aquí en el servidor; el estudio lo resuelve en el cliente al montar. La
+ * ruta `/chat/<hilo>`, que sí es SSR, lo lee en el servidor.
  */
-import AppLayout from '@layouts/AppLayout.astro';
-import PageTitle from '@components/PageTitle.astro';
-import Panel from '@components/Panel.astro';
-import PanelHeader from '@components/PanelHeader.astro';
-import ButtonLink from '@components/ButtonLink.astro';
-import Badge from '@components/Badge.astro';
-import Icon from '@components/Icon.astro';
-import KeyHint from '@components/KeyHint.astro';
-import { routes } from '@config/routes';
-import { SHORTCUTS } from '@config/ui/tokens';
-import { AGENT_TRANSPORT, APP_NAME } from '@shared/env/client';
+import StudioLayout from '@layouts/StudioLayout.astro';
+import { APP_NAME } from '@shared/env/client';
 
 export const prerender = true;
-
-const slices = [
-  {
-    name: 'agent-chat',
-    state: 'implementada',
-    detail: 'Streaming de tokens, composer, cancelación y catálogo de errores. Es el patrón que copiar las demás.',
-  },
-  { name: 'agent-registry', state: 'esqueleto', detail: 'Catálogo de agentes y selección activa.' },
-  { name: 'agent-sessions', state: 'esqueleto', detail: 'Hilos e identidad de memoria.' },
-  { name: 'agent-config', state: 'esqueleto', detail: 'Perillas por ejecución.' },
-  { name: 'app-shell', state: 'esqueleto', detail: 'Navegación, atajos y puente de escritorio.' },
-];
 ---
 
-<AppLayout title="Panel" active="chat" description="Boilerplate de sistemas que consumen agentes de IA.">
-  <div class="mx-auto max-w-3xl overflow-y-auto px-6 py-8 h-full">
-    <PageTitle
-      title={APP_NAME}
-      description="Punto de arranque: slicing vertical, BFF propio y shell Electron."
-    />
-
-    <div class="flex flex-wrap items-center gap-2">
-      <Badge tone="brand">
-        <Icon name="spark" />
-        transporte: {AGENT_TRANSPORT}
-      </Badge>
-      <Badge>
-        <KeyHint combo={SHORTCUTS.newThread} />
-        hilo nuevo
-      </Badge>
-    </div>
-
-    <div class="mt-8 grid gap-3 sm:grid-cols-2">
-      <Panel pad="none">
-        <PanelHeader title="Slices del dominio" description="Cada carpeta es un contexto acotado con su BFF, sus composables y sus islas." />
-        <ul class="flex flex-col gap-3 p-4">
-          {slices.map((slice) => (
-            <li class="flex flex-col gap-0.5">
-              <div class="flex items-center gap-2">
-                <code class="font-mono text-xs">{slice.name}</code>
-                <Badge tone={slice.state === 'implementada' ? 'brand' : 'neutral'}>{slice.state}</Badge>
-              </div>
-              <p class="text-xs text-ink-muted">{slice.detail}</p>
-            </li>
-          ))}
-        </ul>
-      </Panel>
-
-      <Panel pad="none">
-        <PanelHeader title="Por dónde empezar" description="Tres saltos cubren el 90 % del trabajo diario." />
-        <ul class="flex flex-col gap-2 p-4 text-sm">
-          <li>
-            <ButtonLink href={routes.chat()} variant="ghost" size="sm">
-              <Icon name="chat" /> Ir al chat del agente
-            </ButtonLink>
-          </li>
-          <li>
-            <ButtonLink href={routes.agents()} variant="ghost" size="sm">
-              <Icon name="agents" /> Ver el catálogo de agentes
-            </ButtonLink>
-          </li>
-          <li>
-            <ButtonLink href={routes.settings()} variant="ghost" size="sm">
-              <Icon name="settings" /> Ajustes de ejecución
-            </ButtonLink>
-          </li>
-        </ul>
-      </Panel>
-    </div>
-  </div>
-</AppLayout>
+<StudioLayout title={APP_NAME} description="Estudio de chat sobre agentes de IA." />

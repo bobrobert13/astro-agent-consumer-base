@@ -4,7 +4,8 @@
  * Los tokens (familias, escala tipográfica, ritmo, medidas, radios, sombras,
  * color) y la tipografía por defecto de los elementos viven en `theme.css`.
  * Aquí queda solo lo que no es un token: los plugins, la variante de tema, el
- * documento base y la rejilla del shell.
+ * documento base, la rejilla del shell y los fotogramas de las animaciones que
+ * `theme.css` declara con `--animate-…`.
  *
  * Tailwind CSS v4 en Astro: no existe `tailwind.config.js`. Todo el sistema
  * visual se declara en CSS y `src/config/ui/tokens.ts` solo guarda lo que JS
@@ -90,5 +91,24 @@
   .aac-shell {
     grid-template-columns: theme(--container-rail) 1fr;
     grid-template-rows: 1fr;
+  }
+}
+
+/*
+ * Fotograma de los puntos de "escribiendo" del transcript del estudio. No es un
+ * token —el token `--animate-blink` de `theme.css` apunta aquí— y por eso vive en
+ * este archivo. `prefers-reduced-motion` ya lo neutraliza desde la capa base.
+ */
+@keyframes blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+
+  40% {
+    opacity: 1;
+    transform: translateY(-2px);
   }
 }

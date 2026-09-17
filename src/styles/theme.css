@@ -53,6 +53,16 @@
   --text-title-sm--font-weight: 600;
   --text-title-sm--letter-spacing: -0.01em;
 
+  /*
+   * Titular del estado vacío del estudio de chat. No es fluido a propósito: la
+   * plantilla lo mide en 36 px de mancha y el salto de escala lo dan los dos
+   * breakpoints del propio estudio, no un `clamp()`.
+   */
+  --text-hero: 2.25rem;
+  --text-hero--line-height: 1.2;
+  --text-hero--font-weight: 600;
+  --text-hero--letter-spacing: -0.02em;
+
   /* Texto corrido, de más aireado (lede) a más denso (body-sm). */
   --text-lede: clamp(0.9375rem, 0.88rem + 0.4vw, 1.125rem);
   --text-lede--line-height: 1.5;
@@ -92,6 +102,33 @@
   --container-column: 48rem;
   --container-rail: 16rem;
 
+  /*
+   * Medidas del estudio de chat. La plantilla mide sobre una ventana de
+   * 1354 × 978; solo se nombran los anchos que **estructuran** la pantalla. El
+   * resto de sus medidas (chip de 40 px, control de 44 px, tarjeta de 120 px,
+   * item de navegación de 36 px) son múltiplos exactos de `--spacing` y se leen
+   * mejor como número —`size-10`, `h-11`, `min-h-30`— que con un nombre para
+   * cada una.
+   *
+   * Van en el espacio de nombres `spacing` y no en `container` porque el panel de
+   * contexto se cierra con margen negativo: `w-*`, `m-*` y `size-*` beben de la
+   * misma escala, y así el ancho y su margen no pueden desincronizarse.
+   */
+  --spacing-sidebar: 20rem; /* rail de navegación (320 px) */
+  --spacing-context: 21.25rem; /* panel de contexto y su margen de cierre (340 px) */
+  --spacing-composer: 45.5rem; /* composer y hilo (728 px) */
+  --spacing-preview: 47.5rem; /* modal de vista previa (760 px) */
+
+  /*
+   * Puntos de corte del estudio. La escala por defecto de Tailwind (640 / 768 /
+   * 1024 / 1280) no es la que midió la plantilla: a 900 px el rail pasa a cajón y
+   * el aire se aprieta, y a 1100 px el panel de contexto pasa a cajón lateral. Se
+   * declaran como tokens porque de aquí salen las variantes `nav:` y `context:`
+   * (y sus `max-…`), que es como el resto del estudio las escribe.
+   */
+  --breakpoint-nav: 56.25rem; /* 900 px */
+  --breakpoint-context: 68.75rem; /* 1100 px */
+
   --color-canvas: var(--aac-canvas);
   --color-surface: var(--aac-surface);
   --color-elevated: var(--aac-elevated);
@@ -130,6 +167,8 @@
 
   --radius-panel: 0.75rem;
   --radius-bubble: 1.125rem;
+  /* Panel y modal del estudio: 16 px, que la escala del registry no alcanza. */
+  --radius-shell: 1rem;
 
   /* Escala de radios de shadcn-vue, derivada de un solo `--radius`. */
   --radius-sm: calc(var(--radius) * 0.6);
@@ -140,6 +179,9 @@
 
   --shadow-panel: 0 1px 2px 0 rgb(0 0 0 / 0.06);
   --shadow-float: 0 12px 32px -12px rgb(0 0 0 / 0.28);
+
+  /* Puntos de "escribiendo" del transcript. El fotograma vive en `global.css`. */
+  --animate-blink: blink 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
 }
 
 /* ── Tokens de concepto reasignables por tema ──────────────────────────────── */

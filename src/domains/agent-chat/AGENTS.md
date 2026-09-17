@@ -1,71 +1,81 @@
 # AGENTS.md — `src/domains/agent-chat`
 
 Contexto acotado de la conversación: transcript, composer, streaming de tokens,
-cancelación y errores. Es la slice de referencia; las otras cuatro siguen esta
-misma forma.
+cancelación y errores. Es la slice de referencia; las otras cuatro siguen esta misma
+forma. Desde ADR-007 el motor del chat es el AI SDK (`useChat`), no un transporte propio.
 
 ## Superficie pública
 
 | Importar | Qué da |
 |---|---|
-| `@domains/agent-chat` | `ChatIsland` (componente raíz), `useAgentChat`, tipos del dominio |
-| `@domains/agent-chat/server` | Handlers del BFF: `relayStream`, `withGateway`, `parseRunRequest`, `resolveScope`, `resourceCookie` |
+| `@domains/agent-chat` | `ChatIsland` (componente raíz), `useAgentChat`, `checkTransport`, tipos del dominio |
+| `@domains/agent-chat/server` | Handlers del BFF: `relayStream`, `withGateway`, `chatUpstreamPath`, `resolveScope`, `resourceCookie` |
 
-Nada más sale del slice. `src/pages/chat/[threadId].astro` importa el barrel de
-cliente; `src/pages/api/**`, el de servidor. Los tests sí bajan a rutas internas
-(`…/server/relay-body`, `…/components/chat.memo`) cuando lo que prueban es un
-módulo, y no el barrel.
+Nada más sale del slice. `src/pages/chat/[threadId].astro` importa el barrel de cliente;
+`src/pages/api/**`, el de servidor. Los tests sí bajan a rutas internas
+(`…/server/relay-body`, `…/ai/adapt-ui-messages`) cuando lo que prueban es un módulo, y
+no el barrel.
 
 ## Mapa del directorio
 
 ```
-transport/     contrato AgentTransport + implementaciones (mock | mastra)
+ai/            el único sitio que conoce el vocabulario del AI SDK
+  chat.transport.ts       elección de transporte y definición del wire format
+  chat.transport.mock.ts  transporte simulado (ADR-003)
+  chat.scope.ts           agente/hilo en el momento del envío + último mensaje del usuario
+  mock-script.ts          guion del simulado, ya en chunks del SDK
+  adapt-ui-messages.ts    UIMessage -> ChatMessage, funciones puras
 composables/   orquestación y estado de la UI
-  services/chat/   chat.api.ts (Result<T>) · chat.endpoints.ts · chat.e.ts · data/
+  useAgentChat.ts     monta `useChat` y traduce; la superficie que consume la isla
+  useStallWatchdog.ts vigilante de silencio (el SDK no distingue "pensando" de "muerto")
+  useChatComposer.ts  texto en edición y reglas de envío
+  services/chat/      chat.api.ts (Result<T>) · chat.endpoints.ts · chat.e.ts
 components/    .vue interactivos, solo de este slice
-  chat.memo.ts     dependencias de `v-memo` del globo (ver regla 4)
+  chat.memo.ts     dependencias de `v-memo` del globo (ver regla 3)
 server/        lógica del BFF
-  relay-body.ts    única apertura del cuerpo de la petición (ver regla 6)
+  relay-body.ts    única apertura del cuerpo de la petición (ver regla 5)
   stream-relay.ts  reenvío byte a byte de la respuesta
   session-scope.ts identidad de memoria + cookie
+  normalize-agent-run.ts  schemas del BFF y destino del reenvío
 types/         vocabulario del dominio (ChatMessage, ContentPart, StreamState)
 ```
 
 ## Reglas del slice
 
-1. **`useAgentChat` solo habla con `AgentTransport`.** Si alguien importa
-   `@mastra/client-js` fuera de `transport/mastra.ts`, el test
-   `tests/architecture/boundaries.spec.ts` lo rechaza.
+1. **El vocabulario del AI SDK solo se conoce en `ai/`** —y en `useAgentChat`, que monta
+   el composable—. Ningún `.vue` importa `ai` ni `@ai-sdk/vue`: la vista consume
+   `ChatMessage`. Lo comprueba `tests/architecture/boundaries.spec.ts`.
 2. **Los servicios nunca lanzan**: devuelven `Promise<Result<T>>`. El `catch` que
-   convierte a `ServiceError` es `normalizeServiceError`.
-3. **Todo error visible sale de `chat.e.ts`.** Un `code` nuevo sin entrada en el
-   catálogo hace fallar `tests/agent-chat/errors.spec.ts` a propósito.
-4. **El texto en vuelo no es un mensaje de la lista.** Ver `useChatTranscript`:
-   `shallowRef` + `token-batcher`, y promoción a mensaje al cerrar. Consecuencia
-   que se paga cara: el globo en vuelo se memoriza con `chat.memo.ts`, y sus
-   dependencias **incluyen la longitud del texto**. Sin eso, el globo se queda
+   convierte a `ServiceError` es `normalizeServiceError`; `send()` cumple el contrato
+   traduciendo `chat.error`, porque el SDK no rechaza.
+3. **El texto en vuelo no es un mensaje de la lista.** `adapt-ui-messages.ts` saca el
+   último globo del asistente de `messages` y lo expone como `streamingText`. La
+   consecuencia se paga cara si se olvida: el globo en vuelo se memoriza con
+   `chat.memo.ts` y sus dependencias **incluyen la longitud del texto**; sin eso se queda
    congelado en el primer chunk (`tests/dom/chat-message.spec.ts` es la regresión).
-5. **Mock y real son intercambiables.** Cualquier diferencia de comportamiento que
-   obligue a un `if (transport === ...)` en la UI es un defecto del contrato.
-6. **El `resource` de memoria no lo decide el navegador.** El cliente manda solo
-   el hilo (`transport/mastra.ts`) y `server/relay-body.ts` inyecta el resource de
-   `session-scope.ts` en el cuerpo del proveedor, saneando el hilo de paso. La
+4. **Todo error visible sale de `chat.e.ts`.** El texto que trae el SDK puede ser un
+   interno del backend, así que se registra y **nunca** se pinta; a la pantalla va el
+   catálogo. El transporte simulado emite el **código** como texto del error justo para
+   poder ejercitar ese camino sin backend.
+5. **El `resource` de memoria no lo decide el navegador.** El cliente manda solo el hilo
+   (`ai/chat.transport.ts`) y `server/relay-body.ts` inyecta el resource de
+   `session-scope.ts` en el cuerpo, saneando el hilo y resolviendo el destino de paso. La
    **respuesta** sigue saliendo byte a byte. Leer ADR-006 antes de tocar el relay.
+6. **Mock y real son intercambiables.** Cualquier diferencia de comportamiento que
+   obligue a un `if (transport === ...)` en la UI es un defecto del contrato.
 
 ## Cómo se prueba
 
 ```bash
-npm run test                     # contratos, transporte mock, transcript, BFF
-npm run verify:bundle            # el cliente del proveedor, solo en chunk diferido
-npm run verify:relay             # relay byte a byte contra el stub SSE
+npm run test                     # contratos, adapter, simulado, isla completa, BFF
+npm run verify:bundle            # grafo inicial de la isla, sin servidor ni secretos
+npm run verify:relay             # relay byte a byte + sonda de salud contra el stub
 npm run transport:mock && npm run dev    # chat sin backend
 # /error y /slow en el composer provocan los dos estados de fallo
 ```
 
 ## Notas de entorno
 
-`npm audit` reporta una vulnerabilidad low e inevitable dentro de
-`@mastra/client-js` (`@ai-sdk/provider-utils@2.2.8`, fijado en exacto por
-`@ai-sdk/ui-utils@1.2.11`). No se pisa con `overrides`: el salto de major cambia el
-parser que usa `processDataStream`. Este archivo es el punto de escape —
-`@shared/streams/sse.ts` (`readSseLines`) implementa el mismo contrato sin él.
+Ya no hay advisory abierto: `@mastra/client-js` salió del cliente con ADR-007 y con él
+se fue `@ai-sdk/provider-utils@2.2.8`. La sonda de salud del camino BFF → backend es
+`GET /api/health/upstream`, y su test vive en `tests/bff/health-upstream.spec.ts`.

@@ -1,7 +1,12 @@
 # ADR-001 — El relay del BFF reenvía el SSE verbatim, sin re-encodear
 
 **Estado:** aceptado · **Fecha:** 2026-09-15 · **Implementación:**
-`src/domains/agent-chat/server/stream-relay.ts`, `src/pages/api/agent-rpc/[...path].ts`
+`src/domains/agent-chat/server/stream-relay.ts`, `src/pages/api/agent-chat.ts`
+
+> **Parcialmente sustituido por [ADR-007](./007-ai-sdk-ui-transport.md).** La decisión
+> sigue en pie —el BFF copia bytes y no parsea la respuesta—, pero la ruta es
+> `/api/agent-chat` y quien la consume ya no es `@mastra/client-js`. Todo lo que este ADR
+> dice sobre `StreamChunk` y `translateChunk` describe el diseño anterior.
 
 ## Contexto
 

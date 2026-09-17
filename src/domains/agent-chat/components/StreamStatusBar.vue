@@ -4,8 +4,10 @@
  * @description Franja de estado de la ejecución: conectando, generando, sin
  * respuesta, o con la acción de detener.
  *
- * Existe para que el estado de `useStreamLifecycle` sea visible: un chat que se
- * queda callado a media ejecución sin decir nada se lee como una app rota.
+ * Existe para que el estado de la ejecución sea visible: un chat que se queda callado
+ * a media ejecución sin decir nada se lee como una app rota. El estado sale de
+ * `useChat` más el vigilante de silencio (`useStallWatchdog`), que es lo único que
+ * distingue "el agente está pensando" de "el upstream se ha muerto".
  *
  * Se pinta con el `Alert` del registry porque es una banda de aviso con acciones,
  * no un div con colores: el borde, el fondo y el contraste salen de los tokens y

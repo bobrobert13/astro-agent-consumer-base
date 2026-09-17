@@ -1,6 +1,6 @@
 # Decisiones de arquitectura
 
-Seis decisiones que no se pueden revertir sin tocar varias capas. Cada una con su
+Siete decisiones que no se pueden revertir sin tocar varias capas. Cada una con su
 contexto, su coste aceptado y la prueba que la sostiene.
 
 | | |
@@ -11,6 +11,7 @@ contexto, su coste aceptado y la prueba que la sostiene.
 | [ADR-004](./004-csp-estilos-en-runtime.md) | CSP estricto en `script-src`, `style-src` abierto: los componentes escriben CSS en runtime |
 | [ADR-005](./005-tokens-centralizados-y-escala-fluida.md) | `theme.css` es la única fuente; escala fluida con `clamp()` y tipografía de elementos |
 | [ADR-006](./006-identidad-de-memoria-en-el-bff.md) | La identidad de memoria la fija el BFF; el cuerpo de la petición sí se abre |
+| [ADR-007](./007-ai-sdk-ui-transport.md) | El cliente del chat usa el AI SDK de Vercel; el BFF sigue reenviando **verbatim** |
 
 Cómo leerlos: cada ADR dice qué se rechazó y por qué, no solo qué se eligió. Si una
 decisión va a cambiar, el ADR es el sitio donde anotar el disparador real, no en un

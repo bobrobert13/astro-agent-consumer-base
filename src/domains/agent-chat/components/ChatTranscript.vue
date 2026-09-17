@@ -3,10 +3,9 @@
  * @file src/domains/agent-chat/components/ChatTranscript.vue
  * @description Lista de mensajes + el globo en vuelo, con scroll autocionado.
  *
- * El texto que se está generando se pinta como un mensaje "sintetizado" fuera de
- * la lista. Es la otra mitad de la política de rendimiento de
- * `useChatTranscript`: mientras llegan deltas no se re-renderiza ningún mensaje
- * real, solo este nodo.
+ * El texto que se está generando se pinta como un mensaje "sintetizado" fuera de la
+ * lista. Es la otra mitad de la política de rendimiento de `adapt-ui-messages`: mientras
+ * llegan deltas no se re-renderiza ningún mensaje real, solo este nodo.
  *
  * El autoscroll solo se engancha si el usuario estaba al final: si subió a leer
  * algo anterior, el stream no le devuelve la vista abajo.

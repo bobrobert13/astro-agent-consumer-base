@@ -11,16 +11,17 @@ import { resolveScope } from './session-scope';
  * @description Reenvío del stream del agente **verbatim**.
  *
  * Copia bytes, nunca parsea la **respuesta**. Reescribir los frames significaría
- * reimplementar el contrato de wire format del SDK (`processDataStream`, su
- * `[DONE]`, su reconexión) y hacer `JSON.parse` + `stringify` **por token** en el
- * mismo proceso que sirve la interfaz. El valor del BFF es otro: inyectar el
+ * reimplementar el protocolo de stream del AI SDK (sus partes, su `[DONE]`, su
+ * reconexión) y hacer `JSON.parse` + `stringify` **por token** en el mismo proceso que
+ * sirve la interfaz. El valor del BFF es otro: inyectar el
  * secreto, esconder el origen, imponer límites, propagar la cancelación y
  * observar. Todo eso se hace con cabeceras y timeouts, no con parsing.
  *
  * El **cuerpo de la petición** es otra cosa y sí se abre, en un único punto
- * acotado (`relay-body.ts`), por dos motivos que no admiten otra vía: el límite
- * de tamaño y la identidad de memoria, que no puede decidirla el navegador. La
- * respuesta sigue saliendo byte a byte por el mismo camino de antes.
+ * acotado (`relay-body.ts`), por tres motivos que no admiten otra vía: el límite de
+ * tamaño, la identidad de memoria —que no puede decidirla el navegador— y el destino
+ * del reenvío, que también sale de él. La respuesta sigue saliendo byte a byte por el
+ * mismo camino de antes.
  *
  * Cadena de aborto, en un solo sentido y sin temporizadores flotantes:
  *

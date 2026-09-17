@@ -3,10 +3,10 @@
  * @description Preparación del cuerpo que el relay reenvía al upstream.
  *
  * Existe por una razón concreta: la identidad de memoria **no puede venir del
- * navegador**. El cuerpo que llega al relay lo construye el cliente del proveedor
- * (`@mastra/client-js`) a partir de las opciones de `agent.stream()`, así que el
- * `resource` viaja dentro de un JSON cuyo formato no es nuestro. Este módulo es
- * el único sitio que abre ese JSON, y lo abre con dos reglas:
+ * navegador**, y el destino del reenvío tampoco. El cuerpo lo construye nuestro
+ * cliente (`prepareSendMessagesRequest`), así que el `resource` viaja dentro de un
+ * JSON —el nuestro, pero con forma compartida con Mastra— que este módulo es el único
+ * que abre. Lo abre con dos reglas:
  *
  *  1. **Solo se toca lo que se conoce.** Se reescriben `memory.resource` y
  *     `memory.thread`; cualquier otra clave se devuelve intacta.

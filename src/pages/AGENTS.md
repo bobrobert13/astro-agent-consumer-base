@@ -37,9 +37,10 @@ Un endpoint que acumule `if`s es un handler de slice mal ubicado.
 /history               hilos de la identidad actual, cero JS
 /settings              entorno público y atajos
 /api/health            sonda (la usa el shell de Electron para saber que puede mostrar la ventana)
+/api/health/upstream   sonda profunda BFF -> backend de agentes
 /api/agents[/...]      JSON normalizado y recortado
 /api/sessions[/...]    ídem, con el resource fijado por el servidor
-/api/agent-rpc/*       relay SSE verbatim
+/api/agent-chat        relay SSE verbatim hacia la ruta de chat del backend
 ```
 
 ## Verificación

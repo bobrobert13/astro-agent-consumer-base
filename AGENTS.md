@@ -92,40 +92,46 @@ diseño: el usuario ve controles deshabilitados y lo lee como que la app va lent
 Si la lectura del servidor puede tardar, se le pone presupuesto (`AbortSignal`) y
 la isla cae a pedirlo ella misma si se agota.
 
-Prohibido `client:load` en `agent-chat`: paga el chunk del cliente del proveedor
-antes de que exista un prompt.
+Prohibido `client:load` en `agent-chat`: la isla es `client:only` porque su transcript
+nace vacío —no hay nada que server-renderizar— y porque su núcleo es el AI SDK, que
+solo existe en el navegador (ADR-007).
 
 ## Rendimiento del streaming
 
-1. `shallowRef` para la lista de mensajes; mutación solo por reemplazo inmutable.
-   Un `ref([...])` profundo re-proxyea todo el transcript por token.
-2. El texto en vuelo es un búfer plano drenado por `@shared/streams/token-batcher`
-   (una escritura por frame) y **promocionado** a mensaje al cerrar. No es un
-   mensaje en la lista mientras llega.
+1. La lista de mensajes es la del AI SDK (un `shallowRef` por dentro): se muta solo
+   por reemplazo inmutable, nunca en profundidad. Ver ADR-007.
+2. El texto en vuelo **no** es un mensaje de la lista: `adapt-ui-messages.ts` saca el
+   último globo del asistente de `messages` y lo expone como `streamingText`; al
+   cerrar, entra en la lista con todas sus piezas (texto y herramientas). Es lo que
+   mantiene barato el scroll, porque `chat.memo.ts` memoriza los globos cerrados.
 3. `markRaw` sobre clientes HTTP, `Response`, `ReadableStream`, `AbortController` y
    payloads opacos de tool-call. Vue no debe hacer proxy de un stream.
-4. El cliente del proveedor de agentes se importa **solo** con `await import()`
-   dentro de `transport/mastra.ts`. Ningún otro archivo del repo lo nombra.
-   Se comprueba con `npm run verify:bundle`.
+4. **El vocabulario del AI SDK solo se conoce en `agent-chat/ai/`** —y en
+   `useAgentChat`, que es quien monta el composable—. Ningún componente `.vue` importa
+   `ai` ni `@ai-sdk/vue`: la vista consume `ChatMessage`. Lo comprueba
+   `tests/architecture/boundaries.spec.ts`.
 
 ## El BFF
 
 - Toda la lógica vive en `src/domains/<slice>/server/`; `src/pages/api/**` son
   envoltorios de tres líneas. Así los handlers se prueban sin arrancar Astro.
-- **Los streams nunca se parsean en el servidor.** `agent-rpc` reenvía la
-  **respuesta** byte a byte, sin re-encodear. **El JSON siempre se normaliza en el
-  servidor** antes de llegar al navegador (recortando instrucciones de sistema,
-  costos e ids internos).
+- **Los streams nunca se parsean en el servidor.** `agent-chat` reenvía la
+  **respuesta** a la ruta de chat del backend byte a byte, sin re-encodear. **El JSON
+  siempre se normaliza en el servidor** antes de llegar al navegador (recortando
+  instrucciones de sistema, costos e ids internos).
 - **El cuerpo de la petición sí se abre, y en un solo sitio**
-  (`agent-chat/server/relay-body.ts`), por dos motivos que no admiten otra vía: el
-  límite de tamaño y la identidad de memoria, que **no puede decidirla el
-  navegador** (`session-scope.ts`). Solo se reescriben `memory.resource` y
-  `memory.thread`; el resto del cuerpo se devuelve intacto. Leer ADR-006 antes de
-  tocar el relay.
+  (`agent-chat/server/relay-body.ts`), por tres motivos que no admiten otra vía: el
+  límite de tamaño, la identidad de memoria —que **no puede decidirla el navegador**
+  (`session-scope.ts`)— y el destino del reenvío, que también sale de él (el `agentId`
+  de una ejecución de chat). Solo se reescriben `memory.resource` y `memory.thread`; el
+  resto del cuerpo se devuelve intacto. Leer ADR-006 antes de tocar el relay.
 - **Los handlers del BFF validan con su propio schema, no con el del proveedor.**
-  El cuerpo que llega al relay lo construye `@mastra/client-js`: pasarlo por
-  `runRequestSchema` rechazaría todas las peticiones reales. Ese schema describe el
-  contrato propio (el plan B del riesgo R1), no el wire format del SDK.
+  `chatRequestSchema` describe el cuerpo que construye **nuestro** cliente
+  (`prepareSendMessagesRequest`): un `agentId` estrecho —se interpola en una ruta, así
+  que cierra el traversal en el origen— y que haya mensajes. Las piezas de cada
+  `UIMessage` quedan opacas a propósito, porque su forma evoluciona con la versión del
+  SDK. `runRequestSchema` describe otro contrato y hoy no tiene consumidor: es deuda
+  declarada en ADR-007, no una segunda vía viva.
 - Secretos: solo `src/shared/server/upstream.ts` lee `@shared/env/server`. La regla
   es estructural: **cualquier módulo de `shared` que toque el servidor vive bajo
   `src/shared/server/`**, igual que en los slices. Así el test de fronteras decide
@@ -249,15 +255,13 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 
 ## Dependencias: estado conocido
 
-- `@mastra/client-js` **se instala sin `--legacy-peer-deps`** (su único peer es
-  `zod`), pero arrastra `@mastra/core` como dependencia.
-- `npm audit` reporta 1 vulnerabilidad **low** transitiva e inevitable:
-  `@ai-sdk/provider-utils@2.2.8`, fijado en exacto por `@ai-sdk/ui-utils@1.2.11`,
-  con advisory de consumo de recursos. `npm audit fix --force` retrocedería
-  `@mastra/client-js` a 1.8.4 (breaking). **No se pisa con overrides**: un salto de
-  major en ese paquete cambia el parser que usa `processDataStream`. Mitigación
-  real: el cliente está aislado en `transport/mastra.ts` y `@shared/streams/sse.ts`
-  (`readSseLines`) implementa el mismo contrato `AgentTransport` sin él.
+- **`ai` y `@ai-sdk/vue` van pinneados en exacto** (`7.0.100` / `4.0.100`) porque
+  `@ai-sdk/vue` fija su `ai` en la misma versión exacta: son lockstep, y poner rango en
+  uno solo deja la otra mitad en manos del resolvedor. Subirlos es mover los dos a la
+  vez. Ver ADR-007.
+- `@mastra/client-js` **ya no es dependencia del cliente**: el navegador habla con el
+  BFF y el BFF con Mastra. Con ella se fue el advisory low de
+  `@ai-sdk/provider-utils@2.2.8` que este archivo documentaba como inevitable.
 - `eslint-plugin-jsx-a11y` **no** se instala: su peer llega hasta ESLint 9. Por eso
   no se usa `astro.configs['jsx-a11y-recommended']`.
 - Stack shadcn-vue instalado: `reka-ui`, `class-variance-authority`, `clsx`,
@@ -277,10 +281,14 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   vuelo (`tests/dom/chat-message.spec.ts`).
 - `tests/architecture/design-tokens.spec.ts` es el guardián del lenguaje visual:
   falla con un tamaño arbitrario, un blanco literal o un color escrito a mano.
-- `npm run verify:bundle` → el cliente del proveedor solo en chunk diferido.
+- `npm run verify:bundle` → el cierre estático de la isla no arrastra código de
+  servidor ni secretos, e informa de su tamaño. El AI SDK **sí** vive ahí: es el núcleo
+  de la isla, no un proveedor a diferir (ADR-007).
 - `npm run verify:relay` → el relay reenvía byte a byte contra un backend de agentes
   falsificado (`tests/_fixtures/sse-stub.mjs`), y comprueba que no se filtran cookies,
-  que se fuerza `no-transform` y que `checkOrigin` sigue bloqueando el cross-site.
+  que se fuerza `no-transform`, que la sonda de salud alcanza el backend, que sin
+  `agentId` se responde 400 sin reenviar y que `checkOrigin` sigue bloqueando el
+  cross-site.
 - `npm run verify:electron` → abre Chromium, levanta el servidor construido, verifica
   el `contextBridge` del preload, **escribe un prompt y espera a que la respuesta se
   asiente en pantalla**, abre un `Select` de `/settings` contra el CSP de producción y
@@ -294,7 +302,7 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 ## Definition of Done
 
 - [ ] `npm run all` en verde (lint, `astro check`, tests, build).
-- [ ] `npm run verify:bundle`: el cliente del proveedor fuera del grafo inicial.
+- [ ] `npm run verify:bundle`: el grafo inicial de la isla sin código de servidor ni secretos.
 - [ ] Nada en `domains/x` importa internos de `domains/y`; ningún módulo de cliente
       importa `@shared/env/server` ni `@shared/server/*` (test de fronteras).
 - [ ] Ningún secreto ni host del upstream en `dist/client/**` ni en el HTML generado.

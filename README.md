@@ -16,8 +16,8 @@ Every team that builds an agent UI eventually hits the same four walls:
 
 | Wall | How this base handles it |
 |---|---|
-| **The API key ends up in the browser.** | Astro's server is the BFF. The browser only ever talks to `/api/agent-rpc/*`; the upstream URL and credential never leave the Node process. |
-| **The chat stutters.** | `shallowRef` + a token batcher: 100 deltas become one write per frame. The in-flight text isn't a message until it closes. |
+| **The API key ends up in the browser.** | Astro's server is the BFF. The browser only ever talks to `/api/agent-chat`; the upstream URL and credential never leave the Node process. |
+| **The chat stutters.** | The in-flight text isn't a message until it closes, so closed bubbles stay memoized and a stream only re-renders its own bubble. |
 | **Feature folders rot into `utils/`.** | Vertical slices with import boundaries enforced by a test, not by a slide in a review deck. |
 | **"It works in dev" isn't verification.** | Four gate commands, including one that drives a real Chromium window, types a prompt and waits for the answer to appear. |
 
@@ -156,16 +156,14 @@ before the first check. Packaging is unaffected.
 | Framework | Astro 7.3 · `output: 'server'` · `@astrojs/node` standalone |
 | UI | Vue 3.5 · Pinia 4 · `@pinia/colada` · VueUse |
 | Styling | Tailwind CSS v4 (CSS-first `@theme` in `src/styles/theme.css`, no config file) · typography plugin · shadcn-vue (reka-ui) in `src/components/ui/**` |
-| Agents | `@mastra/client-js` behind a provider-agnostic `AgentTransport` |
+| Agents | Vercel AI SDK (`ai@7` + `@ai-sdk/vue`) as the chat engine, behind Astro's BFF (ADR-007) |
 | Desktop | Electron 44 · electron-builder 26 (NSIS, AppImage/deb, DMG) |
 | Quality | TypeScript 5.9 `strictest` · ESLint 10 flat · Vitest 5 · `astro check` |
 
 ## Known constraints
 
-- `@mastra/client-js` pulls `@mastra/core` as a dependency and pins a transitive package with an
-  open low-severity advisory. It is isolated in one lazily-loaded file, and `readSseLines()` in
-  `src/shared/streams/sse.ts` implements the same transport contract without it — that's the
-  documented exit.
+- `ai` and `@ai-sdk/vue` are pinned to exact versions: the Vue package depends on the
+  same `ai` version exactly, so the two move together or not at all.
 - `eslint-plugin-jsx-a11y` isn't installed: its peer range stops at ESLint 9.
 - Production CSP allows `'unsafe-inline'` for `style-src` only (ADR-004). The accepted cost is
   that an injectable agent answer could write CSS; it still cannot write script.

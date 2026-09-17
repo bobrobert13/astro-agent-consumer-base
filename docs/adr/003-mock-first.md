@@ -1,7 +1,12 @@
 # ADR-003 — Mock-first: el boilerplate arranca sin backend
 
 **Estado:** aceptado · **Fecha:** 2026-09-15 · **Implementación:**
-`src/domains/agent-chat/transport/`
+`src/domains/agent-chat/ai/`
+
+> **Parcialmente sustituido por [ADR-007](./007-ai-sdk-ui-transport.md).** La decisión
+> sigue en pie —mock y real intercambiables, decididos por `PUBLIC_AGENT_TRANSPORT`—,
+> pero el contrato ya no es `AgentTransport` sino el `ChatTransport` del AI SDK, y el
+> transporte real ya no se carga en diferido: el SDK es el núcleo de la isla.
 
 ## Contexto
 

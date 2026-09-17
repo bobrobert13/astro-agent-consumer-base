@@ -2,7 +2,12 @@
 
 **Estado:** aceptada · 2026-09-16
 **Implementación:** `src/domains/agent-chat/server/relay-body.ts`,
-`server/session-scope.ts`, `transport/mastra.ts`
+`server/session-scope.ts`, `ai/chat.transport.ts`
+
+> **Actualizado por [ADR-007](./007-ai-sdk-ui-transport.md).** La regla no cambia —el
+> `resource` lo decide el servidor y la respuesta sale byte a byte—, pero el cliente que
+> manda el hilo es `ai/chat.transport.ts`, no `transport/mastra.ts`. El cuerpo ahora trae
+> además el `agentId`, que también se resuelve aquí.
 
 ## Contexto
 

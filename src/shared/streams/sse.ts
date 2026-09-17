@@ -108,9 +108,8 @@ export interface SseFrame {
  * Lectura de frames SSE desde el navegador (path sin cliente del proveedor).
  *
  * Implementa lo que la especificación manda para `data:` multi-línea y descarta
- * comentarios (`:`) y el campo `event:` vacío. Es el plan B del riesgo R1: si
- * `@mastra/client-js` se vuelve inservible, este iterator más un parser de la
- * carga útil implementa el mismo contrato de transporte sin cambiar la UI.
+ * comentarios (`:`) y el campo `event:` vacío. Hoy no tiene consumidor en producción:
+ * era el plan B del cliente anterior y se conserva probado (ADR-007).
  */
 export async function* readSseLines(
   body: ReadableStream<Uint8Array>,

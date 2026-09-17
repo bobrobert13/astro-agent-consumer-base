@@ -17,9 +17,8 @@ consumer está mal ubicado. Lo comprueba
 | `http/http-client.ts` | `fetch` con timeout y guard de JSON, devolviendo `Result`. Sin axios. |
 | `http/endpoints.ts` | `createEndpoints(prefix)` y `query()`: URLs deterministas y claves de caché estables. |
 | `env/client.ts` · `env/server.ts` | **Dos barriles separados a propósito**: importar `astro:env/server` en código del navegador rompe el build; dividir el acceso hace el error imposible por estructura. |
-| `server/upstream.ts` · `server/fetch-json.ts` | Lo que toca el backend de agentes. Cualquier módulo de `shared` que hable con el servidor vive bajo `server/`, y el test de fronteras lo exige por ruta. |
-| `streams/sse.ts` | Cabeceras del relay y watchdog de silencio, más `readSseLines()` como plan B al SDK del proveedor. |
-| `streams/token-batcher.ts` | Una escritura por frame aunque lleguen 40 deltas. |
+| `server/upstream.ts` · `server/fetch-json.ts` · `server/upstream-health.ts` | Lo que toca el backend de agentes. Cualquier módulo de `shared` que hable con el servidor vive bajo `server/`, y el test de fronteras lo exige por ruta. |
+| `streams/sse.ts` | Cabeceras del relay y watchdog de silencio. `readSseLines()` no tiene consumidor hoy: era el plan B del cliente anterior (ADR-007). |
 | `ui/variants.ts` | `cn()` + `variants()`, llamables igual desde `.astro` que desde `.vue`. |
 | `../config/ui/tokens.ts` | Solo constantes que JS necesita (duraciones, teclas, claves). **Ningún color ni tamaño duplicado**: la fuente es el `@theme` de `styles/theme.css`. |
 | `bus/domain-events.ts` | Señales momentáneas entre slices. Solo eventos, nunca comandos ni estado. |

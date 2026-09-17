@@ -3,11 +3,12 @@
  * @description Identidad de la memoria, derivada **en el servidor**.
  *
  * El backend de agentes guarda el historial por `(resource, thread)`. Si el
- * `resource` viniera del body del cliente, cualquiera podría leer el historial
- * de otro poniendo su id en el JSON. Por eso:
+ * `resource` viniera del body del cliente, cualquiera podría leer el historial de
+ * otro poniendo su id en el JSON. Por eso:
  *  - `resource` lo decide este módulo y manda sobre lo que el cliente envíe.
- *  - `thread` sí lo aporta el cliente: es el identificador de la conversación,
- *    que ya conoce por la URL.
+ *  - `thread` sí lo aporta el cliente: es el identificador de la conversación, que
+ *    ya conoce por la URL. Pero el marcador `nuevo` (la entrada a "conversación
+ *    nueva") se acota aquí al resource, por el motivo de `scopeThread`.
  *
  * Cuando exista login, el único archivo que cambia es este.
  *
@@ -19,6 +20,8 @@
  * carrera del primerísimo par de peticiones simultáneas (cada una acuña la suya y
  * gana la que el navegador guarde) se resuelve sola en la siguiente petición.
  */
+import { NEW_THREAD_ID } from '@config/app';
+
 const COOKIE_NAME = 'aac_resource';
 
 export interface SessionScope {
@@ -40,9 +43,25 @@ export function resolveScope(request: Request, requestedThread?: string | undefi
   const resource = existing ?? mintResource();
   return {
     resource,
-    thread: sanitizeThread(requestedThread),
+    thread: scopeThread(sanitizeThread(requestedThread), resource),
     setCookie: existing === undefined ? resourceCookie(resource) : undefined,
   };
+}
+
+/**
+ * El hilo `nuevo` es un **marcador**, no un id: `/chat/nuevo` es la entrada a
+ * "conversación nueva". Si se reenviara literal, TODOS los navegadores compartirían
+ * hilo, y Mastra ata un hilo a un `resource` —el primero que lo usa se lo queda y el
+ * resto recibe `Thread "nuevo" belongs to resource … but … was provided`—. Es el
+ * mismo defecto que este módulo ya arregló para el `resource`, y por eso se cierra
+ * aquí y no en el cliente: la identidad de memoria la decide el servidor.
+ *
+ * Se acota al resource del navegador en vez de acuñar uno nuevo por mensaje porque
+ * el hilo tiene que ser **el mismo** en los mensajes siguientes: si cambiara, el
+ * agente no recordaría lo dicho un turno antes.
+ */
+function scopeThread(thread: string, resource: string): string {
+  return thread === NEW_THREAD_ID ? `${NEW_THREAD_ID}-${resource}` : thread;
 }
 
 /**

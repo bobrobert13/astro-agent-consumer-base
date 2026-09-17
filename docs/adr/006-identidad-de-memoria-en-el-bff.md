@@ -8,6 +8,13 @@
 > `resource` lo decide el servidor y la respuesta sale byte a byte—, pero el cliente que
 > manda el hilo es `ai/chat.transport.ts`, no `transport/mastra.ts`. El cuerpo ahora trae
 > además el `agentId`, que también se resuelve aquí.
+>
+> **Ampliación (2026-09-17):** el `resource` no era lo único compartido. El marcador de
+> hilo `nuevo` —la entrada a "conversación nueva"— viajaba **literal**, así que todos los
+> navegadores usaban el mismo hilo y el backend rechazaba al segundo (`Thread "nuevo"
+> belongs to resource … but … was provided`, porque un hilo pertenece a quien lo creó).
+> `session-scope.ts` lo acota ahora al resource, que es el mismo criterio de este ADR:
+> lo que identifica una conversación no puede ser una constante global.
 
 ## Contexto
 

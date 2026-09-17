@@ -55,6 +55,55 @@ export function chatErrorCodeFrom(value: string): string | undefined {
 }
 
 /**
+ * Fallo del relay BFF embebido en el texto de un error del SDK.
+ *
+ * El AI SDK convierte una respuesta no-2xx en un error cuyo `message` es el
+ * **cuerpo** de la respuesta, y el BFF responde
+ * `{"ok":false,"error":{"statusCode":502,"code":"upstream_unreachable",…}}`. Sin
+ * abrir ese JSON, el catálogo nunca ve el código —`chatErrorCodeFrom` exige
+ * coincidencia exacta— y TODO fallo del relay degradaba al mensaje genérico.
+ * Se busca el primer `{` porque el cuerpo puede venir envuelto en más texto.
+ */
+export function relayErrorFrom(value: string): { statusCode?: number; code?: string } | undefined {
+  const start = value.indexOf('{');
+  if (start === -1) return undefined;
+  const end = value.lastIndexOf('}');
+  const candidate = end > start ? value.slice(start, end + 1) : value.slice(start);
+  try {
+    const parsed: unknown = JSON.parse(candidate);
+    if (typeof parsed !== 'object' || parsed === null) return undefined;
+    const error = (parsed as Record<string, unknown>)['error'];
+    if (typeof error !== 'object' || error === null) return undefined;
+    const record = error as Record<string, unknown>;
+    const statusCode = typeof record['statusCode'] === 'number' ? record['statusCode'] : undefined;
+    const code =
+      typeof record['code'] === 'string' && record['code'] !== '' ? record['code'] : undefined;
+    if (statusCode === undefined && code === undefined) return undefined;
+    return {
+      ...(statusCode !== undefined ? { statusCode } : {}),
+      ...(code !== undefined ? { code } : {}),
+    };
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Texto presentable para un fallo del stream, con la mejor señal disponible y sin
+ * pintar jamás el texto crudo del SDK (puede ser un JSON de respuesta o un interno
+ * del proveedor). Prioridad: código del catálogo → estado HTTP conocido → genérico.
+ */
+export function streamErrorMessageFor(statusCode: number | undefined, code: string | undefined): string {
+  const byCode = code === undefined ? undefined : MESSAGES[code];
+  if (byCode !== undefined) return byCode;
+
+  const byStatus = statusCode === undefined ? undefined : messagesByStatus(statusCode);
+  if (byStatus !== undefined) return byStatus;
+
+  return MESSAGES[CHAT_ERROR_CODES.agentError] ?? 'Algo salió mal. Inténtalo de nuevo.';
+}
+
+/**
  * Avisos de bloqueo. No son errores de transporte: el backend decidió no ejecutar
  * el mensaje, y el usuario tiene que ver **por qué**. Sin esto, un bloqueo llega
  * como una parte de datos que nadie pinta y el chat parece no hacer nada.

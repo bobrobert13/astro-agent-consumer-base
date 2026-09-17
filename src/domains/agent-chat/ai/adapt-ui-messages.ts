@@ -1,7 +1,7 @@
 import type { ChatStatus } from 'ai';
 
 import type { ChatMessage, ChatRole, ContentPart, MemoryStatus, StreamState } from '../types/chat.types';
-import { chatErrorCodeFrom, noticeForProcessor, resolveChatErrorMessage, resolveNoticeMessage, CHAT_ERROR_CODES } from '../composables/services/chat/chat.e';
+import { chatErrorCodeFrom, noticeForProcessor, relayErrorFrom, resolveNoticeMessage, streamErrorMessageFor } from '../composables/services/chat/chat.e';
 
 /**
  * @file src/domains/agent-chat/ai/adapt-ui-messages.ts
@@ -202,13 +202,23 @@ export function memoryPressure(status: MemoryStatus): number {
  * Mensaje presentable para un fallo del stream.
  *
  * El texto que trae el SDK puede ser un interno del backend ("Processor workflow
- * …"), así que **nunca se pinta**: se registra fuera de aquí y a la pantalla va el
- * catálogo. El mock, para poder ejercitar el catálogo sin backend, emite el propio
- * código como texto del error.
+ * …") o el **cuerpo** de la respuesta de error, así que **nunca se pinta**: se
+ * registra fuera de aquí y a la pantalla va el catálogo. El mock, para poder
+ * ejercitar el catálogo sin backend, emite el propio código como texto del error;
+ * el relay real lo manda dentro de su JSON (`{"ok":false,"error":{…}}`), que es
+ * lo que `relayErrorFrom` abre —sin eso, un 502 `connect_timeout` degradaba al
+ * mensaje genérico y el motivo real nunca llegaba a la pantalla.
  */
 export function resolveStreamErrorText(error: Error): string {
-  const code = chatErrorCodeFrom(error.message) ?? CHAT_ERROR_CODES.agentError;
-  return resolveChatErrorMessage({ statusCode: 502, code });
+  const relay = relayErrorFrom(error.message);
+  const code = relay?.code ?? chatErrorCodeFrom(error.message);
+  return streamErrorMessageFor(relay?.statusCode ?? statusCodeOf(error), code);
+}
+
+/** `APICallError` del SDK trae el estado HTTP real; un `Error` cualquiera, no. */
+function statusCodeOf(error: Error): number | undefined {
+  const value = (error as { statusCode?: unknown }).statusCode;
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }
 
 function toChatMessage(message: WireMessage, marks: MessageMarks): ChatMessage {

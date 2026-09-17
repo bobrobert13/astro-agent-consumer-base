@@ -54,6 +54,44 @@ export function chatErrorCodeFrom(value: string): string | undefined {
   return Object.values(CHAT_ERROR_CODES).find((code) => code === value);
 }
 
+/**
+ * Avisos de bloqueo. No son errores de transporte: el backend decidió no ejecutar
+ * el mensaje, y el usuario tiene que ver **por qué**. Sin esto, un bloqueo llega
+ * como una parte de datos que nadie pinta y el chat parece no hacer nada.
+ */
+export const CHAT_NOTICE_CODES = {
+  outOfScope: 'out_of_scope',
+  securityBlock: 'security_block',
+} as const;
+
+const NOTICES: Record<string, string> = {
+  [CHAT_NOTICE_CODES.outOfScope]: 'Este agente solo atiende su ámbito. Prueba con otro agente del catálogo.',
+  [CHAT_NOTICE_CODES.securityBlock]: 'El mensaje se bloqueó por seguridad y no llegó al agente.',
+};
+
+/** Texto presentable para un aviso de bloqueo. */
+export function resolveNoticeMessage(code: string): string {
+  return NOTICES[code] ?? MESSAGES[CHAT_ERROR_CODES.agentError] ?? 'El agente no ejecutó el mensaje.';
+}
+
+/**
+ * Qué aviso corresponde al `processorId` que reporta el backend.
+ *
+ * La distinción no es cosmética: el scope guard manda **copy nuestra** (la política
+ * de alcance y la redirección a los agentes hermanos), que es justo la parte
+ * accionable y por eso se muestra como detalle. El detector de inyección manda un
+ * motivo que redacta **el modelo**, así que se queda en el log y a la pantalla va
+ * solo el catálogo (regla de la casa: ningún texto del proveedor se pinta).
+ */
+export function noticeForProcessor(processorId: string | undefined): {
+  code: string;
+  showDetail: boolean;
+} {
+  return processorId?.startsWith('scope-guard:') === true
+    ? { code: CHAT_NOTICE_CODES.outOfScope, showDetail: true }
+    : { code: CHAT_NOTICE_CODES.securityBlock, showDetail: false };
+}
+
 /** Mensaje presentable para un error de servicio, con degradación razonable. */
 export function resolveChatErrorMessage(error: ServiceError): string {
   const byCode = error.code === undefined ? undefined : MESSAGES[error.code];

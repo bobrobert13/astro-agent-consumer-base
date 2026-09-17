@@ -1,7 +1,7 @@
 import type { ChatStatus } from 'ai';
 
 import type { ChatMessage, ChatRole, ContentPart, MemoryStatus, StreamState } from '../types/chat.types';
-import { chatErrorCodeFrom, resolveChatErrorMessage, CHAT_ERROR_CODES } from '../composables/services/chat/chat.e';
+import { chatErrorCodeFrom, noticeForProcessor, resolveChatErrorMessage, resolveNoticeMessage, CHAT_ERROR_CODES } from '../composables/services/chat/chat.e';
 
 /**
  * @file src/domains/agent-chat/ai/adapt-ui-messages.ts
@@ -34,6 +34,8 @@ interface WirePart {
   input?: unknown;
   output?: unknown;
   errorText?: unknown;
+  /** Carga de las partes `data-*` (el estado de memoria, el tripwire…). */
+  data?: unknown;
 }
 
 /** Lo mínimo que el adapter necesita de un mensaje del AI SDK. */
@@ -68,6 +70,12 @@ interface MessageMarks {
 const TEXT = 'text';
 const DYNAMIC_TOOL = 'dynamic-tool';
 const TOOL_PREFIX = 'tool-';
+/**
+ * Parte con la que el backend dice que NO ejecutó el mensaje (scope guard, detector
+ * de inyección…). Llega dentro de `message.parts`, así que si no se traduce la UI
+ * pinta un globo vacío y el bloqueo parece un fallo de la aplicación.
+ */
+const TRIPWIRE = 'data-tripwire';
 /** Nombre de reserva: la UI nunca debe pintar un hueco vacío. */
 const FALLBACK_TOOL_NAME = 'herramienta';
 /** Id estable del globo sintético de error (es la `:key` de la lista). */
@@ -226,6 +234,11 @@ function toContentParts(parts: readonly WirePart[]): ContentPart[] {
       continue;
     }
 
+    if (part.type === TRIPWIRE) {
+      out.push(noticePartOf(part.data));
+      continue;
+    }
+
     const toolName = toolNameOf(part);
     if (toolName !== undefined) {
       // Un `tool-*` en estado de error no tiene `output`: lo que se puede enseñar
@@ -249,6 +262,31 @@ function toolNameOf(part: WirePart): string | undefined {
   if (part.type === DYNAMIC_TOOL) return part.toolName ?? FALLBACK_TOOL_NAME;
   if (part.type.startsWith(TOOL_PREFIX)) return part.type.slice(TOOL_PREFIX.length) || FALLBACK_TOOL_NAME;
   return undefined;
+}
+
+/**
+ * Traduce el tripwire a un aviso pintable. **Nunca devuelve nada vacío**: si el
+ * backend dice que no ejecutó el mensaje, el usuario tiene que ver algo, aunque el
+ * payload llegue ilegible.
+ *
+ * El `reason` es la parte accionable cuando el bloqueo es de alcance: lo escribe
+ * nuestro propio guard (política + redirección a los agentes hermanos). Cuando el
+ * bloqueo viene del detector de inyección, el texto lo redacta **el modelo**, así
+ * que se descarta aquí; su rastro queda en el log del backend, que es quien ya
+ * registra el tripwire con su `processorId`.
+ */
+function noticePartOf(data: unknown): ContentPart {
+  const record = recordOf(data);
+  const processorId = typeof record?.['processorId'] === 'string' ? record['processorId'] : undefined;
+  const { code, showDetail } = noticeForProcessor(processorId);
+  const reason =
+    typeof record?.['reason'] === 'string' && record['reason'] !== '' ? record['reason'] : undefined;
+
+  return {
+    type: 'notice',
+    text: resolveNoticeMessage(code),
+    ...(showDetail && reason !== undefined ? { detail: reason } : {}),
+  };
 }
 
 /** Texto plano de un mensaje: sus piezas de texto concatenadas. */

@@ -94,6 +94,18 @@ describe('ChatIsland', () => {
     expect(wrapper.text()).toContain('96 %');
   });
 
+  it('muestra el aviso cuando el backend bloquea el mensaje', async () => {
+    const wrapper = mount(ChatIsland, { props: { agentId: 'research', threadId: 't6' } });
+
+    await submitAndSettle(wrapper, '/tripwire');
+
+    // El bloqueo llega como parte de datos dentro del mensaje del asistente. Si el
+    // adapter dejara de traducirla, aquí habría un globo VACÍO: el usuario escribe y
+    // no ve nada, que es peor que un error.
+    expect(wrapper.text()).toContain('Este agente solo atiende su ámbito');
+    expect(wrapper.text()).toContain('Research Agent only handles web research');
+  });
+
   it('no deja globos sin contenido cuando la ejecución termina', async () => {
     const wrapper = mount(ChatIsland, { props: { agentId: 'research', threadId: 't2' } });
 

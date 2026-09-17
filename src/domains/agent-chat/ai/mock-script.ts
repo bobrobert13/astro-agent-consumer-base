@@ -49,6 +49,20 @@ const OBSERVATION_THRESHOLD = 40_000;
 const MEMORY_PROMPT = '/memory';
 const FULL_PRESSURE = 0.96;
 const IDLE_PRESSURE = 0.02;
+/** `/tripwire` → el backend bloqueó el mensaje, para ver el aviso de bloqueo. */
+const TRIPWIRE_PROMPT = '/tripwire';
+const TRIPWIRE_PART = 'data-tripwire';
+
+/** Tripwire simulado, con la misma forma que el del scope guard real. */
+function tripwireChunk(): UIMessageChunk {
+  return {
+    type: TRIPWIRE_PART,
+    data: {
+      processorId: 'scope-guard:research',
+      reason: 'Research Agent only handles web research — searching the web, fetching URLs.',
+    },
+  };
+}
 
 /**
  * Estado de memoria simulado, con la misma forma que el del backend.
@@ -110,6 +124,11 @@ export function answerFor(agentId: string, prompt: string): UIMessageChunk[] {
     // adapter lo traduzca con el catálogo y que el camino de fallo se ejercite
     // sin backend, que es justo para lo que existe el transporte simulado.
     return [start, { type: 'error', errorText: CHAT_ERROR_CODES.upstreamUnreachable }];
+  }
+
+  // El backend bloqueó el mensaje: no hay respuesta, solo el aviso.
+  if (prompt.trim().toLowerCase().startsWith(TRIPWIRE_PROMPT)) {
+    return [start, tripwireChunk(), { type: 'finish' }];
   }
 
   const text = SENTENCE_BANK[agentId] ?? SENTENCE_BANK['default'] ?? '';

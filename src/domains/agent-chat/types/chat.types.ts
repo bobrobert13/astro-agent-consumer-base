@@ -15,10 +15,21 @@ export interface TokenUsage {
   total?: number | undefined;
 }
 
-/** Una pieza de contenido de un mensaje: texto o una herramienta invocada. */
+/** Una pieza de contenido de un mensaje: texto, una herramienta o un bloqueo. */
 export type ContentPart =
   | { type: 'text'; text: string }
-  | { type: 'tool-call'; toolName: string; args: unknown; result?: unknown };
+  | { type: 'tool-call'; toolName: string; args: unknown; result?: unknown }
+  | {
+      /**
+       * El backend decidió NO ejecutar el mensaje (scope guard, detector de
+       * inyección…). Para el usuario es el desenlace de la ejecución, no contenido
+       * del agente, así que se pinta como un aviso y no como una respuesta.
+       */
+      type: 'notice';
+      text: string;
+      /** Detalle del backend, solo cuando es copy nuestra y no texto del modelo. */
+      detail?: string | undefined;
+    };
 
 export interface ChatMessage {
   id: string;

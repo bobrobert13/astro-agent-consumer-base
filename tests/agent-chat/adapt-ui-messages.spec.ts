@@ -270,6 +270,48 @@ describe('estado de memoria del hilo', () => {
   });
 });
 
+describe('bloqueo del backend (tripwire)', () => {
+  /** Un mensaje del asistente cuyo único contenido es el tripwire del backend. */
+  const tripwire = (data: unknown) =>
+    adaptTranscript(
+      [{ id: 'a1', role: 'assistant', parts: [{ type: 'data-tripwire', data }] }],
+      { inFlight: false }
+    ).messages[0]?.parts[0];
+
+  it('el scope guard produce un aviso, con su redirección como detalle', () => {
+    expect(tripwire({ processorId: 'scope-guard:research', reason: 'Research Agent only handles web research.' })).toEqual({
+      type: 'notice',
+      text: 'Este agente solo atiende su ámbito. Prueba con otro agente del catálogo.',
+      detail: 'Research Agent only handles web research.',
+    });
+  });
+
+  it('un bloqueo de seguridad NO pinta el texto que redactó el modelo', () => {
+    const part = tripwire({
+      processorId: 'prompt-injection-detector',
+      reason: 'The content contains the classic prompt injection phrase "Ignore all previous instructions".',
+    });
+
+    expect(part).toMatchObject({ type: 'notice', text: 'El mensaje se bloqueó por seguridad y no llegó al agente.' });
+    expect(part).not.toHaveProperty('detail');
+    expect(JSON.stringify(part)).not.toContain('classic prompt injection');
+  });
+
+  it('un tripwire ilegible no deja el globo mudo', () => {
+    // Antes de traducirlo, la UI pintaba un globo vacío: el bloqueo parecía un fallo.
+    for (const payload of [undefined, null, 'texto', {}]) {
+      expect(tripwire(payload)).toMatchObject({
+        type: 'notice',
+        text: 'El mensaje se bloqueó por seguridad y no llegó al agente.',
+      });
+    }
+  });
+
+  it('un tripwire de alcance sin motivo sigue avisando', () => {
+    expect(tripwire({ processorId: 'scope-guard:files' })).toMatchObject({ type: 'notice' });
+  });
+});
+
 describe('guion del transporte simulado', () => {
   it('abre el mensaje con `start` y cierra con `finish`', () => {
     const chunks = answerFor('research', 'normal');

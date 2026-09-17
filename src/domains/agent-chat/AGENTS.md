@@ -69,6 +69,13 @@ types/         vocabulario del dominio (ChatMessage, ContentPart, StreamState)
    `messages`. Medirlo es aritmética del adapter (`memoryPressure`); decidir cuándo
    avisar es política de la vista (`MemoryNotice`), que no pinta nada por debajo del
    umbral. El mock emite estado holgado salvo con `/memory`.
+8. **Un bloqueo del backend se pinta.** El backend cierra la ejecución con la parte
+   `data-tripwire` (scope guard, detector de inyección). A diferencia de la anterior,
+   esa **sí** llega dentro de `message.parts`, así que el adapter la traduce a un aviso:
+   sin eso la UI dejaría un globo VACÍO y el bloqueo parecería un fallo de la app. De su
+   `reason` solo se muestra el del scope guard (es copy nuestra y es la parte
+   accionable); el del detector lo redacta el modelo y se queda en el log del backend.
+   El mock lo provoca con `/tripwire`.
 
 ## Cómo se prueba
 
@@ -77,7 +84,7 @@ npm run test                     # contratos, adapter, simulado, isla completa, 
 npm run verify:bundle            # grafo inicial de la isla, sin servidor ni secretos
 npm run verify:relay             # relay byte a byte + sonda de salud contra el stub
 npm run transport:mock && npm run dev    # chat sin backend
-# /error, /slow y /memory en el composer provocan los tres estados que no se ven solos
+# /error, /slow, /memory y /tripwire provocan los cuatro estados que no se ven solos
 ```
 
 ## Notas de entorno

@@ -42,6 +42,10 @@ const ToolCallCard = defineAsyncComponent(() => import('./ToolCallCard.vue'));
     >
       <template v-for="(part, index) in message.parts" :key="index">
         <ToolCallCard v-if="part.type === 'tool-call'" :tool-name="part.toolName" :args="part.args" />
+        <div v-else-if="part.type === 'notice'" class="rounded-panel border border-line bg-elevated px-3 py-2">
+          <p class="text-body-sm text-warning">{{ part.text }}</p>
+          <p v-if="part.detail" class="mt-1 text-caption text-ink-muted">{{ part.detail }}</p>
+        </div>
         <MarkdownBlock v-else :text="part.text" />
       </template>
 

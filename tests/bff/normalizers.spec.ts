@@ -58,11 +58,11 @@ describe('sanitizeThread', () => {
 });
 
 describe('resolveScope', () => {
-  it('toma el resource de la cookie propia y lo antepone al del cliente', () => {
+  it('toma el resource de la cookie propia y acota el hilo a él', () => {
     const request = new Request('http://localhost/api/sessions', {
       headers: { cookie: 'otros=no; aac_resource=usuario-7' },
     });
-    expect(resolveScope(request, 't1')).toEqual({ resource: 'usuario-7', thread: 't1' });
+    expect(resolveScope(request, 't1')).toEqual({ resource: 'usuario-7', thread: 't1-usuario-7' });
   });
 
   it('acuña identidad por navegador cuando no hay cookie', () => {

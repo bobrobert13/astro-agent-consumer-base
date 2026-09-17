@@ -88,7 +88,12 @@ describe('relayStream y la identidad', () => {
     const sent = JSON.parse(String((fetchMock.mock.calls[0]?.[1] as RequestInit).body)) as {
       memory: { thread: string };
     };
-    expect(sent.memory.thread).toBe('etcpasswd');
+    // El hilo saneado se acota además al resource (dueño único): sin `/`, sin `..`
+    // y con el sufijo del navegador — el id literal con otro resource era el 500
+    // de ownership del backend.
+    expect(sent.memory.thread.startsWith('etcpasswd-')).toBe(true);
+    expect(sent.memory.thread).not.toContain('/');
+    expect(sent.memory.thread).not.toContain('..');
   });
 
   it('rechaza con 413 un cuerpo por encima del techo, sin llamar al upstream', async () => {
@@ -138,7 +143,7 @@ describe('resolveScope', () => {
       headers: { cookie: 'aac_resource=usuario-7' },
     });
     const scope = resolveScope(request, 't1');
-    expect(scope).toMatchObject({ resource: 'usuario-7', thread: 't1' });
+    expect(scope).toMatchObject({ resource: 'usuario-7', thread: 't1-usuario-7' });
     expect(scope.setCookie).toBeUndefined();
   });
 });

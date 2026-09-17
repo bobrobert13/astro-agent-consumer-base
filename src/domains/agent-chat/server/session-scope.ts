@@ -7,8 +7,9 @@
  * otro poniendo su id en el JSON. Por eso:
  *  - `resource` lo decide este módulo y manda sobre lo que el cliente envíe.
  *  - `thread` sí lo aporta el cliente: es el identificador de la conversación, que
- *    ya conoce por la URL. Pero el marcador `nuevo` (la entrada a "conversación
- *    nueva") se acota aquí al resource, por el motivo de `scopeThread`.
+ *    ya conoce por la URL. Pero se acota aquí SIEMPRE al resource (ver
+ *    `scopeThread`), porque Mastra ata cada hilo a un resource y reusarlo con
+ *    otro dueño es un 500.
  *
  * Cuando exista login, el único archivo que cambia es este.
  *
@@ -49,19 +50,22 @@ export function resolveScope(request: Request, requestedThread?: string | undefi
 }
 
 /**
- * El hilo `nuevo` es un **marcador**, no un id: `/chat/nuevo` es la entrada a
- * "conversación nueva". Si se reenviara literal, TODOS los navegadores compartirían
- * hilo, y Mastra ata un hilo a un `resource` —el primero que lo usa se lo queda y el
- * resto recibe `Thread "nuevo" belongs to resource … but … was provided`—. Es el
- * mismo defecto que este módulo ya arregló para el `resource`, y por eso se cierra
- * aquí y no en el cliente: la identidad de memoria la decide el servidor.
+ * El hilo se acota SIEMPRE al resource del navegador.
  *
- * Se acota al resource del navegador en vez de acuñar uno nuevo por mensaje porque
- * el hilo tiene que ser **el mismo** en los mensajes siguientes: si cambiara, el
- * agente no recordaría lo dicho un turno antes.
+ * `nuevo` es un marcador ("conversación nueva"), pero un id real de la URL
+ * (`/chat/mi-hilo`) tenía el mismo defecto latente: si el resource cambiaba
+ * —otra cookie, otro navegador, `localhost` vs `127.0.0.1`— el hilo se reusaba
+ * con otro dueño y Mastra lo rechazaba con `Thread "…" belongs to resource "…"
+ * but "…" was provided` → 500 `Internal Server Error` (verificado contra el
+ * backend real). Acotarlo aquí cierra la clase entera: el hilo sigue siendo el
+ * mismo para el mismo navegador —la conversación no se pierde entre mensajes—
+ * y queda aislado de los demás.
+ *
+ * El id saneado se recorta a 63 caracteres para que `thread(63) + "-" +
+ * resource(32)` no rebase el techo de 96 de `sanitizeThread`.
  */
 function scopeThread(thread: string, resource: string): string {
-  return thread === NEW_THREAD_ID ? `${NEW_THREAD_ID}-${resource}` : thread;
+  return `${thread.slice(0, 63)}-${resource}`;
 }
 
 /**
@@ -71,9 +75,9 @@ function scopeThread(thread: string, resource: string): string {
  * leerse en un log.
  */
 export function sanitizeThread(raw: string | undefined | null): string {
-  if (raw === undefined || raw === null) return 'nuevo';
+  if (raw === undefined || raw === null) return NEW_THREAD_ID;
   const clean = raw.replace(/[^A-Za-z0-9_.-]/g, '').replace(/^\.+/, '').slice(0, 96);
-  return clean === '' ? 'nuevo' : clean;
+  return clean === '' ? NEW_THREAD_ID : clean;
 }
 
 /** Identidad nueva: 32 hex, sin guiones, para que quepa en una cookie corta. */

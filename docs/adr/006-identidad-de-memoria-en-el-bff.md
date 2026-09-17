@@ -15,6 +15,16 @@
 > belongs to resource … but … was provided`, porque un hilo pertenece a quien lo creó).
 > `session-scope.ts` lo acota ahora al resource, que es el mismo criterio de este ADR:
 > lo que identifica una conversación no puede ser una constante global.
+>
+> **Ampliación (2026-09-17, segunda):** el defecto no era solo de `nuevo`. Cualquier id
+> de hilo **literal** (`/chat/mi-hilo`) se reusaba con otro resource cuando la cookie
+> cambiaba —otro navegador, cookies borradas, `localhost` vs `127.0.0.1`— y el backend
+> lo rechazaba con el mismo `500 Internal Server Error` (reproducido: 12-102 ms y body
+> `{"error":"Internal Server Error"}`). `scopeThread()` acota **siempre** el hilo al
+> resource (`<hilo>-<resource>`, con el id recortado a 63 caracteres para respetar el
+> techo de 96 de `sanitizeThread`): el mismo navegador conserva su conversación turno a
+> turno y ninguno más la comparte. Verificado contra el backend real: dos cookies
+> distintas con el mismo id de hilo reciben respuesta completa.
 
 ## Contexto
 
@@ -41,8 +51,9 @@ cuerpo que llega al relay lo construye `@mastra/client-js`, no nuestro cliente.
   `memory: { thread }`; `resource` no sale del navegador.
 - **El BFF inyecta la identidad.** `server/relay-body.ts` abre el cuerpo JSON
   acotado, y si encuentra un objeto `memory`, fija `memory.resource` con el valor
-  de `resolveScope()` y pasa `memory.thread` por `sanitizeThread()`. Cualquier
-  otra clave del cuerpo del proveedor se devuelve intacta.
+  de `resolveScope()` y pasa `memory.thread` por `sanitizeThread()` + `scopeThread()`
+  —el hilo queda acotado al resource—. Cualquier otra clave del cuerpo del
+  proveedor se devuelve intacta.
 - **La respuesta sigue saliendo byte a byte.** La política del ADR-001 no se toca:
   "verbatim" es sobre el stream de salida. Reescribir **un campo** del JSON de
   entrada es la excepción ya prevista por aquella decisión ("el JSON siempre se

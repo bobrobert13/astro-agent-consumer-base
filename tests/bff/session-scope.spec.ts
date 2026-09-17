@@ -36,12 +36,27 @@ describe('resolveScope — el marcador de hilo nuevo', () => {
     expect(primero.thread).toBe(segundo.thread);
   });
 
-  it('un hilo de verdad se respeta tal cual', () => {
-    expect(resolveScope(request('aaaa'), 'hilo-123').thread).toBe('hilo-123');
+  it('un hilo de verdad también se acota al resource (dueño único)', () => {
+    // Un id literal con otro resource era el 500 de ownership: `Thread "hilo-123"
+    // belongs to resource "aaaa" but "bbbb" was provided`. Acotado, cada
+    // navegador tiene su propia conversación para la misma ruta.
+    expect(resolveScope(request('aaaa'), 'hilo-123').thread).toBe('hilo-123-aaaa');
+    expect(resolveScope(request('bbbb'), 'hilo-123').thread).toBe('hilo-123-bbbb');
+    // Estable para el mismo navegador: el historial no se pierde entre turnos.
+    expect(resolveScope(request('aaaa'), 'hilo-123').thread).toBe(
+      resolveScope(request('aaaa'), 'hilo-123').thread
+    );
+  });
+
+  it('el id largo se recorta para dejar sitio al sufijo (techo de 96)', () => {
+    const long = 'h'.repeat(200);
+    const scope = resolveScope(request('aaaa'), long);
+    expect(scope.thread).toBe(`${'h'.repeat(63)}-aaaa`);
+    expect(scope.thread.length).toBe(68);
   });
 
   it('sigue saneando lo que llega por la URL', () => {
-    expect(resolveScope(request('aaaa'), '../evil').thread).toBe('evil');
+    expect(resolveScope(request('aaaa'), '../evil').thread).toBe('evil-aaaa');
   });
 
   it('acuña identidad si falta la cookie, y no la repite si ya está', () => {

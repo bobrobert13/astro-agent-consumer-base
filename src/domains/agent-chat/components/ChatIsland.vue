@@ -25,6 +25,7 @@ import { onMounted, onScopeDispose, watch } from 'vue';
 
 import ChatComposer from './ChatComposer.vue';
 import ChatTranscript from './ChatTranscript.vue';
+import MemoryNotice from './MemoryNotice.vue';
 import StreamStatusBar from './StreamStatusBar.vue';
 import { useAgentChat } from '../composables/useAgentChat';
 
@@ -40,6 +41,7 @@ const {
   canSubmit,
   clearConversation,
   isRunning,
+  memoryPressure,
   messages,
   send,
   setAgent,
@@ -111,6 +113,8 @@ onScopeDispose(() => document.removeEventListener('keydown', onKeydown));
         </div>
       </template>
     </ChatTranscript>
+
+    <MemoryNotice :pressure="memoryPressure" />
 
     <StreamStatusBar :state="state" @stop="stop()" @retry="onRetry" />
 

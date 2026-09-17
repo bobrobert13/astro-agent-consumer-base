@@ -40,6 +40,41 @@ const TEXT_ID = 'mock-text';
 const TOOL_CALL_ID = 'mock-tool';
 const TOOL_NAME = 'buscar_documentacion';
 
+/** Parte con la que Mastra reporta el estado de sus ventanas de memoria. */
+const OM_STATUS_PART = 'data-om-status';
+/** Techos de ventana, copiados de los del backend real para que el aviso sea el mismo. */
+const MESSAGE_THRESHOLD = 30_000;
+const OBSERVATION_THRESHOLD = 40_000;
+/** `/memory` → memoria casi llena, para ver el aviso sin backend. */
+const MEMORY_PROMPT = '/memory';
+const FULL_PRESSURE = 0.96;
+const IDLE_PRESSURE = 0.02;
+
+/**
+ * Estado de memoria simulado, con la misma forma que el del backend.
+ *
+ * Se emite siempre y con presión baja salvo con `/memory`: así el camino normal
+ * —contra el que se prueban los demás estados— no arrastra un aviso en pantalla, y
+ * hay un prompt determinista para el caso que sí importa.
+ */
+function memoryStatusChunk(prompt: string): UIMessageChunk {
+  const pressure = prompt.trim().toLowerCase().startsWith(MEMORY_PROMPT)
+    ? FULL_PRESSURE
+    : IDLE_PRESSURE;
+
+  return {
+    type: OM_STATUS_PART,
+    data: {
+      windows: {
+        active: {
+          messages: { tokens: Math.round(MESSAGE_THRESHOLD * pressure), threshold: MESSAGE_THRESHOLD },
+          observations: { tokens: 0, threshold: OBSERVATION_THRESHOLD },
+        },
+      },
+    },
+  };
+}
+
 /**
  * Id de mensaje del guion, único por ejecución.
  *
@@ -82,6 +117,7 @@ export function answerFor(agentId: string, prompt: string): UIMessageChunk[] {
 
   const chunks: UIMessageChunk[] = [
     start,
+    memoryStatusChunk(prompt),
     { type: 'text-start', id: TEXT_ID },
     { type: 'text-delta', id: TEXT_ID, delta: `${prompt.trim().slice(0, 24)}… ` },
   ];

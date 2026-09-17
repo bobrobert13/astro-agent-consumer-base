@@ -31,7 +31,8 @@ composables/   orquestación y estado de la UI
   useChatComposer.ts  texto en edición y reglas de envío
   services/chat/      chat.api.ts (Result<T>) · chat.endpoints.ts · chat.e.ts
 components/    .vue interactivos, solo de este slice
-  chat.memo.ts     dependencias de `v-memo` del globo (ver regla 3)
+  chat.memo.ts      dependencias de `v-memo` del globo (ver regla 3)
+  MemoryNotice.vue  aviso cuando la memoria del hilo se llena (ver regla 7)
 server/        lógica del BFF
   relay-body.ts    única apertura del cuerpo de la petición (ver regla 5)
   stream-relay.ts  reenvío byte a byte de la respuesta
@@ -63,6 +64,11 @@ types/         vocabulario del dominio (ChatMessage, ContentPart, StreamState)
    **respuesta** sigue saliendo byte a byte. Leer ADR-006 antes de tocar el relay.
 6. **Mock y real son intercambiables.** Cualquier diferencia de comportamiento que
    obligue a un `if (transport === ...)` en la UI es un defecto del contrato.
+7. **El estado de memoria se lee por `onData`, no de los `parts`.** Mastra lo manda en
+   la parte `data-om-status` como estado del step, y una parte transitoria nunca llega a
+   `messages`. Medirlo es aritmética del adapter (`memoryPressure`); decidir cuándo
+   avisar es política de la vista (`MemoryNotice`), que no pinta nada por debajo del
+   umbral. El mock emite estado holgado salvo con `/memory`.
 
 ## Cómo se prueba
 
@@ -71,7 +77,7 @@ npm run test                     # contratos, adapter, simulado, isla completa, 
 npm run verify:bundle            # grafo inicial de la isla, sin servidor ni secretos
 npm run verify:relay             # relay byte a byte + sonda de salud contra el stub
 npm run transport:mock && npm run dev    # chat sin backend
-# /error y /slow en el composer provocan los dos estados de fallo
+# /error, /slow y /memory en el composer provocan los tres estados que no se ven solos
 ```
 
 ## Notas de entorno

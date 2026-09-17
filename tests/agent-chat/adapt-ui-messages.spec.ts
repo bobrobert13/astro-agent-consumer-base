@@ -11,7 +11,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   adaptTranscript,
+  memoryPressure,
   messageText,
+  parseMemoryStatus,
   toStreamState,
   uiTextLength,
   type WireMessage,
@@ -32,6 +34,12 @@ const USER_MESSAGE = {
 
 const user: WireMessage = { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'hola' }] };
 const assistant: WireMessage = { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'buenas' }] };
+
+/** Estado de memoria que el guion emite para un prompt, ya parseado. */
+function omStatusOf(prompt: string) {
+  const chunk = answerFor('research', prompt).find((c) => c.type === 'data-om-status');
+  return parseMemoryStatus(chunk?.type === 'data-om-status' ? chunk.data : undefined);
+}
 
 describe('adaptTranscript', () => {
   it('mapea texto y llamadas a herramienta al vocabulario del dominio', () => {
@@ -173,6 +181,95 @@ describe('señales de actividad y estado', () => {
   });
 });
 
+describe('estado de memoria del hilo', () => {
+  /** Payload con la forma real que emite Mastra en `data-om-status`. */
+  const payload = (messageTokens: number, observationTokens = 0) => ({
+    windows: {
+      active: {
+        messages: { tokens: messageTokens, threshold: 30_000 },
+        observations: { tokens: observationTokens, threshold: 40_000 },
+      },
+      buffered: { observations: { chunks: 0 }, reflection: { status: 'idle' } },
+    },
+    threadId: 't1',
+    stepNumber: 0,
+  });
+
+  it('lee las dos ventanas activas', () => {
+    expect(parseMemoryStatus(payload(3_000, 5_000))).toEqual({
+      messageTokens: 3_000,
+      messageThreshold: 30_000,
+      observationTokens: 5_000,
+      observationThreshold: 40_000,
+    });
+  });
+
+  it('degrada a `undefined` en vez de lanzar ante una forma que no reconoce', () => {
+    // La forma es interna de Mastra: una versión que la cambie no puede romper el chat.
+    for (const broken of [null, undefined, 'texto', 42, {}, { windows: {} }, { windows: { active: {} } }]) {
+      expect(parseMemoryStatus(broken)).toBeUndefined();
+    }
+    // Umbrales presentes pero basura: tampoco hay estado que reportar.
+    expect(parseMemoryStatus({ windows: { active: { messages: { threshold: 'muchos' } } } })).toBeUndefined();
+  });
+
+  it('la presión es la de la ventana MÁS llena, acotada a 1', () => {
+    expect(memoryPressure(parseMemoryStatus(payload(0))!)).toBe(0);
+    expect(memoryPressure(parseMemoryStatus(payload(15_000))!)).toBe(0.5);
+    // La de mensajes manda aunque las observaciones estén vacías...
+    expect(memoryPressure(parseMemoryStatus(payload(24_000))!)).toBeCloseTo(0.8);
+    // ...y al revés también: gana la más llena de las dos.
+    expect(memoryPressure(parseMemoryStatus(payload(0, 36_000))!)).toBeCloseTo(0.9);
+    // Un backend que se pase de tokens no puede dar más de 1.
+    expect(memoryPressure(parseMemoryStatus(payload(90_000))!)).toBe(1);
+  });
+
+  it('un umbral a 0 no produce un infinito', () => {
+    const zero = parseMemoryStatus({
+      windows: { active: { messages: { tokens: 5, threshold: 0 }, observations: { tokens: 0, threshold: 0 } } },
+    });
+    expect(zero).toBeDefined();
+    expect(memoryPressure(zero!)).toBe(0);
+  });
+
+  it('lee el payload REAL que emitió el backend', () => {
+    // Copiado byte a byte de la respuesta de `POST /chat/research-agent` contra
+    // Mastra 1.66 con DeepSeek: si el backend cambia la forma, esto es lo primero
+    // que se entera, y no una fixture que escribí yo a partir de mi propia idea.
+    const real = {
+      windows: {
+        active: {
+          messages: { tokens: 41, threshold: 30000 },
+          observations: { tokens: 0, threshold: 40000 },
+        },
+        buffered: {
+          observations: {
+            chunks: 0,
+            messageTokens: 0,
+            projectedMessageRemoval: 0,
+            observationTokens: 0,
+            status: 'idle',
+          },
+          reflection: { inputObservationTokens: 0, observationTokens: 0, status: 'idle' },
+        },
+      },
+      recordId: '972ee7fb-f658-489b-bd9a-cb30cfbd147c',
+      threadId: 'smoke-check',
+      stepNumber: 0,
+      generationCount: 0,
+    };
+
+    expect(parseMemoryStatus(real)).toEqual({
+      messageTokens: 41,
+      messageThreshold: 30000,
+      observationTokens: 0,
+      observationThreshold: 40000,
+    });
+    // Y con el hilo recién empezado no hay nada que avisar.
+    expect(memoryPressure(parseMemoryStatus(real)!)).toBeLessThan(0.01);
+  });
+});
+
 describe('guion del transporte simulado', () => {
   it('abre el mensaje con `start` y cierra con `finish`', () => {
     const chunks = answerFor('research', 'normal');
@@ -205,6 +302,18 @@ describe('guion del transporte simulado', () => {
 
   it('un agente sin frase asignada usa el texto genérico', () => {
     expect(answerFor('inexistente', 'cualquier cosa').some((chunk) => chunk.type === 'text-delta')).toBe(true);
+  });
+
+  it('reporta memoria holgada por defecto, y casi llena con /memory', () => {
+    // El caso normal no debe arrastrar un aviso en pantalla; `/memory` es el prompt
+    // determinista para el caso que sí importa.
+    const low = omStatusOf('una pregunta cualquiera');
+    const high = omStatusOf('/memory');
+
+    expect(low).toBeDefined();
+    expect(high).toBeDefined();
+    expect(memoryPressure(low!)).toBeLessThan(0.1);
+    expect(memoryPressure(high!)).toBeGreaterThan(0.9);
   });
 
   it('/slow planifica un silencio más largo que el watchdog del cliente', () => {

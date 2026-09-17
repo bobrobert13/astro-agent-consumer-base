@@ -30,6 +30,24 @@ export interface ChatMessage {
   usage?: TokenUsage | undefined;
 }
 
+/**
+ * Presión de memoria del hilo, tal como la reporta el backend.
+ *
+ * Mastra emite este estado en cada step (la parte `data-om-status`) y **no** lo
+ * persiste: describe sus ventanas de memoria observacional. Cuando una se acerca a
+ * su techo, el backend resume el historial, así que verlo venir es información
+ * útil para el usuario y no un detalle interno.
+ */
+export interface MemoryStatus {
+  /** Tokens del historial de mensajes activo. */
+  messageTokens: number;
+  /** Techo de esa ventana: al alcanzarlo, Mastra resume. */
+  messageThreshold: number;
+  /** Tokens de observaciones (memoria a largo plazo). */
+  observationTokens: number;
+  observationThreshold: number;
+}
+
 /** Estado de la máquina de streaming de una ejecución. */
 export type StreamState = 'idle' | 'connecting' | 'streaming' | 'stalled' | 'error';
 

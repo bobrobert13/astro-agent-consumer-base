@@ -49,6 +49,7 @@ const canStop = computed(() => working.value);
     v-if="visible"
     role="status"
     aria-live="polite"
+    aria-label="Estado de la ejecución"
     :variant="state === 'error' ? 'destructive' : 'default'"
     class="flex items-center gap-2 rounded-none border-x-0 border-b-0 bg-elevated px-gutter py-1.5 text-caption"
     :class="state === 'stalled' ? 'text-warning' : state === 'error' ? '' : 'text-ink-muted'"

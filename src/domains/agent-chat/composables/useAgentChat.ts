@@ -6,12 +6,22 @@ import { NEW_THREAD_ID } from '@config/app';
 import { AGENT_TRANSPORT } from '@shared/env/client';
 import { reportError } from '@shared/observability/report-error';
 import { normalizeServiceError, resultError, resultOk, type Result } from '@shared/result/result.pattern';
-import { adaptTranscript, resolveStreamErrorText, toStreamState, uiTextLength } from '../ai/adapt-ui-messages';
+import {
+  adaptTranscript,
+  memoryPressure as memoryPressureOf,
+  parseMemoryStatus,
+  resolveStreamErrorText,
+  toStreamState,
+  uiTextLength,
+} from '../ai/adapt-ui-messages';
 import { resolveChatTransport } from '../ai/chat.transport';
-import type { StreamState } from '../types/chat.types';
+import type { MemoryStatus, StreamState } from '../types/chat.types';
 import { useChatComposer } from './useChatComposer';
 import { useStallWatchdog } from './useStallWatchdog';
 import { CHAT_ERROR_CODES } from './services/chat/chat.e';
+
+/** Parte de datos con la que el backend reporta el estado de su memoria. */
+const OM_STATUS_PART = 'data-om-status';
 
 /**
  * @file src/domains/agent-chat/composables/useAgentChat.ts
@@ -33,6 +43,7 @@ import { CHAT_ERROR_CODES } from './services/chat/chat.e';
  * `createSharedComposable`: en Astro cada isla es su propia `createApp()`, así que
  * el estado compartido entre islas hermanas se resuelve con singleton de módulo.
  */
+
 function defineAgentChat() {
   const activeAgentId = ref('research-agent');
   const threadId = ref(NEW_THREAD_ID);
@@ -40,11 +51,23 @@ function defineAgentChat() {
   const errorText = ref<string | undefined>(undefined);
   /** El usuario detuvo la ejecución: el globo abierto se marca como cancelado. */
   const aborted = ref(false);
+  /** Presión de memoria del hilo, reportada por el backend en cada step. */
+  const memoryStatus = ref<MemoryStatus | undefined>(undefined);
 
   // Un solo transporte para toda la sesión: el agente y el hilo se leen en cada
   // envío desde estos refs (ver `ai/chat.transport.ts`), no se fijan al construir.
   const chat = useChat({
     transport: resolveChatTransport(() => ({ agentId: activeAgentId.value, thread: threadId.value })),
+    /**
+     * El estado de memoria llega como parte de datos, y ese es el motivo de leerlo
+     * aquí y no en los `parts` de un mensaje: Mastra lo emite como estado del step
+     * (no como contenido), así que una parte transitoria nunca llega a `messages`.
+     */
+    onData: (part) => {
+      if (part.type !== OM_STATUS_PART) return;
+      const parsed = parseMemoryStatus(part.data);
+      if (parsed !== undefined) memoryStatus.value = parsed;
+    },
   });
 
   const inFlight = computed(() => chat.status.value === 'submitted' || chat.status.value === 'streaming');
@@ -57,6 +80,15 @@ function defineAgentChat() {
   const composer = useChatComposer({ disabled: () => inFlight.value });
   const transportLabel = computed(() => AGENT_TRANSPORT);
   const state = computed<StreamState>(() => toStreamState(chat.status.value, stall.stalled.value));
+
+  /**
+   * Cuánto se ha llenado la ventana de memoria más llena, de 0 a 1. La política de
+   * cuándo avisar vive en la vista (`MemoryNotice`), no aquí: esto es solo la
+   * medida.
+   */
+  const memoryPressure = computed(() =>
+    memoryStatus.value === undefined ? 0 : memoryPressureOf(memoryStatus.value)
+  );
 
   /**
    * El fallo se normaliza y se reporta **una vez por error**, no en cada
@@ -118,6 +150,8 @@ function defineAgentChat() {
     chat.messages.value = [];
     errorText.value = undefined;
     aborted.value = false;
+    // El estado de memoria es del hilo: sin mensajes no hay nada que medir.
+    memoryStatus.value = undefined;
   }
 
   async function send(prompt: string): Promise<Result<void>> {
@@ -168,6 +202,8 @@ function defineAgentChat() {
     isRunning,
     messages,
     streamingText,
+    memoryStatus,
+    memoryPressure,
     text: composer.text,
     canSubmit: composer.canSubmit,
     setAgent,

@@ -1,6 +1,6 @@
 import type { ChatStatus } from 'ai';
 
-import type { ChatMessage, ChatRole, ContentPart, StreamState } from '../types/chat.types';
+import type { ChatMessage, ChatRole, ContentPart, MemoryStatus, StreamState } from '../types/chat.types';
 import { chatErrorCodeFrom, resolveChatErrorMessage, CHAT_ERROR_CODES } from '../composables/services/chat/chat.e';
 
 /**
@@ -151,6 +151,46 @@ export function toStreamState(status: ChatStatus, stalled: boolean): StreamState
 }
 
 /**
+ * Estado de memoria del hilo a partir de la parte `data-om-status` del backend.
+ *
+ * Mastra la emite en cada step y es **estado, no contenido**: por eso el sitio para
+ * leerla es `onData` del `useChat` y no los `parts` de un mensaje — una parte
+ * transitoria nunca llega a `messages`.
+ *
+ * Se parsea a la defensiva y sin lanzar: la forma es interna de Mastra, y una
+ * versión que la cambie debe degradar a "no hay estado", no romper el chat.
+ */
+export function parseMemoryStatus(data: unknown): MemoryStatus | undefined {
+  const active = recordOf(recordOf(data)?.['windows'])?.['active'];
+  const messages = recordOf(recordOf(active)?.['messages']);
+  const observations = recordOf(recordOf(active)?.['observations']);
+
+  const messageThreshold = numberOf(messages?.['threshold']);
+  const observationThreshold = numberOf(observations?.['threshold']);
+  if (messageThreshold === undefined || observationThreshold === undefined) return undefined;
+
+  return {
+    messageTokens: numberOf(messages?.['tokens']) ?? 0,
+    messageThreshold,
+    observationTokens: numberOf(observations?.['tokens']) ?? 0,
+    observationThreshold,
+  };
+}
+
+/**
+ * Cuánto se ha llenado la ventana más llena, de 0 a 1.
+ *
+ * Es la señal que decide si merece la pena avisar. Se toma el **máximo** de las dos
+ * ventanas: cualquiera de las dos que se llene es la que dispara el resumen.
+ */
+export function memoryPressure(status: MemoryStatus): number {
+  return Math.max(
+    fraction(status.messageTokens, status.messageThreshold),
+    fraction(status.observationTokens, status.observationThreshold)
+  );
+}
+
+/**
  * Mensaje presentable para un fallo del stream.
  *
  * El texto que trae el SDK puede ser un interno del backend ("Processor workflow
@@ -224,6 +264,22 @@ function lastAssistantIndex(ui: readonly WireMessage[]): number {
     if (ui[index]?.role === 'assistant') return index;
   }
   return -1;
+}
+
+function recordOf(value: unknown): Record<string, unknown> | undefined {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function numberOf(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+/** Cociente acotado a 1: un umbral a 0 no puede producir un infinito. */
+function fraction(value: number, threshold: number): number {
+  if (threshold <= 0) return 0;
+  return Math.min(1, value / threshold);
 }
 
 function toChatRole(role: string): ChatRole {

@@ -25,17 +25,23 @@ import ChatIsland from '@domains/agent-chat/components/ChatIsland.vue';
  * Envía un prompt y espera al ciclo completo: primero a que la ejecución arranque
  * (si no, se daría por terminada antes de empezar) y después a que vuelva a
  * `idle`, que es cuando la franja de estado desaparece.
+ *
+ * Se selecciona la franja **por su etiqueta**, no por `[role="status"]`: el aviso de
+ * memoria (`MemoryNotice`) también es una región de estado y, a diferencia de esta,
+ * persiste mientras la memoria siga llena — esperar su desaparición era esperar en
+ * vano.
  */
 async function submitAndSettle(wrapper: ReturnType<typeof mount>, prompt: string): Promise<void> {
   const textarea = wrapper.get('textarea');
   await textarea.setValue(prompt);
   await textarea.trigger('keydown', { key: 'Enter' });
 
-  await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(true), {
+  const band = '[aria-label="Estado de la ejecución"]';
+  await vi.waitFor(() => expect(wrapper.find(band).exists()).toBe(true), {
     timeout: 5_000,
     interval: 20,
   });
-  await vi.waitFor(() => expect(wrapper.find('[role="status"]').exists()).toBe(false), {
+  await vi.waitFor(() => expect(wrapper.find(band).exists()).toBe(false), {
     timeout: 20_000,
     interval: 50,
   });
@@ -71,6 +77,21 @@ describe('ChatIsland', () => {
     expect(transcript).toContain('explícame el boilerplate');
     expect(transcript).toContain('agente de investigación simulado');
     await expectTranscript(wrapper, 'buscar_documentacion');
+
+    // Con memoria holgada no hay aviso: el caso normal no arrastra ruido.
+    expect(wrapper.text()).not.toContain('va llena');
+  });
+
+  it('avisa cuando la memoria del hilo se está llenando', async () => {
+    const wrapper = mount(ChatIsland, { props: { agentId: 'research', threadId: 't5' } });
+
+    await submitAndSettle(wrapper, '/memory');
+
+    // Camino completo: el backend reporta la presión en una parte de datos, el
+    // composable la lee por `onData` y la vista la convierte en aviso. Si el
+    // `onData` dejara de estar cableado, esto no aparecería y nada más lo notaría.
+    expect(wrapper.text()).toContain('La memoria de este hilo va llena');
+    expect(wrapper.text()).toContain('96 %');
   });
 
   it('no deja globos sin contenido cuando la ejecución termina', async () => {

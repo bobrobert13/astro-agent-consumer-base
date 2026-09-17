@@ -8,6 +8,7 @@
  * rompería — o peor, filtraría. `src/pages/api/**` importa SIEMPRE esta ruta.
  */
 export { relayStream } from './stream-relay';
-export { parseRunRequest, agentSummarySchema } from './normalize-agent-run';
+export type { RelayOptions, UpstreamMount } from './stream-relay';
+export { parseRunRequest, agentSummarySchema, agentIdSchema, chatUpstreamPath } from './normalize-agent-run';
 export { withGateway, readJsonBody, BodyTooLargeError } from './gateway';
 export { resolveScope, sanitizeThread, resourceCookie } from './session-scope';

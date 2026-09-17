@@ -66,3 +66,45 @@ export const agentSummarySchema = z.object({
 export const agentListSchema = z.object({
   agents: z.record(z.string(), agentSummarySchema).optional(),
 });
+
+/**
+ * Identificador de agente. Estrecho a propósito: el valor se interpola en la
+ * ruta del upstream (`/chat/<id>`), así que el traversal se cierra en el origen
+ * —`sanitizePath` del relay queda como segunda red— y de paso se rechaza lo que
+ * nunca es un id real.
+ */
+export const agentIdSchema = z
+  .string()
+  .min(1)
+  .max(96)
+  .regex(/^[A-Za-z0-9_-]+$/, 'El identificador del agente no es válido.');
+
+/**
+ * Cuerpo de una ejecución de chat. A diferencia de `runRequestSchema`, este **sí**
+ * describe lo que llega: lo construye el cliente (su `prepareSendMessagesRequest`),
+ * no el wire format de un SDK ajeno.
+ *
+ * Las piezas de cada mensaje se dejan opacas a propósito: son `UIMessage` del AI
+ * SDK y su forma evoluciona con la versión; validarlas aquí ataría el BFF a ella.
+ * El cuerpo que viaja al upstream es el original, no el recortado por zod.
+ */
+export const chatRequestSchema = z.object({
+  agentId: agentIdSchema,
+  messages: z.array(z.unknown()).min(1, 'No hay nada que enviar.'),
+});
+
+/**
+ * Destino del stream de chat en el upstream, derivado del cuerpo.
+ *
+ * Vive aquí y no en el endpoint por una razón dura: el cuerpo de una petición
+ * **solo se puede leer una vez**. El relay ya lo abre para inyectar la identidad
+ * de memoria (`relay-body.ts`), y aprovecha esa misma lectura para resolver el
+ * destino; un handler que validara por su cuenta consumiría el `Request` y el
+ * relay ya no tendría nada que reenviar.
+ *
+ * `undefined` ⇒ el relay responde 400 y no se abre conexión con el upstream.
+ */
+export function chatUpstreamPath(payload: unknown): string | undefined {
+  const parsed = chatRequestSchema.safeParse(payload);
+  return parsed.success ? `chat/${parsed.data.agentId}` : undefined;
+}

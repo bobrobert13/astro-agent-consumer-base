@@ -42,6 +42,21 @@ async function submitAndSettle(wrapper: ReturnType<typeof mount>, prompt: string
   await flushPromises();
 }
 
+/**
+ * Espera a que un texto aparezca en el transcript.
+ *
+ * Hace falta porque `ToolCallCard` y `MarkdownBlock` se cargan con
+ * `defineAsyncComponent`: su primer render deja un hueco y el contenido llega una
+ * vez resuelto el import dinámico. Un `flushPromises()` no basta — el import se
+ * resuelve en el siguiente turno del event loop, no en el microtask.
+ */
+async function expectTranscript(wrapper: ReturnType<typeof mount>, text: string): Promise<void> {
+  await vi.waitFor(
+    () => expect(wrapper.get('[aria-label="Conversación con el agente"]').text()).toContain(text),
+    { timeout: 5_000, interval: 50 }
+  );
+}
+
 describe('ChatIsland', () => {
   it('pinta la respuesta completa y el tool-call en el mismo transcript', async () => {
     const wrapper = mount(ChatIsland, { props: { agentId: 'research', threadId: 't1' } });
@@ -55,7 +70,7 @@ describe('ChatIsland', () => {
     // memorizar sin mirar el contenido, el tool-call o el texto no aparecerían.
     expect(transcript).toContain('explícame el boilerplate');
     expect(transcript).toContain('agente de investigación simulado');
-    expect(transcript).toContain('buscar_documentacion');
+    await expectTranscript(wrapper, 'buscar_documentacion');
   });
 
   it('no deja globos sin contenido cuando la ejecución termina', async () => {

@@ -1,9 +1,9 @@
 import { AGENT_CONNECT_TIMEOUT, AGENT_IDLE_TIMEOUT } from '@shared/env/server';
 import { idleWatchdog, relayHeaders } from '@shared/streams/sse';
 import { reportError } from '@shared/observability/report-error';
-import { upstreamHeaders, upstreamUrl } from '@shared/server/upstream';
+import { upstreamHeaders, upstreamRootUrl, upstreamUrl } from '@shared/server/upstream';
 import { BodyTooLargeError } from './gateway';
-import { bodyWithScope, readRelayBody, requestedThread } from './relay-body';
+import { bodyWithScope, readRelayBody, requestedThread, type RelayBody } from './relay-body';
 import { resolveScope } from './session-scope';
 
 /**
@@ -29,23 +29,39 @@ import { resolveScope } from './session-scope';
  *       → `AbortSignal.any([request.signal, upstreamAbort.signal])` en el fetch
  *         → el upstream cierra su ejecución
  */
+/**
+ * Prefijo bajo el que cuelga la ruta en el upstream.
+ *
+ * `'api'` es el API del framework. `'root'` son las **rutas custom** de Mastra,
+ * que son root-level por obligación (`validateCustomRoutePaths` rechaza cualquier
+ * path que empiece por `/api` al arrancar): el stream de chat vive en `/chat/:agentId`.
+ */
+export type UpstreamMount = 'api' | 'root';
+
 export interface RelayOptions {
-  /** Ruta relativa al API del upstream, p. ej. `stream/research`. */
-  path: string;
+  /** Ruta relativa al upstream, conocida antes de leer el cuerpo. */
+  path?: string;
+  /**
+   * Destino calculado **desde el cuerpo**. Existe porque el agente de una
+   * ejecución de chat viaja dentro del body —el transporte del cliente es uno
+   * solo y estable— y el cuerpo solo se puede leer una vez: resolverlo aquí evita
+   * abrirlo dos veces. Devolver `undefined` ⇒ 400.
+   */
+  routeFromBody?: (payload: unknown) => string | undefined;
+  /** Por defecto `'api'`. */
+  mount?: UpstreamMount;
 }
 
 /** Cabeceras de petición que sí se reenvían. Allowlist, no lista negra. */
 const FORWARDED_REQUEST_HEADERS = ['content-type', 'accept', 'accept-language'] as const;
 
 export async function relayStream(request: Request, options: RelayOptions): Promise<Response> {
-  const relativePath = sanitizePath(options.path);
-  if (relativePath === undefined) {
-    return errorResponse(400, 'invalid_path', 'La ruta del relay no es válida.');
-  }
-
-  // El cuerpo se prepara ANTES de resolver el scope: el hilo con el que el
-  // cliente quiere hablar viaja dentro, y es el que hay que sanear.
-  let relayBody;
+  // El cuerpo se prepara ANTES de resolver el destino y el scope, y en este orden
+  // por dos motivos: el hilo con el que el cliente quiere hablar viaja dentro (hay
+  // que sanearlo), y cuando el destino depende del cuerpo —el agente de una
+  // ejecución de chat— esa lectura es la única posible, porque un `Request` no se
+  // puede leer dos veces.
+  let relayBody: RelayBody;
   try {
     relayBody = await readRelayBody(request);
   } catch (error) {
@@ -55,9 +71,16 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
     throw error;
   }
 
-  const scope = resolveScope(request, requestedThread(relayBody.mode === 'json' ? relayBody.parsed : undefined));
+  const payload = relayBody.mode === 'json' ? relayBody.parsed : undefined;
 
-  const target = upstreamUrl(relativePath);
+  const relativePath = sanitizePath(options.routeFromBody?.(payload) ?? options.path ?? '');
+  if (relativePath === undefined) {
+    return errorResponse(400, 'invalid_path', 'La ruta del relay no es válida.');
+  }
+
+  const scope = resolveScope(request, requestedThread(payload));
+
+  const target = options.mount === 'root' ? upstreamRootUrl(relativePath) : upstreamUrl(relativePath);
   const upstreamAbort = new AbortController();
   const headers = upstreamHeaders(pickRequestHeaders(request));
 

@@ -33,6 +33,18 @@ export interface ChatMessage {
 /** Estado de la máquina de streaming de una ejecución. */
 export type StreamState = 'idle' | 'connecting' | 'streaming' | 'stalled' | 'error';
 
+/**
+ * Disponibilidad del backend tal como la ve el navegador.
+ *
+ * `transport` dice qué implementación está activa, para que la UI pueda decir la
+ * verdad (transporte simulado o real) en vez de fingir que hay agente detrás.
+ */
+export interface TransportHealth {
+  reachable: boolean;
+  transport: 'mock' | 'mastra';
+  detail?: string | undefined;
+}
+
 /** Parámetros de una ejecución. Validados en el BFF, no aquí. */
 export interface RunConfig {
   model?: string | undefined;

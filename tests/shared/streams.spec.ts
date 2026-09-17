@@ -1,89 +1,11 @@
 /**
  * @file tests/shared/streams.spec.ts
- * @description Las dos piezas que sostienen el rendimiento del streaming:
- * `token-batcher` (una entrega por frame, no por token) y `sse` (cabeceras de
+ * @description Las piezas del kernel que sostienen el relay: `sse` (cabeceras de
  * reenvío, frames entrantes y vigilante de stream parado).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createTokenBatcher } from '@shared/streams/token-batcher';
 import { idleWatchdog, readSseLines, relayHeaders } from '@shared/streams/sse';
-
-describe('createTokenBatcher', () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it('agrupa 40 deltas en una sola entrega por frame', () => {
-    const onFlush = vi.fn();
-    const batcher = createTokenBatcher({ onFlush, schedule: (cb) => {
-      const id = setTimeout(cb, 16);
-      return () => clearTimeout(id);
-    } });
-
-    for (let i = 0; i < 40; i += 1) batcher.push('tok');
-    expect(onFlush).not.toHaveBeenCalled();
-
-    vi.advanceTimersByTime(20);
-    expect(onFlush).toHaveBeenCalledTimes(1);
-    expect(onFlush).toHaveBeenCalledWith('tok'.repeat(40));
-  });
-
-  it('vuelve a programar después de entregar', () => {
-    const onFlush = vi.fn();
-    const batcher = createTokenBatcher({ onFlush, schedule: (cb) => {
-      const id = setTimeout(cb, 16);
-      return () => clearTimeout(id);
-    } });
-
-    batcher.push('a');
-    vi.advanceTimersByTime(20);
-    batcher.push('b');
-    vi.advanceTimersByTime(20);
-
-    expect(onFlush.mock.calls).toEqual([['a'], ['b']]);
-  });
-
-  it('`flush` entrega de inmediato y vacía el búfer', () => {
-    const onFlush = vi.fn();
-    const batcher = createTokenBatcher({ onFlush, schedule: () => () => undefined });
-
-    batcher.push('hola ');
-    batcher.push('mundo');
-    expect(batcher.pending()).toBe('hola mundo');
-    expect(batcher.flush()).toBe('hola mundo');
-    expect(batcher.pending()).toBe('');
-    expect(onFlush).toHaveBeenCalledWith('hola mundo');
-  });
-
-  it('no entrega nada si no llegó ningún delta', () => {
-    const onFlush = vi.fn();
-    const batcher = createTokenBatcher({ onFlush, schedule: (cb) => {
-      const id = setTimeout(cb, 16);
-      return () => clearTimeout(id);
-    } });
-
-    batcher.destroy();
-    vi.advanceTimersByTime(50);
-    expect(onFlush).not.toHaveBeenCalled();
-  });
-
-  it('`destroy` cancela la entrega programada', () => {
-    const onFlush = vi.fn();
-    const batcher = createTokenBatcher({ onFlush, schedule: (cb) => {
-      const id = setTimeout(cb, 16);
-      return () => clearTimeout(id);
-    } });
-
-    batcher.push('x');
-    batcher.destroy();
-    vi.advanceTimersByTime(50);
-    expect(onFlush).not.toHaveBeenCalled();
-  });
-});
 
 describe('relayHeaders', () => {
   it('elimina las cabeceras por-hop y las que delatan el upstream', () => {

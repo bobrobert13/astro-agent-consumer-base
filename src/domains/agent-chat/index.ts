@@ -9,6 +9,13 @@
  */
 export { default as ChatIsland } from './components/ChatIsland.vue';
 export { useAgentChat } from './composables/useAgentChat';
-export { useChatTranscript } from './composables/useChatTranscript';
-export type { AgentTransport, StreamChunk, StreamInput, StreamContext } from './transport/types';
-export type { ChatMessage, ContentPart, MessageStatus, RunConfig, StreamState, TokenUsage } from './types/chat.types';
+export { checkTransport } from './composables/services/chat/chat.api';
+export type {
+  ChatMessage,
+  ContentPart,
+  MessageStatus,
+  RunConfig,
+  StreamState,
+  TokenUsage,
+  TransportHealth,
+} from './types/chat.types';

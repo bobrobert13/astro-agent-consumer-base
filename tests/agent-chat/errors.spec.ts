@@ -5,8 +5,8 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { CHAT_ERROR_CODES, resolveChatErrorMessage } from '@domains/agent-chat/composables/services/chat/chat.e';
-import { translateChunk } from '@domains/agent-chat/transport/mastra';
+import { CHAT_ERROR_CODES, chatErrorCodeFrom, resolveChatErrorMessage } from '@domains/agent-chat/composables/services/chat/chat.e';
+import { resolveStreamErrorText } from '@domains/agent-chat/ai/adapt-ui-messages';
 
 describe('catálogo de errores', () => {
   it('cada código declarado tiene mensaje en español', () => {
@@ -42,37 +42,31 @@ describe('catálogo de errores', () => {
   });
 });
 
-describe('translateChunk', () => {
-  it('trae los tipos que el dominio entiende', () => {
-    expect(translateChunk({ type: 'text-delta', payload: { text: 'hola' } })).toEqual({ type: 'text-delta', text: 'hola' });
-    expect(translateChunk({ type: 'text-end' })).toEqual({ type: 'text-end' });
-    expect(translateChunk({ type: 'tool-call', payload: { toolName: 'buscar', args: { q: 1 } } })).toEqual({
-      type: 'tool-call',
-      toolName: 'buscar',
-      args: { q: 1 },
-    });
-    expect(translateChunk({ type: 'error', payload: { message: 'mal' } })).toEqual({ type: 'error', message: 'mal' });
+describe('chatErrorCodeFrom', () => {
+  it('reconoce un código del catálogo', () => {
+    expect(chatErrorCodeFrom('upstream_unreachable')).toBe(CHAT_ERROR_CODES.upstreamUnreachable);
+    expect(chatErrorCodeFrom(CHAT_ERROR_CODES.aborted)).toBe(CHAT_ERROR_CODES.aborted);
   });
 
-  it('ignora explícitamente los tipos del stream real que no mapean al dominio', () => {
-    for (const type of ['start', 'start-step', 'step-start', 'step-finish', 'data-om-status', 'message-metadata']) {
-      expect(translateChunk({ type })).toBeUndefined();
-    }
+  it('cualquier otro texto no es un código', () => {
+    expect(chatErrorCodeFrom('Processor workflow failed')).toBeUndefined();
+    expect(chatErrorCodeFrom('')).toBeUndefined();
+  });
+});
+
+describe('resolveStreamErrorText', () => {
+  it('traduce el código que el transporte simulado emite como texto', () => {
+    const error = new Error(CHAT_ERROR_CODES.upstreamUnreachable);
+    expect(resolveStreamErrorText(error)).toBe(
+      resolveChatErrorMessage({ statusCode: 502, code: CHAT_ERROR_CODES.upstreamUnreachable })
+    );
   });
 
-  it('lee la forma real del frame error de Mastra 1.29 (payload.error.message)', () => {
-    // Capturada contra el backend en marcha: el mensaje vive anidado, no en
-    // `payload.message`.
-    expect(
-      translateChunk({ type: 'error', payload: { error: { message: 'Processor workflow failed' } } })
-    ).toEqual({ type: 'error', message: 'Processor workflow failed' });
-  });
+  it('un interno del proveedor NUNCA llega a la pantalla', () => {
+    const text = resolveStreamErrorText(new Error('Processor workflow "guard" requires ANTHROPIC_API_KEY'));
 
-  it('un texto ausente no rompe el chunk: llega cadena vacía', () => {
-    expect(translateChunk({ type: 'text-delta' })).toEqual({ type: 'text-delta', text: '' });
-  });
-
-  it('una herramienta sin nombre recibe uno presentable', () => {
-    expect(translateChunk({ type: 'tool-call', payload: {} })).toMatchObject({ toolName: 'herramienta' });
+    expect(text).not.toContain('Processor');
+    expect(text).not.toContain('ANTHROPIC');
+    expect(text).toBe(resolveChatErrorMessage({ statusCode: 502, code: CHAT_ERROR_CODES.agentError }));
   });
 });

@@ -1,6 +1,6 @@
 import { httpGet } from '@shared/http/http-client';
 import { resultError, type Result } from '@shared/result/result.pattern';
-import type { TransportHealth } from '../../../transport/types';
+import type { TransportHealth } from '../../../types/chat.types';
 import { CHAT_ERROR_CODES } from './chat.e';
 import { chatEndpoints } from './chat.endpoints';
 
@@ -9,9 +9,9 @@ import { chatEndpoints } from './chat.endpoints';
  * @description Operaciones de apoyo del chat sobre el BFF. Devuelven `Result` y
  * nunca lanzan.
  *
- * El *streaming* no pasa por aquí: esa ruta la toma el transporte
- * (`transport/mastra.ts`), porque necesita el cuerpo en vivo del SSE y su
- * formato nativo. Aquí solo hay peticiones JSON normales.
+ * El *streaming* no pasa por aquí: lo lleva el transporte del AI SDK
+ * (`ai/chat.transport.ts`), que necesita el cuerpo en vivo del SSE y su formato
+ * nativo. Aquí solo hay peticiones JSON normales.
  */
 
 /** Estado del BFF. Un fallo aquí no tumba la vista: devuelve `reachable: false`. */

@@ -42,6 +42,18 @@ const MESSAGES: Record<string, string> = {
   [CHAT_ERROR_CODES.bffError]: 'El servidor de la aplicación falló al atender la petición.',
 };
 
+/**
+ * Código del catálogo a partir del texto de un error, si ese texto **es** un código.
+ *
+ * Existe porque el AI SDK entrega los fallos como `Error` con un mensaje de texto
+ * y sin código: el mock emite el código tal cual —así el catálogo se puede
+ * ejercitar sin backend— y el upstream real emite internos que no coinciden con
+ * nada y caen al mensaje genérico, sin llegar nunca a la pantalla.
+ */
+export function chatErrorCodeFrom(value: string): string | undefined {
+  return Object.values(CHAT_ERROR_CODES).find((code) => code === value);
+}
+
 /** Mensaje presentable para un error de servicio, con degradación razonable. */
 export function resolveChatErrorMessage(error: ServiceError): string {
   const byCode = error.code === undefined ? undefined : MESSAGES[error.code];

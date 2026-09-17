@@ -1,9 +1,9 @@
 /**
- * @file tests/dom/chat-message.spec.ts
- * @description Regresión del globo en vuelo.
+ * @file tests/dom/studio-message.spec.ts
+ * @description Regresión del globo en vuelo, ya en el estudio.
  *
- * `ChatTranscript` sintetiza el mensaje que se está generando con `id` y
- * `status` **constantes**, y `ChatMessage` lo memoriza con `v-memo`. Cuando las
+ * `StudioThread` sintetiza el mensaje que se está generando con `id` y `status`
+ * **constantes**, y `StudioMessage` lo memoriza con `v-memo`. Cuando las
  * dependencias del memo eran `[id, status]`, no cambiaban nunca dentro de una
  * respuesta: Vue reutilizaba el vnode y el texto visible se quedaba congelado en
  * el primer chunk hasta cerrar la respuesta. El resultado final siempre llegaba
@@ -16,9 +16,9 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
-import ChatMessage from '@domains/agent-chat/components/ChatMessage.vue';
-import { messageMemoDeps, messageTextLength } from '@domains/agent-chat/components/chat.memo';
 import type { ChatMessage as ChatMessageModel } from '@domains/agent-chat';
+import StudioMessage from '@domains/chat-studio/components/StudioMessage.vue';
+import { messageMemoDeps, messageTextLength } from '@domains/chat-studio/components/studio.memo';
 
 function streaming(text: string): ChatMessageModel {
   return { id: 'streaming', role: 'assistant', parts: [{ type: 'text', text }], createdAt: '', status: 'streaming' };
@@ -58,10 +58,10 @@ describe('dependencias de memo', () => {
   });
 });
 
-describe('ChatMessage', () => {
+describe('StudioMessage', () => {
   it('repinta el globo cuando llega más texto a mitad de stream', async () => {
-    const wrapper = mount(ChatMessage, { props: { message: streaming('Ho') } });
-    // `MarkdownBlock` entra por `defineAsyncComponent`: su import se resuelve en
+    const wrapper = mount(StudioMessage, { props: { message: streaming('Ho') } });
+    // `StudioMarkdown` entra por `defineAsyncComponent`: su import se resuelve en
     // un tick que `flushPromises` no siempre alcanza (el transform del `.vue` es
     // E/S del module runner). Se espera al texto de verdad; si nunca llegara, el
     // fallo es el mismo que se está probando.
@@ -75,7 +75,7 @@ describe('ChatMessage', () => {
   });
 
   it('marca la burbuja del usuario con el token de marca, no con blanco literal', async () => {
-    const wrapper = mount(ChatMessage, {
+    const wrapper = mount(StudioMessage, {
       props: {
         message: { id: 'u1', role: 'user', parts: [{ type: 'text', text: 'hola' }], createdAt: '', status: 'done' },
       },
@@ -86,8 +86,24 @@ describe('ChatMessage', () => {
     expect(wrapper.html()).not.toContain('text-white');
   });
 
+  it('lleva el `<article>` y `rounded-bubble` que mide el gate de Electron', async () => {
+    // El smoke localiza el transcript con `article .rounded-bubble`. Si alguien
+    // renombra la clase, la prueba de Chromium deja de medir lo que cree medir.
+    const wrapper = mount(StudioMessage, {
+      props: {
+        message: { id: 'u2', role: 'user', parts: [{ type: 'text', text: 'hola' }], createdAt: '', status: 'done' },
+      },
+    });
+
+    expect(wrapper.element.tagName).toBe('ARTICLE');
+    // El globo es un `<div>` y no un `<p>`: dentro van las tarjetas de herramienta,
+    // y un bloque dentro de un párrafo es HTML inválido. El selector del gate es
+    // `article .rounded-bubble`, que no depende de la etiqueta.
+    expect(wrapper.find('.rounded-bubble').exists()).toBe(true);
+  });
+
   it('muestra el mensaje de error del catálogo cuando el globo cierra con error', async () => {
-    const wrapper = mount(ChatMessage, {
+    const wrapper = mount(StudioMessage, {
       props: {
         message: {
           id: 'e1',

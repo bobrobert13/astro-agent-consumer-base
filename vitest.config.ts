@@ -29,6 +29,9 @@ export default defineConfig({
       // `env.schema`. Solo aquí: `astro.config.mjs` NO debe mapearlos.
       'astro:env/client': r('./tests/_stubs/env-client.ts'),
       'astro:env/server': r('./tests/_stubs/env-server.ts'),
+      // Por el mismo motivo: el estudio navega a `/` en "nuevo chat" y sin este
+      // doble ningún componente suyo se puede importar en un test.
+      'astro:transitions/client': r('./tests/_stubs/astro-transitions-client.ts'),
     },
   },
   test: {

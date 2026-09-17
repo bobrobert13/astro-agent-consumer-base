@@ -21,13 +21,15 @@ import { useAgentChat } from '@domains/agent-chat';
 import StudioComposer from './StudioComposer.vue';
 import StudioConnectBar from './StudioConnectBar.vue';
 import StudioHero from './StudioHero.vue';
+import StudioMemoryNotice from './StudioMemoryNotice.vue';
 import StudioPanelHeader from './StudioPanelHeader.vue';
+import StudioStatusBar from './StudioStatusBar.vue';
 import StudioSuggestions from './StudioSuggestions.vue';
 import StudioThread from './StudioThread.vue';
 import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_COPY } from '../data/studio.seed';
 
-const { messages, streamingText, text } = useAgentChat();
+const { memoryPressure, messages, send, state, stop, streamingText, text } = useAgentChat();
 const { notYet } = useStudioShell();
 
 const empty = computed(() => messages.value.length === 0 && streamingText.value === '');
@@ -39,6 +41,17 @@ const empty = computed(() => messages.value.length === 0 && streamingText.value 
 function onSuggestion(prompt: string): void {
   text.value = prompt;
   document.getElementById('aac-composer')?.focus();
+}
+
+/**
+ * Relanza el último prompt de la persona tras un `stalled`. Vive aquí y no en la
+ * franja de estado porque quien conoce el transcript es el panel; la franja solo
+ * avisa de que hay algo que reintentar.
+ */
+function onRetry(): void {
+  const last = [...messages.value].reverse().find((message) => message.role === 'user');
+  const prompt = last?.parts.find((part) => part.type === 'text')?.text;
+  if (typeof prompt === 'string') void send(prompt);
 }
 </script>
 
@@ -65,6 +78,15 @@ function onSuggestion(prompt: string): void {
 
       <template v-else>
         <StudioThread class="min-h-0 flex-1" />
+
+        <!--
+          Los dos avisos van entre el hilo y el composer: son estado de la
+          ejecución, no contenido de la conversación, y ahí quedan a la vista sin
+          robarle altura al transcript.
+        -->
+        <StudioMemoryNotice :pressure="memoryPressure" />
+        <StudioStatusBar :state="state" @stop="stop" @retry="onRetry" />
+
         <StudioComposer class="w-full shrink-0 px-8 pt-2 pb-4" />
       </template>
 

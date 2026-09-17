@@ -10,10 +10,16 @@
  * convierte en un error de build en lugar de una revisión de código.
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const SRC = new URL('../../src/', import.meta.url).pathname;
+/**
+ * `fileURLToPath` y no `new URL(...).pathname`: en Windows el `pathname` de una
+ * URL de fichero llega como `/C:/ruta`, y al pasarlo por `join` el resultado es
+ * `C:\C:\ruta` — un ENOENT que parecía un fallo del guardián y era del camino.
+ */
+const SRC = fileURLToPath(new URL('../../src/', import.meta.url));
 
 /**
  * Excepciones, y por qué cada una:
@@ -28,8 +34,10 @@ function sourceFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     const full = join(dir, entry);
     if (statSync(full).isDirectory()) {
-      const relative = full.slice(SRC.length);
-      if (EXCLUDED.some((excluded) => relative.startsWith(excluded))) continue;
+      // `relative` + separadores normalizados: `EXCLUDED` se escribe con `/`, y
+      // cortar por longitud de `SRC` dependía de si la URL traía barra final.
+      const relativePath = relative(SRC, full).replace(/\\/g, '/');
+      if (EXCLUDED.some((excluded) => relativePath.startsWith(excluded))) continue;
       sourceFiles(full, found);
     } else if (entry.endsWith('.astro') || entry.endsWith('.vue')) {
       found.push(full);
@@ -39,7 +47,7 @@ function sourceFiles(dir: string, found: string[] = []): string[] {
 }
 
 const files = sourceFiles(SRC).map((path) => ({ path, code: readFileSync(path, 'utf8') }));
-const theme = readFileSync(new URL('../../src/styles/theme.css', import.meta.url).pathname, 'utf8');
+const theme = readFileSync(fileURLToPath(new URL('../../src/styles/theme.css', import.meta.url)), 'utf8');
 
 describe('tokens de diseño', () => {
   it('encuentra archivos que revisar (el guardián no se apaga solo)', () => {
@@ -70,7 +78,7 @@ describe('tokens de diseño', () => {
   });
 
   it('la escala tipográfica se declara solo en theme.css', () => {
-    const global = readFileSync(new URL('../../src/styles/global.css', import.meta.url).pathname, 'utf8');
+    const global = readFileSync(fileURLToPath(new URL('../../src/styles/global.css', import.meta.url)), 'utf8');
     expect(global).not.toMatch(/--text-[a-z0-9-]+\s*:/);
   });
 

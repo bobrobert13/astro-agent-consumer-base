@@ -4,6 +4,7 @@
  * configuración (alias de Vitest, resolución de `pinia`, entorno Node) y no de
  * código de la app. Falla rápido y sin ambigüedad antes de culpar a una feature.
  */
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { aliases } from '../aliases.mjs';
@@ -11,8 +12,11 @@ import { pinia } from '@stores/pinia';
 
 describe('andamiaje', () => {
   it('resuelve los alias compartidos entre Astro y Vitest', () => {
-    expect(aliases['@shared'].endsWith('/src/shared')).toBe(true);
-    expect(aliases['@domains'].endsWith('/src/domains')).toBe(true);
+    // `join` y no un literal con `/`: el separador de `fileURLToPath` depende del
+    // sistema, y comparar contra `'/src/shared'` daba rojo en Windows con el
+    // alias correcto.
+    expect(aliases['@shared'].endsWith(join('src', 'shared'))).toBe(true);
+    expect(aliases['@domains'].endsWith(join('src', 'domains'))).toBe(true);
   });
 
   it('instancia Pinia como singleton de módulo importable', () => {

@@ -9,18 +9,24 @@
 import { resultError, resultOk, normalizeServiceError, type Result } from '@shared/result/result.pattern';
 import { reportError } from '@shared/observability/report-error';
 import { AGENT_CONNECT_TIMEOUT } from '@shared/env/server';
-import { upstreamHeaders, upstreamUrl } from './upstream';
+import { upstreamHeaders, upstreamUrl, type UpstreamMount } from './upstream';
+
+export interface UpstreamJsonInit extends RequestInit {
+  /** Prefijo del upstream. Por defecto `'api'` (el framework). */
+  mount?: UpstreamMount;
+}
 
 /**
- * @param relativePath Ruta bajo el `/api` del upstream, p. ej. `agents`.
+ * @param relativePath Ruta relativa bajo el montaje del upstream, p. ej. `agents`.
  */
-export async function upstreamJson<T>(relativePath: string, init: RequestInit = {}): Promise<Result<T>> {
-  const url = upstreamUrl(relativePath);
+export async function upstreamJson<T>(relativePath: string, init: UpstreamJsonInit = {}): Promise<Result<T>> {
+  const { mount = 'api', ...requestInit } = init;
+  const url = upstreamUrl(relativePath, mount);
   const neverAborts = new AbortController().signal;
 
   try {
     const response = await fetch(url, {
-      ...init,
+      ...requestInit,
       headers: upstreamHeaders(init.headers),
       signal: AbortSignal.any([init.signal ?? neverAborts, AbortSignal.timeout(AGENT_CONNECT_TIMEOUT)]),
     });

@@ -1,7 +1,7 @@
 import { AGENT_CONNECT_TIMEOUT, AGENT_IDLE_TIMEOUT } from '@shared/env/server';
 import { idleWatchdog, relayHeaders } from '@shared/streams/sse';
 import { reportError } from '@shared/observability/report-error';
-import { upstreamHeaders, upstreamRootUrl, upstreamUrl } from '@shared/server/upstream';
+import { upstreamHeaders, upstreamUrl, type UpstreamMount } from '@shared/server/upstream';
 import { BodyTooLargeError } from './gateway';
 import { bodyWithScope, readRelayBody, requestedThread, type RelayBody } from './relay-body';
 import { resolveScope } from './session-scope';
@@ -29,14 +29,12 @@ import { resolveScope } from './session-scope';
  *       → `AbortSignal.any([request.signal, upstreamAbort.signal])` en el fetch
  *         → el upstream cierra su ejecución
  */
+
 /**
- * Prefijo bajo el que cuelga la ruta en el upstream.
- *
- * `'api'` es el API del framework. `'root'` son las **rutas custom** de Mastra,
- * que son root-level por obligación (`validateCustomRoutePaths` rechaza cualquier
- * path que empiece por `/api` al arrancar): el stream de chat vive en `/chat/:agentId`.
+ * Re-exportado para que el barrel del slice no tenga que saber de dónde sale: es
+ * el mismo `mount` que usan los constructores de URL de `shared/server/upstream`.
  */
-export type UpstreamMount = 'api' | 'root';
+export type { UpstreamMount };
 
 export interface RelayOptions {
   /** Ruta relativa al upstream, conocida antes de leer el cuerpo. */
@@ -80,7 +78,7 @@ export async function relayStream(request: Request, options: RelayOptions): Prom
 
   const scope = resolveScope(request, requestedThread(payload));
 
-  const target = options.mount === 'root' ? upstreamRootUrl(relativePath) : upstreamUrl(relativePath);
+  const target = upstreamUrl(relativePath, options.mount);
   const upstreamAbort = new AbortController();
   const headers = upstreamHeaders(pickRequestHeaders(request));
 

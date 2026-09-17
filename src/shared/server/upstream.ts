@@ -27,27 +27,21 @@ export function upstreamHeaders(extra: HeadersInit = {}): Headers {
 }
 
 /**
- * URL absoluta del upstream para una ruta relativa (`agents/research`), colgada
- * del `/api` del framework. Todas las llamadas externas al API de Mastra salen
- * por aquí.
+ * Bajo qué prefijo del upstream cuelga una ruta.
+ *
+ * - `'api'` (default) es el API del framework: `/api/agents`, `/api/health`.
+ * - `'root'` son las **rutas custom** de Mastra, que son root-level por
+ *   obligación (`validateCustomRoutePaths` rechaza al arrancar cualquier path que
+ *   empiece por `/api`): `/chat/:agentId`, `/health/version`.
  */
-export function upstreamUrl(relativePath: string): URL {
-  return upstreamAbsolute(`api/${relativePath.replace(/^\/+/, '')}`);
-}
+export type UpstreamMount = 'api' | 'root';
 
 /**
- * URL absoluta del upstream para una ruta relativa de **raíz**, sin el `/api`.
- *
- * La necesitan las rutas custom de Mastra, que son root-level por obligación
- * (`validateCustomRoutePaths` rechaza cualquier path que empiece por `/api` al
- * arrancar el servidor): hoy, el stream de chat en `/chat/:agentId`.
+ * URL absoluta del upstream para una ruta relativa (`agents/research`), bajo el
+ * montaje indicado. Todas las llamadas externas al backend salen por aquí.
  */
-export function upstreamRootUrl(relativePath: string): URL {
-  return upstreamAbsolute(relativePath.replace(/^\/+/, ''));
-}
-
-/** Único punto que concatena `MASTRA_URL`; los dos constructores de arriba lo usan. */
-function upstreamAbsolute(relativePath: string): URL {
+export function upstreamUrl(relativePath: string, mount: UpstreamMount = 'api'): URL {
+  const clean = relativePath.replace(/^\/+/, '');
   const base = MASTRA_URL.replace(/\/+$/, '');
-  return new URL(`${base}/${relativePath}`);
+  return new URL(`${base}/${mount === 'root' ? '' : `${mount}/`}${clean}`);
 }

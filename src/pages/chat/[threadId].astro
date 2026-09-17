@@ -4,31 +4,27 @@
  * @description Ruta de conversación. La URL es el contrato: cambiar de hilo es
  * navegar, no emitir un evento ni mutar un store.
  *
- * `output: 'server'` hace que esta página se resuelva bajo demanda (no se
- * prerenderiza), que es lo que quiere decir "SPA por defecto con servidor
- * propio": el shell llega por el router de Astro y la isla hace de BFF.
+ * Monta **la misma isla** que `/` (`transition:persist="chat-studio"`), así que
+ * navegar entre las dos rutas no reinicia el estudio: la isla recibe las props
+ * nuevas y sigue, que es lo que permite saltar de hilo sin cortar una respuesta
+ * en curso. A diferencia de la raíz —que se prerenderiza— aquí sí hay servidor,
+ * y por eso el agente activo se resuelve en el servidor y viaja por props.
+ *
+ * `output: 'server'` hace que esta página se resuelva bajo demanda, que es lo que
+ * quiere decir "SPA por defecto con servidor propio".
  */
-import AppLayout from '@layouts/AppLayout.astro';
-import { Badge } from '@components/ui/badge';
-import IslandFallback from '@components/IslandFallback.astro';
-import { ChatIsland } from '@domains/agent-chat';
+import StudioLayout from '@layouts/StudioLayout.astro';
 import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
 
 const threadId = Astro.params.threadId ?? NEW_THREAD_ID;
-const isNew = threadId === NEW_THREAD_ID;
 // El agente activo viaja en la URL, no en un store: es lo que hace que un enlace
-// a una conversación sea compartible y de que "cambiar de agente" sea navegar.
+// a una conversación sea compartible y que "cambiar de agente" sea navegar.
 const agentId = Astro.url.searchParams.get('agente') ?? DEFAULT_AGENT_ID;
 ---
 
-<AppLayout title={isNew ? 'Hilo nuevo' : `Hilo ${threadId}`} active="chat" description="Conversación con el agente." subtitle={agentId}>
-  <template #actions>
-    <Badge variant="secondary">/chat/{threadId}</Badge>
-  </template>
-
-  <div class="h-full">
-    <ChatIsland client:only="vue" transition:persist thread-id={threadId} agent-id={agentId}>
-      <IslandFallback slot="fallback" lines={4} height="h-full" />
-    </ChatIsland>
-  </div>
-</AppLayout>
+<StudioLayout
+  title={threadId === NEW_THREAD_ID ? 'Hilo nuevo' : `Hilo ${threadId}`}
+  description="Conversación con el agente."
+  threadId={threadId}
+  agentId={agentId}
+/>

@@ -51,9 +51,9 @@ export interface StudioShell {
   setModel: (model: StudioModel) => void;
   openPreview: (resource: ResourceRow) => void;
   closePreview: () => void;
-  newChat: () => Promise<void>;
+  newChat: () => void;
   /** Aviso para las zonas que todavía son esqueleto. */
-  notYet: (label: string) => Promise<void>;
+  notYet: (label: string) => void;
 }
 
 const STUDIO_SHELL: InjectionKey<StudioShell> = Symbol('chat-studio/shell');
@@ -126,12 +126,15 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     preview.value = null;
   }
 
-  async function newChat(): Promise<void> {
+  function newChat(): void {
     closeNav();
     closePreview();
     contextOpen.value = false;
     options.onNewChat?.();
-    await navigate(routes.home());
+    // No se espera: la navegación la gestiona el ClientRouter y el estado del
+    // estudio ya está resuelto. `void` deja explícito que el descarte es a
+    // propósito, que es lo que un `async` sin `await` escondería.
+    void navigate(routes.home());
   }
 
   /**
@@ -140,7 +143,11 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
    * inicial de la isla ya carga el AI SDK. Es el mismo trato que hace la tarjeta
    * de configuración, y por eso el `Toaster` de `ChatStudio` también es asíncrono.
    */
-  async function notYet(label: string): Promise<void> {
+  function notYet(label: string): void {
+    void notify(label);
+  }
+
+  async function notify(label: string): Promise<void> {
     const { toast } = await import('vue-sonner');
     toast(label, { description: STUDIO_COPY.notImplemented });
   }

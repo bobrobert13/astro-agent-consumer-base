@@ -16,10 +16,24 @@
  * **Aria oculto a propósito**: la barra aparece y desaparece en cada navegación, y
  * un `role="progressbar"` que se anuncia cada vez es ruido para quien usa lector
  * de pantalla. El cambio de página ya se anuncia solo.
+ *
+ * **`inheritAttrs: false` no es cosmético.** La isla se monta con
+ * `transition:persist="nav-progress"` y Astro copia esa directiva a las props del
+ * componente (`data-astro-transition-persist`). Vue, que no la conoce, la deja
+ * caer al elemento raíz como atributo de paso, y entonces el `<div>` de dentro
+ * queda marcado con el **mismo identificador de persistencia que la isla**.
+ * `ClientRouter` empareja los nodos persistentes por ese valor, así que la copia
+ * de dentro le disputa el destino a la isla: el swap mueve el nodo equivocado, la
+ * segunda vuelta revienta (`moveBefore` sobre un padre ya retirado) y la
+ * navegación termina a medias —con una copia huérfana del estudio fuera del
+ * `body`. Verificado en Chromium: sin esto, "nuevo chat" duplica la pantalla.
  */
 import { onMounted, onScopeDispose, ref } from 'vue';
 
 import { Progress } from '@/components/ui/progress';
+
+// Corta la fuga del atributo de persistencia hacia el DOM (ver arriba).
+defineOptions({ inheritAttrs: false });
 
 /** Arranque, techo del avance "a ciegas" y cadencia de la animación. */
 const START = 10;

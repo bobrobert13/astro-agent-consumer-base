@@ -1,12 +1,14 @@
 <script setup lang="ts">
 /**
  * @file src/domains/chat-studio/components/StudioFabs.vue
- * @description Acciones flotantes de la esquina inferior derecha: traducir y ayuda.
+ * @description Acciones de la esquina inferior derecha: traducir y ayuda.
  *
- * Se colocan sobre la franja del pie, a la derecha del aviso centrado —que por eso
- * lleva relleno lateral de sobra—, y no flotan sobre el composer: el composer está
- * acoplado abajo en cuanto hay conversación, y taparlo con un botón sería cambiar
- * una fidelidad por un estorbo.
+ * **Van en la fila del pie, no flotando encima.** Antes eran `absolute` sobre la
+ * franja del aviso legal, y el texto pasaba por debajo de los botones en cuanto la
+ * ventana se estrechaba. Ahora ocupan su propia columna a la derecha del pie: el
+ * ancho es fijo (`w-24`, lo que miden los dos botones con su separación) y el lado
+ * opuesto lleva un hueco del mismo tamaño para que el aviso quede centrado. Así no
+ * hay posición absoluta que pueda montarse sobre nada.
  *
  * En móvil no se pintan: ahí la esquina la ocupa el composer y la ayuda no cabe sin
  * tapar algo.
@@ -35,7 +37,7 @@ const fab =
 </script>
 
 <template>
-  <div class="absolute right-8 bottom-5 z-30 hidden gap-4 nav:flex">
+  <div class="hidden w-24 shrink-0 items-center justify-end gap-4 nav:flex">
     <button type="button" :class="fab" aria-label="Traducir" title="Traducir" @click="notYet('Traducir')">
       <Languages class="size-4" aria-hidden="true" />
     </button>

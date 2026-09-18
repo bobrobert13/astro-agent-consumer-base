@@ -39,14 +39,15 @@ data/studio.seed.ts datos semilla y copy, en un solo módulo
 composables/
   useStudioShell.ts     estado del chrome (rail, cajón, panel, modelo) + provide
   useStudioShortcuts.ts atajos del estudio
+  useStudioSessions.ts  sesiones creadas ("nuevo chat"), mock de historial
 components/             .vue del slice
   ChatStudio.vue        raíz: composición, provide y atadura de la URL al chat
   StudioSidebar/Nav/History/UserCard      el rail
   StudioPanel/PanelHeader/ModelMenu/Hero  el panel y su cabecera
   StudioComposer/ComposerTools/ConnectBar/Suggestions   la caja de escritura
-  StudioThread/Message/Markdown/ToolCall/Notice/MemoryNotice/StatusBar  el hilo
+  StudioThread/Message/Markdown/ToolCall/Notice/RunStatus/MemoryNotice  el hilo
   StudioContextPanel/ResourceRow/SourceRow/PreviewDialog  el panel derecho
-  StudioFabs/HelpMenu   las acciones flotantes
+  StudioFabs/HelpMenu   las acciones del pie
   StudioImageSlot       hueco vacío para una imagen
   studio.memo.ts        dependencias de `v-memo` del globo
 ```
@@ -75,18 +76,33 @@ seguir: el slice se lee por partes, no por archivos grandes.
    app rota.
 5. **Cero imágenes de marca.** Cada imagen es un `StudioImageSlot`, con su nombre en
    `data-image-slot`; para poner la definitiva basta con pasarle `src`.
+6. **"Nuevo chat" abre una sesión con hilo propio.** No limpia y vuelve a la raíz:
+   crea un hilo en `useStudioSessions` (mock en memoria; el día que haya historial
+   real, ese archivo es el único que cambia) y navega a `/chat/<hilo>`, que es el
+   contrato de URL del estudio. La entrada aparece en el historial al momento y se
+   bautiza con el primer prompt.
+7. **Ningún nodo del DOM de una isla persistente lleva el atributo de persistencia.**
+   Astro copia `transition:persist="…"` a las props de la isla
+   (`data-astro-transition-persist`) y Vue lo reenviaría al elemento raíz como
+   atributo de paso. Con dos nodos marcados igual, `swapBodyElement` empareja los dos
+   contra el mismo destino, la segunda vuelta revienta (`moveBefore` con un padre ya
+   retirado) y la isla que faltaba por reconectar queda **huérfana fuera del `body`**
+   mientras su gemela se hidrata dentro: la pantalla se ve duplicada y el
+   `scrollHeight` se dobla. Por eso las islas persistentes llevan
+   `inheritAttrs: false` y `tests/dom/studio-islands.spec.ts` lo fija.
 
 ## Contrato con el gate de verificación
 
 Renombrar cualquiera de estos rompe una comprobación que **no** falla al
-compilar. Si se cambian, se actualiza el script en el mismo commit:
+compilar. Si se cambian, se actualiza el script en el mismo cambio:
 
 | Qué | Dónde | Quién lo usa |
 |---|---|---|
 | `id="aac-composer"` | `StudioComposer.vue` | `scripts/electron-smoke.mjs` (hidratación y prompt) |
 | `article` + `.rounded-bubble` | `StudioMessage.vue` | el smoke mide el texto del transcript |
 | `Conversación con el agente` | `aria-label` de `StudioPanel` | `scripts/verify-bundle.mjs` localiza el chunk de la isla |
-| `Estado de la ejecución` | `aria-label` de `StudioStatusBar` | los tests distinguen esta franja del aviso de memoria |
+| `Estado de la ejecución` | `aria-label` de `StudioRunStatus` | los tests distinguen el turno en curso del aviso de memoria |
+| `inheritAttrs: false` | `NavigationProgress.vue`, `ChatStudio.vue` | `tests/dom/studio-islands.spec.ts` (sin él se duplica la pantalla al navegar) |
 | umbral `0.8` + `role="status" aria-live="polite"` | `StudioMemoryNotice.vue` | regresión del aviso de memoria |
 | `v-memo` con la longitud del texto | `studio.memo.ts` | sin ella el globo en vuelo se congela |
 

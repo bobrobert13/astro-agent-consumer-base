@@ -28,9 +28,22 @@ import StudioContextPanel from './StudioContextPanel.vue';
 import StudioPanel from './StudioPanel.vue';
 import StudioPreviewDialog from './StudioPreviewDialog.vue';
 import StudioSidebar from './StudioSidebar.vue';
+import { useStudioSessions } from '../composables/useStudioSessions';
 import { useStudioShortcuts } from '../composables/useStudioShortcuts';
 import { provideStudioShell } from '../composables/useStudioShell';
+import { routes } from '@config/routes';
 import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
+
+/**
+ * Astro copia `transition:persist="chat-studio"` a las props de la isla
+ * (`data-astro-transition-persist`), y Vue, que no la conoce, la dejaría caer al
+ * primer elemento del DOM como atributo de paso. Con dos nodos marcados con el
+ * mismo identificador, el swap de `ClientRouter` empareja la isla contra un
+ * destino que ya no está y la navegación deja una copia huérfana fuera del
+ * `body`. Hoy no se ve porque la raíz es `TooltipProvider` (que no reenvía
+ * atributos), pero eso es suerte, no diseño: se corta aquí.
+ */
+defineOptions({ inheritAttrs: false });
 
 const props = withDefaults(
   defineProps<{
@@ -43,11 +56,21 @@ const props = withDefaults(
 );
 
 const { clearConversation, setAgent, setThread } = useAgentChat();
+const sessions = useStudioSessions();
 
 // El shell se provee aquí y se reparte a mano. Los atajos lo reciben por
 // parámetro a propósito: `inject` resuelve desde el padre, así que este mismo
 // componente no puede inyectar lo que acaba de proveer.
-const shell = provideStudioShell({ onNewChat: clearConversation });
+//
+// "Nuevo chat" no vuelve a la raíz: **abre una sesión con hilo propio**, que es lo
+// que hace que cada conversación tenga su URL y su entrada en el historial. El
+// hilo se crea aquí porque esta es la raíz que conoce al motor y a las sesiones.
+const shell = provideStudioShell({
+  onNewChat: () => {
+    clearConversation();
+    return routes.chat(sessions.create());
+  },
+});
 const { railOpen, drawerOpen, openNav } = shell;
 useStudioShortcuts(shell);
 

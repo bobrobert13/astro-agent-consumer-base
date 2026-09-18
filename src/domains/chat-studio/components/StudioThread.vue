@@ -11,6 +11,11 @@
  * El autoscroll solo se engancha si el usuario estaba al final: si subió a leer
  * algo anterior, el stream no le devuelve la vista abajo.
  *
+ * **El turno en curso vive aquí dentro** (`StudioRunStatus`): el hueco de la
+ * respuesta es contenido del transcript, no una banda de estado del panel. Así la
+ * ejecución no empuja el hilo ni ocupa el ancho completo, y el aviso aparece
+ * justo donde va a llegar la respuesta.
+ *
  * **`ScrollArea` y no `overflow-y-auto`**: reka-ui pone el `overflow` en su propio
  * viewport, no en el elemento raíz, así que el listener de scroll va sobre ese
  * nodo —el evento `scroll` no burbujea y no llegaría a la raíz— y `scrollTop` se
@@ -19,8 +24,19 @@
 import { nextTick, onMounted, onScopeDispose, computed, ref, watch } from 'vue';
 
 import { ScrollArea } from '@components/ui/scroll-area';
-import { useAgentChat, type ChatMessage as ChatMessageModel } from '@domains/agent-chat';
+import { useAgentChat, type ChatMessage as ChatMessageModel, type StreamState } from '@domains/agent-chat';
 import StudioMessage from './StudioMessage.vue';
+import StudioRunStatus from './StudioRunStatus.vue';
+
+interface Props {
+  /** Estado de la ejecución en curso; lo posee el panel. */
+  state: StreamState;
+  /** Primer envío del hilo: solo ahí se anuncia la conexión. */
+  firstRun: boolean;
+}
+
+const props = defineProps<Props>();
+defineEmits<{ retry: [] }>();
 
 const { messages, streamingText } = useAgentChat();
 
@@ -79,9 +95,27 @@ const streamingMessage = computed<ChatMessageModel>(() => ({
 
 <template>
   <ScrollArea ref="area" class="h-full min-h-0">
-    <div class="mx-auto flex w-full max-w-composer flex-col gap-5 px-8 py-8">
+    <!--
+      `min-w-0` en la columna: sin él, un bloque de código o una URL larga del
+      agente ensanchan el contenedor flex y el transcript desborda el panel en
+      lugar de recortar dentro de su globo.
+    -->
+    <div class="mx-auto flex w-full min-w-0 max-w-composer flex-col gap-5 px-4 py-6 nav:px-8 nav:py-8">
       <StudioMessage v-for="message in messages" :key="message.id" :message="message" />
+
+      <!--
+        El globo en vuelo existe en cuanto hay texto; mientras no lo haya, el hueco
+        lo ocupa el turno en curso (`pending`). Se pintan juntos solo en el caso
+        raro de una respuesta a medias que se quedó sin llegar al final: ahí el
+        aviso de `stalled` va **debajo** del texto, que es donde se busca.
+      -->
       <StudioMessage v-if="streamingText !== ''" :message="streamingMessage" />
+      <StudioRunStatus
+        :state="props.state"
+        :first-run="props.firstRun"
+        :pending="streamingText === ''"
+        @retry="$emit('retry')"
+      />
     </div>
   </ScrollArea>
 </template>

@@ -12,6 +12,11 @@
  * El umbral vive aquí y no en el composable, a propósito: medir la presión es
  * aritmética del adapter, decidir cuándo merece molestar es política de la vista.
  * Por debajo del umbral no se pinta **nada** — ni un hueco.
+ *
+ * **Es un chip, no una banda.** Antes cruzaba el panel de lado a lado entre el hilo
+ * y el composer y empujaba el transcript al aparecer. Ahora ocupa la columna del
+ * composer, con el mismo ancho que la caja de escritura, así que avisa sin mover
+ * nada de sitio.
  */
 import { computed } from 'vue';
 
@@ -31,7 +36,7 @@ const percent = computed(() => Math.round(props.pressure * 100));
     v-if="visible"
     role="status"
     aria-live="polite"
-    class="flex items-center gap-2 rounded-none border-x-0 border-b-0 bg-elevated px-8 py-1.5 text-caption text-ink-muted max-nav:px-4"
+    class="flex items-center gap-2 rounded-panel border border-warning/40 bg-warning/10 px-3 py-2 text-caption text-ink"
   >
     <span>La memoria de este hilo va llena ({{ percent }} %). Mastra resumirá el historial en breve.</span>
   </Alert>

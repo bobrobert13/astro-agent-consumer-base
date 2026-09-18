@@ -12,8 +12,16 @@
  * nunca hay dos campos con el id `aac-composer` en el documento, y el borrador no se pierde al
  * cambiar de sitio porque vive en el composable compartido.
  *
- * El pie se queda fijo abajo en vez de viajar con el scroll: ocupa una línea y
- * mantiene el aviso a la vista sin robar altura al transcript.
+ * **Un solo scroll por columna.** El panel es una columna flex con tres franjas
+ * que no se pisan: cabecera (`shrink-0`), zona central (`flex-1 min-h-0`, que es
+ * la única que scrollea) y pie (`shrink-0`). Los avisos de la ejecución viven
+ * dentro de esas franjas —el turno en curso en el hilo, la memoria sobre el
+ * composer— y no como bandas a todo lo ancho entre ellas: eran justo lo que
+ * empujaba el transcript y descolocaba las alturas.
+ *
+ * El pie lleva las acciones flotantes **en su fila**, no encima: con la posición
+ * absoluta anterior, el aviso legal pasaba por debajo de los botones en cuanto la
+ * ventana se estrechaba.
  */
 import { computed } from 'vue';
 
@@ -24,16 +32,26 @@ import StudioFabs from './StudioFabs.vue';
 import StudioHero from './StudioHero.vue';
 import StudioMemoryNotice from './StudioMemoryNotice.vue';
 import StudioPanelHeader from './StudioPanelHeader.vue';
-import StudioStatusBar from './StudioStatusBar.vue';
 import StudioSuggestions from './StudioSuggestions.vue';
 import StudioThread from './StudioThread.vue';
 import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_COPY } from '../data/studio.seed';
 
-const { memoryPressure, messages, send, state, stop, streamingText, text } = useAgentChat();
+const { memoryPressure, messages, send, state, streamingText, text } = useAgentChat();
 const { notYet } = useStudioShell();
 
 const empty = computed(() => messages.value.length === 0 && streamingText.value === '');
+
+/**
+ * ¿Es la primera ejecución del hilo? La etiqueta "Conectando con el agente…" solo
+ * tiene sentido mientras la conexión no se ha establecido **nunca**; a partir de la
+ * primera respuesta el SDK sigue pasando por `submitted` en cada envío, y repetir
+ * el aviso es ruido. Se mide sobre el transcript y no sobre el estado del SDK por
+ * eso mismo. El globo sintético de error no cuenta: no llegó a haber respuesta.
+ */
+const firstRun = computed(
+  () => !messages.value.some((message) => message.role === 'assistant' && message.parts.length > 0)
+);
 
 /**
  * La tarjeta escribe el prompt y devuelve el foco al composer: el gesto natural
@@ -45,8 +63,8 @@ function onSuggestion(prompt: string): void {
 }
 
 /**
- * Relanza el último prompt de la persona tras un `stalled`. Vive aquí y no en la
- * franja de estado porque quien conoce el transcript es el panel; la franja solo
+ * Relanza el último prompt de la persona tras un `stalled`. Vive aquí y no en el
+ * turno en curso porque quien conoce el transcript es el panel; el turno solo
  * avisa de que hay algo que reintentar.
  */
 function onRetry(): void {
@@ -63,51 +81,60 @@ function onRetry(): void {
   >
     <StudioPanelHeader />
 
-    <div class="flex min-h-0 flex-1 flex-col">
-      <div v-if="empty" class="min-h-0 flex-1 overflow-y-auto">
-        <div class="flex flex-col items-center px-8 pt-21 pb-6 max-nav:pt-10">
-          <StudioHero />
+    <!-- Estado vacío: el composer vive dentro del hero (ver cabecera). -->
+    <div v-if="empty" class="min-h-0 flex-1 overflow-y-auto">
+      <div
+        class="mx-auto flex w-full min-w-0 max-w-composer flex-col items-center px-4 pt-10 pb-8 nav:px-8 nav:pt-16"
+      >
+        <StudioHero />
 
-          <div class="mt-9 w-full max-w-composer">
-            <StudioComposer />
-            <StudioConnectBar />
-          </div>
-
-          <StudioSuggestions class="mt-5" @pick="onSuggestion" />
+        <div class="mt-9 w-full">
+          <StudioComposer />
+          <StudioConnectBar />
         </div>
+
+        <StudioSuggestions class="mt-5" @pick="onSuggestion" />
       </div>
-
-      <template v-else>
-        <StudioThread class="min-h-0 flex-1" />
-
-        <!--
-          Los dos avisos van entre el hilo y el composer: son estado de la
-          ejecución, no contenido de la conversación, y ahí quedan a la vista sin
-          robarle altura al transcript.
-        -->
-        <StudioMemoryNotice :pressure="memoryPressure" />
-        <StudioStatusBar :state="state" @stop="stop" @retry="onRetry" />
-
-        <StudioComposer class="w-full shrink-0 px-8 pt-2 pb-4" />
-      </template>
-
-      <!--
-        El relleno lateral es ancho a propósito: deja libre la esquina donde
-        flotan las acciones (`StudioFabs`), que se apoyan sobre esta franja en
-        vez de sobre el composer.
-      -->
-      <footer class="shrink-0 px-20 pt-6 pb-5 text-center text-caption text-ink-muted max-nav:px-4">
-        {{ STUDIO_COPY.disclaimer }}
-        <button
-          type="button"
-          class="font-medium underline-offset-2 hover:underline"
-          @click="notYet(STUDIO_COPY.disclaimerLink)"
-        >
-          {{ STUDIO_COPY.disclaimerLink }}
-        </button>
-      </footer>
     </div>
 
-    <StudioFabs />
+    <!--
+      Conversación: el hilo es lo único que scrollea (`min-h-0 flex-1`); el turno
+      en curso va dentro de él y el composer se acopla abajo con la memoria
+      encima, en su misma columna centrada.
+    -->
+    <template v-else>
+      <StudioThread class="min-h-0 flex-1" :state="state" :first-run="firstRun" @retry="onRetry" />
+
+      <div class="shrink-0 px-4 pt-2 pb-1 nav:px-8">
+        <div class="mx-auto w-full min-w-0 max-w-composer">
+          <StudioMemoryNotice :pressure="memoryPressure" class="mb-2" />
+          <StudioComposer />
+        </div>
+      </div>
+    </template>
+
+    <!--
+      Pie: aviso legal centrado y acciones a la derecha, **en la misma fila**. El
+      hueco de la izquierda iguala la anchura de las acciones para que el texto
+      quede centrado de verdad.
+    -->
+    <footer class="shrink-0 px-4 pt-4 pb-4 nav:px-8">
+      <div class="mx-auto flex w-full min-w-0 max-w-composer items-center gap-4">
+        <span class="hidden w-24 shrink-0 nav:block" aria-hidden="true" />
+
+        <p class="min-w-0 flex-1 text-center text-caption text-ink-muted">
+          {{ STUDIO_COPY.disclaimer }}
+          <button
+            type="button"
+            class="font-medium underline-offset-2 hover:underline"
+            @click="notYet(STUDIO_COPY.disclaimerLink)"
+          >
+            {{ STUDIO_COPY.disclaimerLink }}
+          </button>
+        </p>
+
+        <StudioFabs />
+      </div>
+    </footer>
   </main>
 </template>

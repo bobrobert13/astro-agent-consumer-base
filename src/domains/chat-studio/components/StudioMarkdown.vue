@@ -65,13 +65,18 @@ const blocks = computed<Block[]>(() => {
 </script>
 
 <template>
-  <div class="prose prose-sm max-w-none dark:prose-invert">
+  <!--
+    `min-w-0` + `wrap-anywhere` en el párrafo: el texto del agente puede traer una
+    URL de 300 caracteres sin un solo espacio, y sin esto el globo se ensancha
+    hasta desbordar el panel en vez de partir la palabra.
+  -->
+  <div class="prose prose-sm max-w-none min-w-0 dark:prose-invert">
     <template v-for="(block, index) in blocks" :key="index">
       <pre
         v-if="block.kind === 'code'"
-        class="overflow-x-auto rounded-panel border border-line bg-surface p-3 text-code not-prose"
+        class="max-w-full overflow-x-auto rounded-panel border border-line bg-surface p-3 text-code not-prose"
       ><code>{{ block.text }}</code></pre>
-      <p v-else class="whitespace-pre-wrap text-body-sm">{{ block.text }}</p>
+      <p v-else class="wrap-anywhere whitespace-pre-wrap text-body-sm">{{ block.text }}</p>
     </template>
   </div>
 </template>

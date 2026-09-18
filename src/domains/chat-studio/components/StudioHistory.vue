@@ -8,11 +8,13 @@
  * —al pulsar se navega de verdad y la isla sobrevive gracias a
  * `transition:persist`, que es justo lo que hay que poder comprobar.
  *
- * El desvanecido por antigüedad de la plantilla se conserva: la opacidad marca
- * jerarquía visual en una lista que crece hacia arriba.
+ * La lista sale de `useStudioSessions`: la semilla **más las sesiones creadas** en
+ * esta visita, que es lo que hace que "nuevo chat" aparezca aquí en cuanto se
+ * pulsa. El desvanecido por antigüedad de la plantilla se conserva: la opacidad
+ * marca jerarquía visual en una lista que crece hacia arriba.
  */
 import { routes } from '@config/routes';
-import { STUDIO_HISTORY } from '../data/studio.seed';
+import { useStudioSessions } from '../composables/useStudioSessions';
 
 interface Props {
   /** Hilo abierto ahora mismo; se marca con `aria-current`. */
@@ -20,11 +22,13 @@ interface Props {
 }
 
 const props = defineProps<Props>();
+
+const { groups } = useStudioSessions();
 </script>
 
 <template>
   <div class="mt-1 flex flex-col">
-    <template v-for="group in STUDIO_HISTORY" :key="group.label">
+    <template v-for="group in groups" :key="group.label">
       <p
         class="mt-4 mb-1.5 text-caption font-semibold tracking-widest text-ink-muted uppercase"
         :class="group.faded === true ? 'opacity-60' : ''"

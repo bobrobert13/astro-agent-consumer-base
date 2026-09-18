@@ -31,7 +31,8 @@ import { useAgentChat } from '@domains/agent-chat';
 import StudioPanel from '@domains/chat-studio/components/StudioPanel.vue';
 import { provideStudioShell } from '@domains/chat-studio/composables/useStudioShell';
 
-const BAND = '[aria-label="Estado de la ejecución"]';
+const STOP = '[aria-label="Detener la respuesta"]';
+const SEND = '[aria-label="Enviar mensaje"]';
 const TRANSCRIPT = '[aria-label="Conversación con el agente"]';
 
 type Wrapper = ReturnType<typeof mount>;
@@ -54,19 +55,20 @@ function mountPanel(threadId: string): Wrapper {
 /**
  * Envía un prompt y espera al ciclo completo: primero a que la ejecución arranque
  * (si no, se daría por terminada antes de empezar) y después a que vuelva a
- * `idle`, que es cuando la franja de estado desaparece.
+ * `idle`.
  *
- * Se selecciona la franja **por su etiqueta**, no por `[role="status"]`: el aviso
- * de memoria también es una región de estado y, a diferencia de esta, persiste
- * mientras la memoria siga llena — esperar su desaparición era esperar en vano.
+ * La sincronización va con el botón del composer —`Detener` mientras corre,
+ * `Enviar` al terminar— y **no** con un aviso de estado: el turno en curso solo se
+ * pinta mientras no ha llegado texto, así que su presencia puede durar un
+ * parpadeo y esperarlo sería una carrera.
  */
 async function submitAndSettle(wrapper: Wrapper, prompt: string): Promise<void> {
   const textarea = wrapper.get('textarea');
   await textarea.setValue(prompt);
   await textarea.trigger('keydown', { key: 'Enter' });
 
-  await vi.waitFor(() => expect(wrapper.find(BAND).exists()).toBe(true), { timeout: 5_000, interval: 20 });
-  await vi.waitFor(() => expect(wrapper.find(BAND).exists()).toBe(false), { timeout: 20_000, interval: 50 });
+  await vi.waitFor(() => expect(wrapper.find(STOP).exists()).toBe(true), { timeout: 5_000, interval: 20 });
+  await vi.waitFor(() => expect(wrapper.find(SEND).exists()).toBe(true), { timeout: 20_000, interval: 50 });
   await flushPromises();
 }
 
@@ -167,12 +169,12 @@ describe('StudioPanel', () => {
     await textarea.trigger('keydown', { key: 'Enter' });
 
     // Con el stream vivo, el botón de enviar se convierte en el de detener.
-    await vi.waitFor(() => expect(wrapper.find('[aria-label="Detener la respuesta"]').exists()).toBe(true), {
+    await vi.waitFor(() => expect(wrapper.find(STOP).exists()).toBe(true), {
       timeout: 5_000,
       interval: 20,
     });
 
-    await vi.waitFor(() => expect(wrapper.find('[aria-label="Enviar mensaje"]').exists()).toBe(true), {
+    await vi.waitFor(() => expect(wrapper.find(SEND).exists()).toBe(true), {
       timeout: 20_000,
       interval: 50,
     });

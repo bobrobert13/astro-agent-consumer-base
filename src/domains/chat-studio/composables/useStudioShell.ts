@@ -24,10 +24,11 @@ import type { PanelTab, ResourceRow, SourceScope, StudioModel } from '../types/s
 
 export interface StudioShellOptions {
   /**
-   * Limpia la conversación en curso. Lo aporta la raíz del estudio cuando el chat
-   * está montado; sin él, "nuevo chat" solo navega.
+   * "Nuevo chat": limpia la conversación en curso y devuelve el **hilo nuevo** al
+   * que hay que navegar. Vive en la raíz del estudio porque es ella quien conoce
+   * al motor del chat y a las sesiones; el shell solo sabe de chrome.
    */
-  onNewChat?: (() => void) | undefined;
+  onNewChat?: (() => string) | undefined;
 }
 
 export interface StudioShell {
@@ -126,15 +127,19 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     preview.value = null;
   }
 
+  /**
+   * "Nuevo chat" **crea una sesión** (ver `useStudioSessions`) y navega a su hilo;
+   * la raíz del estudio es quien la crea y devuelve la ruta. Sin ese callback se
+   * cae a la raíz, que es el estado vacío de siempre.
+   */
   function newChat(): void {
     closeNav();
     closePreview();
     contextOpen.value = false;
-    options.onNewChat?.();
     // No se espera: la navegación la gestiona el ClientRouter y el estado del
     // estudio ya está resuelto. `void` deja explícito que el descarte es a
     // propósito, que es lo que un `async` sin `await` escondería.
-    void navigate(routes.home());
+    void navigate(options.onNewChat?.() ?? routes.home());
   }
 
   /**

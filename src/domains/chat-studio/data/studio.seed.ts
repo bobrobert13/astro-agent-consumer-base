@@ -230,6 +230,12 @@ export const STUDIO_COPY = {
   heroPill: 'tu plan para conectar más fuentes',
   composerPlaceholder: 'Escribe tu consulta…',
   composerLabel: 'Mensaje para el asistente',
+  /** Solo en el primer envío del hilo: después la conexión ya está hecha. */
+  connecting: 'Conectando con el agente…',
+  /** Texto para lectores de pantalla mientras el turno está en curso. */
+  generating: 'Generando respuesta…',
+  stalled: 'Sin respuesta del agente.',
+  retry: 'Reintentar',
   connectBar: 'Conecta tus fuentes externas para consultarlas desde el chat',
   disclaimer: 'El asistente puede cometer errores. Verifica la información antes de usarla.',
   disclaimerLink: 'Preferencias de cookies',

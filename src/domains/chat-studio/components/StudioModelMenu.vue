@@ -34,7 +34,7 @@ function onPick(value: unknown): void {
     <DropdownMenuTrigger as-child>
       <button
         type="button"
-        class="-ml-2.5 flex shrink-0 items-center gap-1.5 rounded-control px-2.5 py-1.5 text-title-sm text-ink transition-colors hover:bg-line/60"
+        class="-ml-2.5 flex min-w-0 items-center gap-1.5 rounded-control px-2.5 py-1.5 text-title-sm text-ink transition-colors hover:bg-line/60"
       >
         <span class="truncate">{{ model.label }}</span>
         <ChevronsUpDown class="size-4 shrink-0 text-ink-muted" aria-hidden="true" />

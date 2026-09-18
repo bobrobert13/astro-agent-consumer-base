@@ -40,7 +40,11 @@ const preview = computed(() => {
       <span class="ml-auto text-ink-muted">{{ open ? 'ocultar' : 'ver argumentos' }}</span>
     </CollapsibleTrigger>
     <CollapsibleContent>
-      <pre class="max-h-60 overflow-auto border-t border-line px-3 py-2 text-code">{{ preview }}</pre>
+      <!--
+        `max-w-full` + scroll propio: los argumentos de una herramienta pueden ser
+        un JSON enorme en una sola línea, y el bloque no debe ensanchar el globo.
+      -->
+      <pre class="max-h-60 max-w-full overflow-auto border-t border-line px-3 py-2 text-code">{{ preview }}</pre>
     </CollapsibleContent>
   </Collapsible>
 </template>

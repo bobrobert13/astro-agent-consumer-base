@@ -17,13 +17,19 @@
  * `StudioMarkdown` y `StudioToolCall` entran por `defineAsyncComponent`: son
  * piezas que no aparecen en la mayoría de los globos y no tienen por qué estar en
  * el chunk inicial.
+ *
+ * **Contención del globo.** El texto del agente es entrada no confiable también en
+ * su forma: una URL sin espacios o una tabla de mil columnas pueden desbordar el
+ * panel. El globo lleva `wrap-anywhere` (parte cualquier palabra, no solo las que
+ * caben) y `min-w-0` en la columna, así que lo que no cabe se recorta dentro del
+ * globo —o scrollea dentro de su bloque de código— y nunca ensancha el transcript.
  */
 import { computed, defineAsyncComponent } from 'vue';
 
 import type { ChatMessage as ChatMessageModel } from '@domains/agent-chat';
 import StudioImageSlot from './StudioImageSlot.vue';
 import StudioNotice from './StudioNotice.vue';
-import { messageMemoDeps, messageTextLength } from './studio.memo';
+import { messageMemoDeps } from './studio.memo';
 import { STUDIO_IMAGE_SLOTS } from '../data/studio.seed';
 
 const props = defineProps<{ message: ChatMessageModel }>();
@@ -32,11 +38,6 @@ const memoDeps = computed(() => messageMemoDeps(props.message));
 
 const isUser = computed(() => props.message.role === 'user');
 
-/** Puntos suspensivos mientras el globo está abierto y aún no ha llegado texto. */
-const isTyping = computed(
-  () => props.message.status === 'streaming' && messageTextLength(props.message) === 0
-);
-
 const StudioMarkdown = defineAsyncComponent(() => import('./StudioMarkdown.vue'));
 const StudioToolCall = defineAsyncComponent(() => import('./StudioToolCall.vue'));
 </script>
@@ -44,7 +45,7 @@ const StudioToolCall = defineAsyncComponent(() => import('./StudioToolCall.vue')
 <template>
   <article
     v-memo="memoDeps"
-    class="flex gap-3"
+    class="flex max-w-full min-w-0 gap-3"
     :class="isUser ? 'flex-row-reverse self-end' : 'self-start'"
   >
     <StudioImageSlot
@@ -55,19 +56,13 @@ const StudioToolCall = defineAsyncComponent(() => import('./StudioToolCall.vue')
 
     <div class="flex min-w-0 flex-col gap-1" :class="isUser ? 'items-end' : 'items-start'">
       <div
-        class="max-w-measure rounded-bubble px-3.5 py-2.5 text-body break-words"
+        class="max-w-measure min-w-0 wrap-anywhere rounded-bubble px-3.5 py-2.5 text-body"
         :class="isUser ? 'rounded-br-sm bg-brand-500 text-on-brand' : 'rounded-tl-sm bg-elevated text-ink'"
       >
-        <span v-if="isTyping" class="inline-flex gap-1 py-1" aria-hidden="true">
-          <i v-for="dot in 3" :key="dot" class="size-1.5 animate-blink rounded-full bg-ink-muted" />
-        </span>
-
-        <template v-else>
-          <template v-for="(part, index) in props.message.parts" :key="index">
-            <StudioToolCall v-if="part.type === 'tool-call'" :tool-name="part.toolName" :args="part.args" />
-            <StudioNotice v-else-if="part.type === 'notice'" :text="part.text" :detail="part.detail" />
-            <StudioMarkdown v-else :text="part.text" />
-          </template>
+        <template v-for="(part, index) in props.message.parts" :key="index">
+          <StudioToolCall v-if="part.type === 'tool-call'" :tool-name="part.toolName" :args="part.args" />
+          <StudioNotice v-else-if="part.type === 'notice'" :text="part.text" :detail="part.detail" />
+          <StudioMarkdown v-else :text="part.text" />
         </template>
 
         <p

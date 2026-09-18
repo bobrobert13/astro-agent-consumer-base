@@ -13,7 +13,7 @@ servicios reales.
 
 | Importar | Qué da |
 |---|---|
-| `@domains/connectors` | `ConnectorsDrawer` (el panel) y el tipo `ConnectorTab` |
+| `@domains/connectors` | `ConnectorsPanel` (el contenido del panel) y el tipo `ConnectorTab` |
 
 El vocabulario de la sección lo consume además el estudio **como tipo**, porque su
 shell recuerda en qué sección está el panel: renombrar un valor de `ConnectorTab`
@@ -22,13 +22,13 @@ es cambiar el tipo, la semilla y `useStudioShell` a la vez.
 ## Mapa del directorio
 
 ```
-index.ts                    barrel: ConnectorsDrawer + tipo
+index.ts                    barrel: ConnectorsPanel + tipo
 types/connector.types.ts    contrato estable + guarda de sección
 data/connectors.seed.ts     semilla, plantillas de alta y copy, en un solo módulo
 composables/
   useConnectors.ts          estado del panel (sección, filtros, detalle, borradores)
 views/
-  ConnectorsDrawer.vue      raíz: la columna del estudio y sus tres secciones
+  ConnectorsPanel.vue       raíz: el espacio de conectores (contenido, sin cajón)
   sources/                  fuentes externas (el grueso del slice)
     SourcesView.vue         catálogo o detalle, nunca los dos
     SourceCard.vue          una fuente en la lista
@@ -47,20 +47,25 @@ components/
 
 ## Reglas del slice
 
-1. **Es una columna del estudio, no otra pantalla.** `ConnectorsDrawer` se monta en
-   la fila de `ChatStudio`, hermana del panel de contexto. No navega, no cambia la
-   URL y no bloquea nada —sin overlay ni foco atrapado—, así que el composer sigue
-   escribible mientras está abierto. Quien lo abre es el estudio, con
-   `useStudioShell`; el panel recibe `open` y `tab` y emite `close` y `update:tab`,
-   por lo que este slice **no importa nada de `chat-studio`** y no hay ciclo.
+1. **Es contenido, no cajón.** `ConnectorsPanel` es el **espacio de conectores**
+   dentro del panel lateral del estudio: el ancho, el cierre con margen negativo, la
+   densidad compacta y el `inert` los pone `StudioSidePanel` (slice del estudio), que
+   es quien decide qué espacio se ve. Se vería igual montado en cualquier contenedor
+   del mismo tamaño, y ese es el punto: **la geometría del cajón vive en un solo
+   sitio** y los dos espacios no pueden divergir. No navega, no cambia la URL y no
+   bloquea nada —sin overlay ni foco atrapado—, así que el composer sigue escribible
+   mientras está abierto.
 
-2. **Dos paneles a la derecha, como mucho.** El estado del panel de conectores es
-   independiente del de contexto: son cosas distintas (uno es de la conversación,
-   el otro un espacio de trabajo) y cerrar uno no cierra el otro. La fila los
-   coloca —contexto pegado al chat, conectores en el borde exterior— y el CSS
-   decide hasta cuándo el segundo empuja en vez de superponerse:
+2. **Un espacio a la vez, y "como mucho dos" cuenta otra cosa.** El panel lateral
+   enseña conectores **o** configuración: abrir uno con el otro abierto lo sustituye.
+   El tope de dos es entre ese panel y el de contexto, que son cosas distintas (uno
+   es la conversación hecha panel, el otro una herramienta) y tienen estado propio.
+   La consecuencia asumida: el estado interno del espacio que se va —filtros,
+   búsqueda, detalle— se pierde al cambiar, porque el panel se monta solo cuando está
+   abierto. La sección, en cambio, la recuerda el estudio, así que reabrir desde el
+   rail entra por donde toca.
 
-   | Ventana | Panel de conectores |
+   | Ventana | El panel lateral |
    |---|---|
    | ≥ 1200 px (`drawer:`) | columna de 21.25rem; los dos conviven |
    | 1100–1200 px | capa fija por la derecha, encima del panel de contexto |

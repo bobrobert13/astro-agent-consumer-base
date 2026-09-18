@@ -12,5 +12,5 @@
  * leer el `update:modelValue` del `Tabs`, y una guarda pública que nadie llama es
  * una invitación a validar dos veces lo mismo.
  */
-export { default as ConnectorsDrawer } from './views/ConnectorsDrawer.vue';
+export { default as ConnectorsPanel } from './views/ConnectorsPanel.vue';
 export type { ConnectorTab } from './types/connector.types';

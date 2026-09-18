@@ -215,6 +215,9 @@ export const STUDIO_USER = {
 /** Textos del estudio que no son datos de ninguna lista. */
 export const STUDIO_COPY = {
   newChat: 'Nuevo chat',
+  /** Nombres de los espacios del panel lateral, para su región y su cabecera. */
+  connectors: 'Conectores',
+  settings: 'Configuración',
   heroSlogan: 'Pregunta. Contrasta. Decide.',
   heroTitle: '¿Con qué quieres empezar?',
   composerPlaceholder: 'Escribe tu consulta…',

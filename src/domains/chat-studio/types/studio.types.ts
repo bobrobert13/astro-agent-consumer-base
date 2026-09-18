@@ -13,6 +13,14 @@ import type { Component } from 'vue';
 /** Pestañas del panel de contexto. */
 export type PanelTab = 'recursos' | 'fuentes';
 
+/**
+ * Espacios de trabajo que puede mostrar el panel lateral. **Uno a la vez**: el panel
+ * es la columna, y cambiar de espacio cambia su contenido en lugar de apilar otro.
+ * El de contexto no cuenta aquí —es de la conversación y vive en su propio sitio—,
+ * así que el tope de dos paneles sigue siendo contexto + uno de estos.
+ */
+export type PanelScope = 'conectores' | 'configuracion';
+
 /** Ámbito de las fuentes: la ejecución en curso o la sesión entera. */
 export type SourceScope = 'interaction' | 'session';
 

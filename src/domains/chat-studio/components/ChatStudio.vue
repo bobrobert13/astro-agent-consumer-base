@@ -24,10 +24,10 @@ import { PanelLeft } from '@lucide/vue';
 
 import { TooltipProvider } from '@components/ui/tooltip';
 import { useAgentChat } from '@domains/agent-chat';
-import { ConnectorsDrawer } from '@domains/connectors';
 import StudioContextPanel from './StudioContextPanel.vue';
 import StudioPanel from './StudioPanel.vue';
 import StudioPreviewDialog from './StudioPreviewDialog.vue';
+import StudioSidePanel from './StudioSidePanel.vue';
 import StudioSidebar from './StudioSidebar.vue';
 import { useStudioSessions } from '../composables/useStudioSessions';
 import { useStudioShortcuts } from '../composables/useStudioShortcuts';
@@ -72,7 +72,7 @@ const shell = provideStudioShell({
     return routes.chat(sessions.create());
   },
 });
-const { railOpen, drawerOpen, openNav, connectorsOpen, connectorsTab, closeConnectors, setConnectorsTab } = shell;
+const { railOpen, drawerOpen, openNav, panel, connectorsTab, closePanel, setConnectorsTab } = shell;
 useStudioShortcuts(shell);
 
 const Toaster = defineAsyncComponent(() => import('@/components/ui/sonner/Sonner.vue'));
@@ -108,15 +108,19 @@ watch(
         Botón de reapertura del rail. Se enseña cuando el rail está contraído (en
         escritorio) o siempre en móvil, donde el cajón arranca cerrado; y se
         esconde si el cajón está abierto, porque entonces ya hay navegación en
-        pantalla. Con el panel de conectores abierto también se esconde **mientras
-        el panel es una capa** —por debajo del corte del drawer—, porque comparten
+        pantalla. Con el panel lateral abierto también se esconde **mientras el
+        panel es una capa** —por debajo del corte del drawer—, porque comparten
         esquina y quedaría encima suyo; a partir de ahí el panel es una columna y
         no se pisan.
       -->
       <button
         type="button"
         class="fixed top-9 left-9 z-50 grid size-11 place-items-center rounded-control border border-line bg-surface text-ink-muted shadow-sm transition-colors hover:bg-elevated"
-        :class="[railOpen ? 'nav:hidden' : '', drawerOpen ? 'max-nav:hidden' : '', connectorsOpen ? 'max-drawer:hidden' : '']"
+        :class="[
+          railOpen ? 'nav:hidden' : '',
+          drawerOpen ? 'max-nav:hidden' : '',
+          panel !== null ? 'max-drawer:hidden' : '',
+        ]"
         :aria-label="railOpen ? 'Expandir navegación' : 'Abrir navegación'"
         @click="openNav()"
       >
@@ -130,16 +134,17 @@ watch(
       <StudioContextPanel />
 
       <!--
-        El panel de conectores va **después** del de contexto, así que vive en el
-        borde exterior de la fila: la conversación se queda pegada a su propio
-        panel y el espacio de trabajo, fuera. Por debajo del corte del drawer el CSS
-        lo convierte en capa y se superpone en vez de comerse el chat.
+        El panel lateral va **después** del de contexto, así que vive en el borde
+        exterior de la fila: la conversación se queda pegada a su propio panel y el
+        espacio de trabajo, fuera. Por debajo del corte del drawer el CSS lo
+        convierte en capa y se superpone en vez de comerse el chat. Qué se ve dentro
+        —conectores o configuración— lo dice `shell.panel`.
       -->
-      <ConnectorsDrawer
-        :open="connectorsOpen"
-        :tab="connectorsTab"
-        @close="closeConnectors()"
-        @update:tab="setConnectorsTab"
+      <StudioSidePanel
+        :panel="panel"
+        :connectors-tab="connectorsTab"
+        @close="closePanel()"
+        @update:connectors-tab="setConnectorsTab"
       />
 
       <!--

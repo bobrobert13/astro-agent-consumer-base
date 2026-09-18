@@ -1,13 +1,14 @@
 /**
  * @file src/domains/chat-studio/composables/useStudioShell.ts
- * @description Estado del chrome del estudio: navegación, panel de contexto,
- * panel de conectores, modelo activo y modal de vista previa.
+ * @description Estado del chrome del estudio: navegación, panel de contexto, panel
+ * de espacios (conectores, configuración), modelo activo y modal de vista previa.
  *
  * **Dos paneles a la derecha, como mucho.** El de contexto pertenece a la
- * conversación (archivos, fuentes citadas) y el de conectores es un espacio de
- * trabajo; son estados independientes porque cerrar uno no tiene por qué cerrar el
- * otro. La fila los coloca —el de contexto pegado al chat, conectores en el borde
- * exterior— y el CSS decide cuándo el segundo se superpone en vez de empujar.
+ * conversación (archivos, fuentes citadas) y el de espacios es un espacio de trabajo
+ * con dos contenidos posibles —conectores o configuración—, de los que cabe **uno**:
+ * abrir el otro cambia lo que se ve, no apila. La fila los coloca —el de contexto
+ * pegado al chat, el de espacios en el borde exterior— y el CSS decide cuándo el
+ * segundo se superpone en vez de empujar.
  *
  * **Por qué `provide`/`inject` y no un store de Pinia.** El estudio entero es
  * **una sola isla** (`client:only` en `AppLayout`), así que su estado no cruza
@@ -27,7 +28,7 @@ import type { ConnectorTab } from '@domains/connectors';
 import { routes } from '@config/routes';
 import { useAppShellStore } from '@stores/app-shell';
 import { DEFAULT_STUDIO_MODEL, STUDIO_COPY } from '../data/studio.seed';
-import type { PanelTab, ResourceRow, SourceScope, StudioModel } from '../types/studio.types';
+import type { PanelScope, PanelTab, ResourceRow, SourceScope, StudioModel } from '../types/studio.types';
 
 export interface StudioShellOptions {
   /**
@@ -47,12 +48,13 @@ export interface StudioShell {
   drawerOpen: Ref<boolean>;
   contextOpen: Ref<boolean>;
   /**
-   * Panel de conectores, a la derecha del de contexto. Son **dos** estados
-   * distintos porque son dos paneles distintos: el de contexto es de la
-   * conversación y el otro es un espacio de trabajo, así que se abren y se cierran
-   * por su cuenta (**como mucho, dos a la vez**).
+   * Espacio de trabajo abierto en el panel lateral, si hay alguno. Es **uno**: el
+   * panel es la columna, y abrir configuración con conectores abiertos cambia su
+   * contenido. Son espacios distintos —uno es la conversación hecha panel, el otro
+   * una herramienta— y por eso el estado del de contexto es aparte (**como mucho,
+   * dos paneles a la derecha**).
    */
-  connectorsOpen: Ref<boolean>;
+  panel: Ref<PanelScope | null>;
   /** Sección con la que abre el panel de conectores. */
   connectorsTab: Ref<ConnectorTab>;
   tab: Ref<PanelTab>;
@@ -64,8 +66,9 @@ export interface StudioShell {
   closeNav: () => void;
   toggleContext: (open?: boolean) => void;
   openConnectors: (tab?: ConnectorTab) => void;
+  openSettings: () => void;
   setConnectorsTab: (tab: ConnectorTab) => void;
-  closeConnectors: () => void;
+  closePanel: () => void;
   setTab: (tab: PanelTab) => void;
   setScope: (scope: SourceScope) => void;
   setModel: (model: StudioModel) => void;
@@ -89,7 +92,7 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
 
   const drawerOpen = ref(false);
   const contextOpen = ref(false);
-  const connectorsOpen = ref(false);
+  const panel = ref<PanelScope | null>(null);
   const connectorsTab = ref<ConnectorTab>('fuentes');
   const tab = ref<PanelTab>('recursos');
   const scope = ref<SourceScope>('interaction');
@@ -125,26 +128,31 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
   }
 
   /**
-   * Abrir el panel **trae la sección pedida**: se entra desde sitios distintos
-   * —la franja del composer, el rail, las herramientas—, así que la pestaña la
-   * decide quien abre y no el panel, que no sabe por qué lo llaman.
+   * Abrir el panel **trae el espacio pedido**: se entra desde sitios distintos —la
+   * franja del composer, el rail, las herramientas, el pie—, así que decide quien
+   * abre y no el panel, que no sabe por qué lo llaman. Abrir un espacio con otro
+   * abierto lo **sustituye**: el panel es la columna, no una pila.
    */
   function openConnectors(tab?: ConnectorTab): void {
     if (tab !== undefined) connectorsTab.value = tab;
-    connectorsOpen.value = true;
+    panel.value = 'conectores';
+  }
+
+  function openSettings(): void {
+    panel.value = 'configuracion';
   }
 
   /**
    * Lo que emite el propio panel al cambiar de sección. Se guarda aunque el panel
-   * esté abierto para que, si se cierra y se vuelve a abrir desde el rail, la
-   * sección se recuerde; el rail siempre entra diciendo la suya.
+   * esté abierto para que, al reabrirlo desde el rail, la sección se recuerde; el
+   * rail siempre entra diciendo la suya.
    */
   function setConnectorsTab(tab: ConnectorTab): void {
     connectorsTab.value = tab;
   }
 
-  function closeConnectors(): void {
-    connectorsOpen.value = false;
+  function closePanel(): void {
+    panel.value = null;
   }
 
   function setTab(next: PanelTab): void {
@@ -209,7 +217,7 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     railLabel,
     drawerOpen,
     contextOpen,
-    connectorsOpen,
+    panel,
     connectorsTab,
     tab,
     scope,
@@ -220,8 +228,9 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     closeNav,
     toggleContext,
     openConnectors,
+    openSettings,
     setConnectorsTab,
-    closeConnectors,
+    closePanel,
     setTab,
     setScope,
     setModel,

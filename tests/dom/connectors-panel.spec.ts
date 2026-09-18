@@ -22,7 +22,7 @@ import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
-import ConnectorsDrawer from '@domains/connectors/views/ConnectorsDrawer.vue';
+import ConnectorsPanel from '@domains/connectors/views/ConnectorsPanel.vue';
 import SourceCard from '@domains/connectors/views/sources/SourceCard.vue';
 import { CONNECTORS, KNOWLEDGE_BASES, TEMPLATES } from '@domains/connectors/data/connectors.seed';
 import { provideConnectors, type ConnectorsShell } from '@domains/connectors/composables/useConnectors';
@@ -35,10 +35,13 @@ function first<T>(list: T[]): T {
   return entry;
 }
 
-function mountPanel(options: { open?: boolean; tab?: ConnectorTab } = {}) {
-  return mount(ConnectorsDrawer, {
-    props: { open: options.open ?? true, tab: options.tab ?? 'fuentes' },
-  });
+/**
+ * El contenido del panel se prueba suelto: la geometría del cajón —ancho, cierre,
+ * `inert`— vive en `StudioSidePanel` y tiene su propio spec, así que aquí se
+ * comprueba lo que se ve **dentro**, que es lo que este componente decide.
+ */
+function mountPanel(options: { tab?: ConnectorTab } = {}) {
+  return mount(ConnectorsPanel, { props: { tab: options.tab ?? 'fuentes' } });
 }
 
 /** Un clic por texto de botón; los del registry no exponen otra cosa útil. */
@@ -112,7 +115,7 @@ async function openConfigOf(wrapper: ReturnType<typeof mountPanel>, index: numbe
   await vi.waitFor(() => expect(dialogWith(name)).not.toBeNull(), { timeout: 3_000, interval: 20 });
 }
 
-describe('ConnectorsDrawer', () => {
+describe('ConnectorsPanel', () => {
   it('la cabecera dice en qué sección estás y cuántas hay', () => {
     const sources = mountPanel();
     expect(sources.text()).toContain('Conectores');
@@ -178,20 +181,6 @@ describe('ConnectorsDrawer', () => {
     await buttonWith(wrapper, 'Volver al listado')?.trigger('click');
 
     expect(wrapper.findAllComponents(SourceCard)).toHaveLength(CONNECTORS.length);
-  });
-
-  it('cerrado sale de pantalla y deja de ser alcanzable', () => {
-    const closed = mountPanel({ open: false });
-    const aside = closed.get('aside');
-
-    // Fuera de pantalla no debe poder recorrerse con el teclado: sin `inert`, sus
-    // botones siguen siendo enfocables aunque no se vean.
-    expect(aside.attributes('inert')).toBeDefined();
-    expect(aside.classes()).toContain('translate-x-full');
-
-    const open = mountPanel();
-    expect(open.get('aside').attributes('inert')).toBeUndefined();
-    expect(open.get('aside').classes()).toContain('translate-x-0');
   });
 
   it('el botón de cerrar avisa al estudio', async () => {

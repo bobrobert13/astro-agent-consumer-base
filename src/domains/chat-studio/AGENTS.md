@@ -37,12 +37,14 @@ index.ts            barrel: ChatStudio
 types/              vocabulario del slice (NavItem, ResourceRow, PanelTab…)
 data/studio.seed.ts datos semilla y copy, en un solo módulo
 composables/
-  useStudioShell.ts     estado del chrome (rail, cajón, panel de contexto, panel de
-                        conectores, modelo) + provide
-  useStudioShortcuts.ts atajos del estudio
-  useStudioSessions.ts  sesiones creadas ("nuevo chat"), mock de historial
+  useStudioShell.ts        estado del chrome (rail, cajón, panel de contexto, espacio
+                           del panel lateral, modelo) + provide
+  useStudioShortcuts.ts    atajos del estudio
+  useStudioSessions.ts     sesiones creadas ("nuevo chat"), mock de historial
+  useStudioAttachments.ts  adjuntos del composer (mock: no se suben a ningún sitio)
 components/             .vue del slice
   ChatStudio.vue        raíz: composición, provide y atadura de la URL al chat
+  StudioSidePanel.vue   el panel lateral: geometría del cajón y qué espacio se ve
   StudioSidebar/Nav/History/UserCard      el rail
   StudioPanel/PanelHeader/ModelMenu/Hero  el panel y su cabecera
   StudioComposer/ComposerTools/ConnectBar/Suggestions   la caja de escritura
@@ -81,13 +83,19 @@ seguir: el slice se lee por partes, no por archivos grandes.
    que compile.
 
 5. **La fila tiene dos paneles a la derecha, como mucho.** El de contexto pertenece a
-   la conversación y el de conectores es un espacio de trabajo: son estados
-   independientes (`contextOpen` y `connectorsOpen`) y **el orden importa** —el
-   panel de conectores se monta después, así que vive en el borde exterior y la
-   conversación se queda pegada a su propio panel—. El cierre de los dos va con
-   margen negativo; quién empuja y quién se superpone lo decide el CSS
-   (`src/domains/connectors/AGENTS.md`). `newChat` cierra el de contexto pero **no**
-   el de conectores: no es estado de la conversación.
+   la conversación y el **panel lateral** es un espacio de trabajo con dos contenidos
+   posibles (conectores y configuración), de los que cabe **uno**: abrir el otro
+   cambia lo que se ve, no apila. El orden importa —el panel lateral se monta
+   después, así que vive en el borde exterior y la conversación se queda pegada a su
+   propio panel—. El cierre de los dos va con margen negativo; quién empuja y quién
+   se superpone lo decide el CSS. `newChat` cierra el de contexto pero **no** el
+   lateral: no es estado de la conversación.
+
+   La geometría del cajón vive **solo** en `StudioSidePanel` —ancho, cierre,
+   `inert`, densidad compacta— y el contenido lo pone cada slice. Es lo que hace que
+   los dos espacios se vean iguales sin CSS duplicado, y lo que permite probarlos por
+   separado. El estado que no cambia entre espacios (en qué sección abrir los
+   conectores) lo recuerda el shell, no el contenido.
 6. **Cero imágenes de marca.** Cada imagen es un `StudioImageSlot`, con su nombre en
    `data-image-slot`; para poner la definitiva basta con pasarle `src`.
 7. **"Nuevo chat" abre una sesión con hilo propio.** No limpia y vuelve a la raíz:

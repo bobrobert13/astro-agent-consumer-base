@@ -48,10 +48,10 @@ describe('puertas hacia el panel de conectores', () => {
   it('la franja del composer lo abre en la sección de fuentes', async () => {
     const { wrapper, shell } = mountInsideStudio(StudioConnectBar);
 
-    expect(shell.connectorsOpen.value).toBe(false);
+    expect(shell.panel.value).toBeNull();
     await wrapper.get('button').trigger('click');
 
-    expect(shell.connectorsOpen.value).toBe(true);
+    expect(shell.panel.value).toBe('conectores');
     expect(shell.connectorsTab.value).toBe('fuentes');
   });
 
@@ -61,7 +61,7 @@ describe('puertas hacia el panel de conectores', () => {
     const navButton = (label: string) => wrapper.findAll('button').find((node) => node.text().includes(label));
 
     await navButton('Base de conocimiento')?.trigger('click');
-    expect(shell.connectorsOpen.value).toBe(true);
+    expect(shell.panel.value).toBe('conectores');
     expect(shell.connectorsTab.value).toBe('conocimiento');
 
     await navButton('Plantillas')?.trigger('click');
@@ -78,7 +78,7 @@ describe('puertas hacia el panel de conectores', () => {
 
     for (const section of sections) {
       await section.trigger('click');
-      expect(shell.connectorsOpen.value).toBe(true);
+      expect(shell.panel.value).toBe('conectores');
     }
   });
 
@@ -90,7 +90,7 @@ describe('puertas hacia el panel de conectores', () => {
 
     await tool?.trigger('click');
 
-    expect(shell.connectorsOpen.value).toBe(true);
+    expect(shell.panel.value).toBe('conectores');
     expect(shell.connectorsTab.value).toBe('fuentes');
   });
 });

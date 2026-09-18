@@ -28,17 +28,13 @@ import { computed } from 'vue';
 import { useAgentChat } from '@domains/agent-chat';
 import StudioComposer from './StudioComposer.vue';
 import StudioConnectBar from './StudioConnectBar.vue';
-import StudioFabs from './StudioFabs.vue';
 import StudioHero from './StudioHero.vue';
 import StudioMemoryNotice from './StudioMemoryNotice.vue';
 import StudioPanelHeader from './StudioPanelHeader.vue';
 import StudioSuggestions from './StudioSuggestions.vue';
 import StudioThread from './StudioThread.vue';
-import { useStudioShell } from '../composables/useStudioShell';
-import { STUDIO_COPY } from '../data/studio.seed';
 
 const { memoryPressure, messages, send, state, streamingText, text } = useAgentChat();
-const { notYet } = useStudioShell();
 
 const empty = computed(() => messages.value.length === 0 && streamingText.value === '');
 
@@ -113,28 +109,5 @@ function onRetry(): void {
       </div>
     </template>
 
-    <!--
-      Pie: aviso legal centrado y acciones a la derecha, **en la misma fila**. El
-      hueco de la izquierda iguala la anchura de las acciones para que el texto
-      quede centrado de verdad.
-    -->
-    <footer class="shrink-0 px-4 pt-4 pb-4 nav:px-8">
-      <div class="mx-auto flex w-full min-w-0 max-w-composer items-center gap-4">
-        <span class="hidden w-24 shrink-0 nav:block" aria-hidden="true" />
-
-        <p class="min-w-0 flex-1 text-center text-caption text-ink-muted">
-          {{ STUDIO_COPY.disclaimer }}
-          <button
-            type="button"
-            class="font-medium underline-offset-2 hover:underline"
-            @click="notYet(STUDIO_COPY.disclaimerLink)"
-          >
-            {{ STUDIO_COPY.disclaimerLink }}
-          </button>
-        </p>
-
-        <StudioFabs />
-      </div>
-    </footer>
   </main>
 </template>

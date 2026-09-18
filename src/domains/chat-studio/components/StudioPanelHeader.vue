@@ -24,15 +24,14 @@
  * no por el rail. Con el rail abierto en escritorio (`nav:hidden` en el botón) la
  * reserva desaparece; en el resto de los casos se mantiene.
  */
-import { Ellipsis, Link2, PanelRight, Share2 } from '@lucide/vue';
+import { PanelRight } from '@lucide/vue';
 
 import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
 import StudioModelMenu from './StudioModelMenu.vue';
 import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_RESOURCES } from '../data/studio.seed';
 
-const { contextOpen, toggleContext, notYet, railOpen } = useStudioShell();
+const { contextOpen, toggleContext, railOpen } = useStudioShell();
 
 /**
  * El contador sale de la semilla, que es estática por ahora. Cuando el panel lea
@@ -40,8 +39,6 @@ const { contextOpen, toggleContext, notYet, railOpen } = useStudioShell();
  */
 const resourceCount = STUDIO_RESOURCES.length;
 
-const iconButton =
-  'grid size-8 place-items-center rounded-control text-ink-muted transition-colors hover:bg-line/60 hover:text-ink';
 const borderedButton =
   'relative grid size-11 place-items-center rounded-control border border-line bg-surface text-ink-muted transition-colors hover:bg-line/60 hover:text-ink';
 </script>
@@ -71,28 +68,6 @@ const borderedButton =
         </Badge>
       </button>
 
-      <button type="button" :class="iconButton" aria-label="Más opciones" @click="notYet('Más opciones')">
-        <Ellipsis class="size-4" aria-hidden="true" />
-      </button>
-
-      <button
-        type="button"
-        :class="borderedButton"
-        aria-label="Copiar enlace"
-        title="Copiar enlace"
-        @click="notYet('Copiar enlace')"
-      >
-        <Link2 class="size-4" aria-hidden="true" />
-      </button>
-
-      <Button variant="outline" size="lg" aria-label="Compartir" @click="notYet('Compartir')">
-        <Share2 aria-hidden="true" />
-        <!--
-          En móvil la cabecera no cabe con la etiqueta: se queda el icono, y el
-          `aria-label` del botón mantiene el nombre para lectores de pantalla.
-        -->
-        <span class="max-nav:hidden">Compartir</span>
-      </Button>
     </div>
   </header>
 </template>

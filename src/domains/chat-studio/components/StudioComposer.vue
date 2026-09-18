@@ -18,8 +18,7 @@
  * prueba. Cambiarlo sin actualizar el script deja el gate de verificación a
  * oscuras.
  */
-import { ArrowUp, Sparkles, Square } from '@lucide/vue';
-import { ref } from 'vue';
+import { ArrowUp, Square } from '@lucide/vue';
 
 import { Label } from '@components/ui/label';
 import { Textarea } from '@components/ui/textarea';
@@ -27,7 +26,7 @@ import { useAgentChat } from '@domains/agent-chat';
 import StudioComposerTools from './StudioComposerTools.vue';
 import { useStudioSessions } from '../composables/useStudioSessions';
 import { useStudioShell } from '../composables/useStudioShell';
-import { COMPOSER_TOOLS_LEADING, COMPOSER_TOOLS_TRAILING, STUDIO_COPY } from '../data/studio.seed';
+import { COMPOSER_TOOLS_TRAILING, STUDIO_COPY } from '../data/studio.seed';
 import type { ComposerTool } from '../types/studio.types';
 
 // `text` es la fuente del borrador y vive en el composable compartido: por eso
@@ -35,8 +34,6 @@ import type { ComposerTool } from '../types/studio.types';
 const { canSubmit, isRunning, stop, submit, text, threadId } = useAgentChat();
 const { notYet } = useStudioShell();
 const sessions = useStudioSessions();
-
-const deepResearch = ref(true);
 
 function onSubmit(): void {
   // El primer prompt bautiza la sesión: es lo que la hace reconocible en el
@@ -75,7 +72,7 @@ function onTool(tool: ComposerTool): void {
 
       <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
         <div class="flex items-center gap-1">
-          <button
+          <!-- <button
             type="button"
             class="flex h-10 shrink-0 items-center gap-2 rounded-control border px-3.5 text-label transition-colors"
             :class="
@@ -88,11 +85,11 @@ function onTool(tool: ComposerTool): void {
           >
             <Sparkles class="size-4 shrink-0" aria-hidden="true" />
             <span class="max-nav:hidden">Investigación profunda</span>
-          </button>
+          </button> -->
 
-          <span class="ml-1 flex items-center gap-0.5 rounded-control bg-elevated p-0.5">
+          <!-- <span class="ml-1 flex items-center gap-0.5 rounded-control bg-elevated p-0.5">
             <StudioComposerTools :tools="COMPOSER_TOOLS_LEADING" @pick="onTool" />
-          </span>
+          </span> -->
         </div>
 
         <div class="flex items-center gap-0.5">

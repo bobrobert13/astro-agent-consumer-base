@@ -24,6 +24,7 @@ import { Label } from '@components/ui/label';
 import { Textarea } from '@components/ui/textarea';
 import { useAgentChat } from '@domains/agent-chat';
 import StudioComposerTools from './StudioComposerTools.vue';
+import { useStudioConnectors } from '../composables/useStudioConnectors';
 import { useStudioSessions } from '../composables/useStudioSessions';
 import { useStudioShell } from '../composables/useStudioShell';
 import { COMPOSER_TOOLS_TRAILING, STUDIO_COPY } from '../data/studio.seed';
@@ -33,6 +34,7 @@ import type { ComposerTool } from '../types/studio.types';
 // cambiar el composer de sitio (dentro del hero o acoplado abajo) no lo pierde.
 const { canSubmit, isRunning, stop, submit, text, threadId } = useAgentChat();
 const { notYet } = useStudioShell();
+const { open: openConnectors } = useStudioConnectors();
 const sessions = useStudioSessions();
 
 function onSubmit(): void {
@@ -50,7 +52,22 @@ function onKeydown(event: KeyboardEvent): void {
   }
 }
 
+/**
+ * Herramientas con destino real. Solo "Conectores externos" abre pantalla; el
+ * resto siguen siendo esqueleto y lo avisan. El mapa evita que la única
+ * herramienta que hace algo quede como un `if` suelto entre las demás.
+ */
+const TOOL_ACTIONS: Record<string, () => void> = {
+  connectors: () => openConnectors('fuentes'),
+};
+
 function onTool(tool: ComposerTool): void {
+  const action = TOOL_ACTIONS[tool.id];
+  if (action !== undefined) {
+    action();
+    return;
+  }
+
   notYet(tool.label);
 }
 </script>

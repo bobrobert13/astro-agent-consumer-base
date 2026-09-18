@@ -3,8 +3,10 @@
  * @file src/domains/chat-studio/components/StudioConnectBar.vue
  * @description Franja pegada al composer que invita a conectar fuentes externas.
  *
- * Va esqueleto: el módulo de conectores no existe, así que informa en vez de
- * fingir. Se dibuja pegada a la caja del composer (sin borde superior y con el
+ * Es la puerta principal a la vista de conectores: abre `/conectores` en la
+ * pestaña de fuentes. Dejó de ser esqueleto, así que ya no avisa con `notYet()`; lo
+ * que sigue siendo de relleno son los datos de la vista, y de eso informa ella
+ * misma. Se dibuja pegada a la caja del composer (sin borde superior y con el
  * radio inferior) porque en la plantilla las dos forman un solo bloque.
  *
  * Los avatares de la plantilla eran retratos; aquí son puntos con el token de
@@ -12,10 +14,10 @@
  */
 import { ChevronRight } from '@lucide/vue';
 
-import { useStudioShell } from '../composables/useStudioShell';
+import { useStudioConnectors } from '../composables/useStudioConnectors';
 import { STUDIO_COPY } from '../data/studio.seed';
 
-const { notYet } = useStudioShell();
+const { open } = useStudioConnectors();
 
 const DOTS = [
   'bg-brand-500',
@@ -30,7 +32,7 @@ const DOTS = [
   <button
     type="button"
     class="-mt-px flex w-full items-center justify-between gap-4 rounded-b-shell border border-line bg-elevated px-6 py-3 text-left text-body-sm text-ink-muted transition-colors hover:bg-line/40"
-    @click="notYet('Conectores')"
+    @click="open('fuentes')"
   >
     <span class="truncate">{{ STUDIO_COPY.connectBar }}</span>
 

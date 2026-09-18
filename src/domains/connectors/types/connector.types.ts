@@ -77,7 +77,6 @@ export interface Connector {
   lastSync: string;
   fields: ConnectorField[];
   scopes: ConnectorScope[];
-  docsUrl: string;
 }
 
 /** Un conjunto curado de fuentes, listo para consultar desde el chat. */

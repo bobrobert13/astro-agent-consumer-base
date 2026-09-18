@@ -2,7 +2,7 @@
 /**
  * @file src/domains/connectors/views/sources/SourcesView.vue
  * @description Catálogo de fuentes externas: búsqueda, filtro por estado y
- * rejilla de tarjetas.
+ * rejilla de tarjetas —o el detalle de una, si hay una abierta—.
  *
  * **Los tres estados se ven de verdad**, no de adorno: `loading` lo levanta el
  * botón "Actualizar" de la cabecera (un simulacro con temporizador mientras no
@@ -11,9 +11,14 @@
  * están sanos. Una vista de catálogo que solo sabe pintar el caso bueno se rompe
  * en el primer caso malo.
  *
+ * **Detalle y listado son excluyentes**, como el estado vacío y el hilo del
+ * estudio: el detalle sustituye a la rejilla en vez de convivir con ella. En
+ * móvil eso es la diferencia entre una pantalla usable y una tarjeta debajo de
+ * otra.
+ *
  * El buscador y los filtros son del registry (`Input`, `Button`) y la rejilla es
- * una lista con `gap`: no hay una tabla que mantener cuando las tarjetas cambian de
- * contenido.
+ * una lista con `gap`: no hay una tabla que mantener cuando las tarjetas cambian
+ * de contenido.
  */
 import { Boxes, CircleAlert, Search } from '@lucide/vue';
 import { computed } from 'vue';
@@ -24,18 +29,32 @@ import { Input } from '@components/ui/input';
 import { Skeleton } from '@components/ui/skeleton';
 
 import SourceCard from './SourceCard.vue';
+import SourceDetail from './SourceDetail.vue';
 import { CONNECTOR_COPY, CONNECTOR_FILTERS } from '../../data/connectors.seed';
 import { useConnectors } from '../../composables/useConnectors';
 
-const { clearFilters, connectors, filter, loading, openConfig, openDetail, query, setFilter, troubled, visible } =
-  useConnectors();
+const {
+  clearFilters,
+  connectors,
+  detail,
+  filter,
+  loading,
+  openConfig,
+  openDetail,
+  query,
+  setFilter,
+  troubled,
+  visible,
+} = useConnectors();
 
 /** Cuántos de cuántos: sin esto, un filtro activo parece un catálogo vacío. */
 const summary = computed(() => `${visible.value.length} de ${connectors.value.length}`);
 </script>
 
 <template>
-  <section aria-label="Fuentes externas" class="flex flex-col">
+  <SourceDetail v-if="detail !== null" :connector="detail" />
+
+  <section v-else aria-label="Fuentes externas" class="flex flex-col">
     <div class="flex flex-col gap-3 nav:flex-row nav:items-center nav:justify-between">
       <div class="relative w-full nav:max-w-80">
         <Search

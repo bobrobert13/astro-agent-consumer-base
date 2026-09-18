@@ -81,7 +81,6 @@ export const CONNECTORS: Connector[] = [
     statusNote: 'Última lectura correcta',
     documents: 12_840,
     lastSync: 'hace 12 min',
-    docsUrl: 'https://example.com/docs/base-de-datos',
     fields: [
       { id: 'host', label: 'Host', type: 'text', value: 'db.example.com', required: true },
       { id: 'database', label: 'Base de datos', type: 'text', value: 'analitica' },
@@ -117,7 +116,6 @@ export const CONNECTORS: Connector[] = [
     statusNote: 'Sincronizado esta mañana',
     documents: 3_420,
     lastSync: 'hace 3 h',
-    docsUrl: 'https://example.com/docs/almacenamiento',
     fields: [
       { id: 'space', label: 'Espacio', type: 'text', value: 'documentos-internos', required: true },
       {
@@ -157,7 +155,6 @@ export const CONNECTORS: Connector[] = [
     statusNote: 'Falta autorizar la instalación',
     documents: 0,
     lastSync: 'Nunca',
-    docsUrl: 'https://example.com/docs/repositorios',
     fields: [
       {
         id: 'host',
@@ -189,7 +186,6 @@ export const CONNECTORS: Connector[] = [
     statusNote: 'La credencial caducó',
     documents: 860,
     lastSync: 'hace 6 días',
-    docsUrl: 'https://example.com/docs/mensajeria',
     fields: [
       { id: 'workspace', label: 'Espacio de trabajo', type: 'text', value: 'equipo-producto', required: true },
       {
@@ -219,7 +215,6 @@ export const CONNECTORS: Connector[] = [
     statusNote: 'Sin conectar todavía',
     documents: 0,
     lastSync: 'Nunca',
-    docsUrl: 'https://example.com/docs/documentos',
     fields: [
       {
         id: 'collection',
@@ -343,7 +338,8 @@ export const TEMPLATES: TemplateRow[] = [
 export const CONNECTOR_COPY = {
   title: 'Conectores',
   subtitle: 'Fuentes externas, conocimiento y plantillas del chat',
-  back: 'Volver al chat',
+  backToChat: 'Volver al chat',
+  backToList: 'Volver al listado',
   refresh: 'Actualizar',
   refreshBusy: 'Leyendo fuentes…',
   add: 'Añadir conector',
@@ -356,11 +352,30 @@ export const CONNECTOR_COPY = {
   errorBody: 'Una credencial caducada deja la fuente fuera del chat hasta que se renueve.',
   documents: 'documentos',
   lastSync: 'Última sincronización',
-  configure: 'Configurar',
+  status: 'Estado',
   detail: 'Ver detalle',
-  saved: 'Configuración guardada',
+  configure: 'Configurar',
+  configureBody: 'Los campos son de ejemplo: al guardar se actualiza el catálogo en memoria.',
   save: 'Guardar cambios',
   cancel: 'Cancelar',
-  pendingSection: 'Sección en construcción',
-  pendingBody: 'El esqueleto deja el sitio y su forma, pero el contenido llega en la siguiente fase.',
+  saved: 'Configuración guardada',
+  fieldSection: 'Conexión',
+  scopeSection: 'Permisos',
+  scopeHint: 'Lo que el agente puede hacer con esta fuente.',
+  granted: 'Concedido',
+  denied: 'Denegado',
+  secretSet: 'Definido',
+  secretUnset: 'Sin definir',
+  switchOn: 'Activado',
+  switchOff: 'Desactivado',
+  sync: 'Sincronizar ahora',
+  remove: 'Quitar conector',
+  docs: 'Ver documentación',
+  open: 'Abrir conjunto',
+  use: 'Usar plantilla',
+  sources: 'Fuentes',
+  steps: 'pasos',
+  knowledgeHint: 'Conjuntos de fuentes ya conectadas, listos para preguntar sin elegir la fuente cada vez.',
+  templatesHint: 'Flujos guardados que se lanzan sobre tus fuentes con un clic.',
+  notYetBody: 'Todavía no está implementado en este esqueleto.',
 } as const;

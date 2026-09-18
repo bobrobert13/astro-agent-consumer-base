@@ -186,7 +186,7 @@ export function provideConnectors(options: ConnectorsShellOptions = {}): Connect
   });
 
   function notYet(label: string): void {
-    void notify(`${label} · ${CONNECTOR_COPY.pendingSection}`);
+    void notify(label);
   }
 
   /**
@@ -197,7 +197,7 @@ export function provideConnectors(options: ConnectorsShellOptions = {}): Connect
   async function notify(message: string, success = false): Promise<void> {
     const { toast } = await import('vue-sonner');
     if (success) toast.success(message);
-    else toast(message, { description: CONNECTOR_COPY.pendingBody });
+    else toast(message, { description: CONNECTOR_COPY.notYetBody });
   }
 
   const shell: ConnectorsShell = {

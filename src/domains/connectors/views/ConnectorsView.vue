@@ -22,8 +22,11 @@
  * queremos es la que el registry ya trae, así que solo se ajusta lo que es
  * maquetación —el ancho de la barra y el aire sobre el contenido— y ni una clase
  * de apariencia.
+ *
+ * **El modal vive fuera del contenedor que scrollea**, como en el estudio: es una
+ * capa, y anidarlo en una caja con `overflow-y-auto` lo recortaría.
  */
-import { computed, watch } from 'vue';
+import { watch } from 'vue';
 
 import { navigate } from 'astro:transitions/client';
 
@@ -31,9 +34,11 @@ import { Badge } from '@components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@components/ui/tabs';
 import { routes } from '@config/routes';
 
+import ConnectorConfigDialog from '../components/ConnectorConfigDialog.vue';
 import ConnectorsHeader from '../components/ConnectorsHeader.vue';
-import PendingPanel from './PendingPanel.vue';
+import KnowledgeView from './knowledge/KnowledgeView.vue';
 import SourcesView from './sources/SourcesView.vue';
+import TemplatesView from './templates/TemplatesView.vue';
 import { CONNECTOR_COPY, CONNECTOR_TABS } from '../data/connectors.seed';
 import { provideConnectors } from '../composables/useConnectors';
 import { isConnectorTab, type ConnectorTab } from '../types/connector.types';
@@ -53,9 +58,6 @@ const props = withDefaults(
 // el objeto que le devuelve `provideConnectors`.
 const shell = provideConnectors({ initialTab: props.tab ?? 'fuentes' });
 const { counts, notYet, setTab, tab } = shell;
-
-/** Las secciones que todavía son hueco; cada una se sustituye por su vista. */
-const pendingTabs = computed(() => CONNECTOR_TABS.filter((entry) => entry.id !== 'fuentes'));
 
 /**
  * La pestaña puede cambiar desde fuera —el rail navega a `/conectores?pestana=…`
@@ -116,11 +118,17 @@ function close(): void {
             <SourcesView />
           </TabsContent>
 
-          <TabsContent v-for="entry in pendingTabs" :key="entry.id" :value="entry.id" class="mt-4">
-            <PendingPanel :icon="entry.icon" :title="entry.label" :body="CONNECTOR_COPY.pendingBody" />
+          <TabsContent value="conocimiento" class="mt-4">
+            <KnowledgeView />
+          </TabsContent>
+
+          <TabsContent value="plantillas" class="mt-4">
+            <TemplatesView />
           </TabsContent>
         </Tabs>
       </div>
     </div>
+
+    <ConnectorConfigDialog />
   </div>
 </template>

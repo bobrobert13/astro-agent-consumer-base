@@ -28,11 +28,11 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <ul class="flex flex-col gap-3">
+  <ul class="flex flex-col gap-2">
     <li
       v-for="scope in props.scopes"
       :key="scope.id"
-      class="flex items-start gap-3 rounded-panel border border-line bg-surface p-3"
+      class="flex items-start gap-2.5 rounded-panel border border-line bg-surface p-2.5"
     >
       <span class="flex min-w-0 flex-1 flex-col gap-0.5">
         <strong class="text-label text-ink">{{ scope.label }}</strong>

@@ -87,14 +87,15 @@ function onTabChange(value: string | number): void {
   <aside
     :aria-label="CONNECTOR_COPY.title"
     :inert="props.open ? undefined : true"
+    data-density="compact"
     class="fixed inset-y-0 right-0 z-40 flex w-context shrink-0 flex-col border-l border-line bg-surface shadow-float transition-[transform,margin-right] duration-200 ease-out max-context:w-full drawer:static drawer:z-0 drawer:shadow-none"
     :class="props.open ? 'translate-x-0 drawer:mr-0' : 'translate-x-full drawer:-mr-context'"
   >
     <ConnectorsHeader @close="emit('close')" @add="openAdd()" />
 
-    <Tabs :model-value="tab" class="min-h-0 flex-1 gap-4" @update:model-value="onTabChange">
-      <div class="shrink-0 px-4 pt-4">
-        <TabsList class="w-full" :aria-label="CONNECTOR_COPY.title">
+    <Tabs :model-value="tab" class="min-h-0 flex-1 gap-3" @update:model-value="onTabChange">
+      <div class="shrink-0 px-3 pt-3">
+        <TabsList class="h-8 w-full" :aria-label="CONNECTOR_COPY.title">
           <TabsTrigger
             v-for="entry in CONNECTOR_TABS"
             :key="entry.id"
@@ -107,15 +108,15 @@ function onTabChange(value: string | number): void {
         </TabsList>
       </div>
 
-      <TabsContent value="fuentes" class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+      <TabsContent value="fuentes" class="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <SourcesView />
       </TabsContent>
 
-      <TabsContent value="conocimiento" class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+      <TabsContent value="conocimiento" class="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <KnowledgeView />
       </TabsContent>
 
-      <TabsContent value="plantillas" class="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
+      <TabsContent value="plantillas" class="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
         <TemplatesView />
       </TabsContent>
     </Tabs>

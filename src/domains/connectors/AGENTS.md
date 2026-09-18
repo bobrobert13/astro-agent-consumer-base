@@ -124,7 +124,17 @@ components/
    mentirían: a 1400 px de ventana el panel sigue teniendo 340. Lo que se apila lo
    decide el flujo (`flex-wrap`, `flex-col`), no el ancho de la pantalla.
 
-10. **Nada de marcas ni de colores en los datos.** El tono de un estado lo elige el
+10. **Compacto, y el aire de la `Card` no es del panel.** El panel se declara
+    `data-density="compact"` (ver `AGENTS.md` raíz) y las tarjetas usan `Card` con
+    `gap-0 py-0` más un bloque interior `p-3`: con la geometría del registry cada
+    tarjeta medía ~230 px de alto, la mitad aire, y tres llenaban la columna. Se
+    ajusta geometría, nunca color ni radio. Los controles bajan un escalón
+    (`size="xs"`, búsqueda `h-8`), las descripciones van a `text-caption` y se
+    recortan a dos líneas para que todas las tarjetas midan lo mismo, y la nota de
+    estado solo se pinta cuando el estado **no** es "conectada": en una fuente sana
+    repetiría lo que ya dicen la píldora y la fecha.
+
+11. **Nada de marcas ni de colores en los datos.** El tono de un estado lo elige el
     componente que lo pinta (`SourceStatus` usa la variante de la `Badge`) y el
     catálogo es genérico por familia, como el resto del boilerplate.
 

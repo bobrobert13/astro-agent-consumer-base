@@ -208,6 +208,18 @@ los lee `dist/server/entry.mjs` directamente.
 - Nombres de slot en todo el repo: `default`, `header`, `footer`, `actions`,
   `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
   añade a esta lista **y** al componente, no al consumidor.
+- **Densidad por ámbito.** Una superficie estrecha —el panel de conectores, 340 px—
+  se declara `data-density="compact"`, y `theme.css` reajusta ahí `--text-sm` y
+  `--text-xs`: **los tokens que los componentes del registry ya usan**, no sus
+  clases. Solo funcionan los de Tailwind, porque sus utilidades compilan a
+  `var(--text-sm)`; la escala propia la incrusta `@theme inline` como `clamp()`
+  literal y desde fuera no se puede reajustar —ahí se elige un token menor en el
+  marcado—. Los modales no se enteran: se teletransportan a `body`, fuera del ámbito.
+- **Geometría sí, apariencia no.** Cuando un componente del registry no cabe —la
+  `Card` trae `py-6`/`gap-6`/`px-6` de página y en una columna de 340 px la mitad es
+  aire— se ajusta su **geometría** por `class` (`gap-0 py-0`, un `p-3` propio), como
+  ya hace `StudioPreviewDialog` con `DialogContent`. Lo que sigue sin tocarse es la
+  apariencia: color, radio y sombra se mueven por token.
 - UI y catálogos de error en **español**. Un código de error sin mensaje en
   `<scope>.e.ts` no puede llegar a la pantalla.
 - **Nunca escribir un glob `**/` dentro de un comentario `/** ... */`**: la

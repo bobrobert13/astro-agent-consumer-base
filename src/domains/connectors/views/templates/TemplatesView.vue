@@ -12,10 +12,10 @@ import { CONNECTOR_COPY, TEMPLATES } from '../../data/connectors.seed';
 </script>
 
 <template>
-  <section aria-label="Plantillas" class="flex flex-col gap-4">
-    <p class="text-body-sm text-ink-muted">{{ CONNECTOR_COPY.templatesHint }}</p>
+  <section aria-label="Plantillas" class="flex flex-col gap-3">
+    <p class="text-caption text-ink-muted">{{ CONNECTOR_COPY.templatesHint }}</p>
 
-    <ul class="flex flex-col gap-4">
+    <ul class="flex flex-col gap-3">
       <li v-for="template in TEMPLATES" :key="template.id">
         <TemplateCard :template="template" />
       </li>

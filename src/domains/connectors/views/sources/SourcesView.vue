@@ -5,19 +5,20 @@
  * tarjetas —o el detalle de una, si hay una abierta—.
  *
  * **Los tres estados se ven de verdad**, no de adorno: `loading` lo levanta el
- * botón "Actualizar" de la cabecera (un simulacro con temporizador mientras no
- * haya servicio), el vacío sale de combinar búsqueda y filtro —y por eso trae su
- * botón para deshacerlos— y el aviso de atención cuenta las fuentes que no están
- * sanas. Una vista de catálogo que solo sabe pintar el caso bueno se rompe en el
- * primer caso malo.
+ * botón "Actualizar" de la cabecera (un simulacro con temporizador mientras no haya
+ * servicio), el vacío sale de combinar búsqueda y filtro —y por eso trae su botón
+ * para deshacerlos— y el aviso de atención cuenta las fuentes que no están sanas.
+ * Una vista de catálogo que solo sabe pintar el caso bueno se rompe en el primer
+ * caso malo.
  *
- * **Detalle y listado son excluyentes**, como el estado vacío y el hilo del
- * estudio: el detalle sustituye a la lista en vez de convivir con ella.
+ * **Detalle y listado son excluyentes**: el detalle sustituye a la lista en vez de
+ * convivir con ella.
  *
- * **Una sola columna, y sin breakpoints.** Este contenido vive en una columna de
- * 21.25rem, así que las variantes `nav:`/`context:` —que miden la **ventana**, no
- * el contenedor— mentirían: a 1400 px de ventana el panel sigue teniendo 340 px. Lo
- * que se apila es lo que no cabe, y eso lo decide el propio flujo con `flex-wrap`.
+ * **Compacta y sin breakpoints.** El contador se va a la línea de los filtros —una
+ * fila menos— y los controles bajan un escalón (`xs`, `h-8`): en 340 px un botón de
+ * 32 px con 14 px de texto pesa demasiado. Aquí no se usan `nav:`/`context:` porque
+ * miden la **ventana**, no el contenedor: a 1400 px de pantalla el panel sigue
+ * teniendo 340 y la variante mentiría. Lo que se apila lo decide el flujo.
  */
 import { Boxes, CircleAlert, Search } from '@lucide/vue';
 import { computed } from 'vue';
@@ -56,44 +57,46 @@ const summary = computed(() => `${visible.value.length} de ${connectors.value.le
   <section v-else aria-label="Fuentes externas" class="flex flex-col">
     <div class="relative w-full">
       <Search
-        class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted"
+        class="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-ink-muted"
         aria-hidden="true"
       />
       <Input
         v-model="query"
         type="search"
-        class="pl-9"
+        class="h-8 pl-8"
         :aria-label="CONNECTOR_COPY.search"
         :placeholder="CONNECTOR_COPY.search"
       />
     </div>
 
-    <div role="group" :aria-label="CONNECTOR_COPY.filterLabel" class="mt-3 flex flex-wrap gap-1.5">
-      <Button
-        v-for="entry in CONNECTOR_FILTERS"
-        :key="entry.id"
-        size="sm"
-        :variant="filter === entry.id ? 'default' : 'outline'"
-        :aria-pressed="filter === entry.id"
-        @click="setFilter(entry.id)"
-      >
-        {{ entry.label }}
-      </Button>
+    <div class="mt-2.5 flex flex-wrap items-center gap-1.5">
+      <div role="group" :aria-label="CONNECTOR_COPY.filterLabel" class="flex flex-wrap gap-1.5">
+        <Button
+          v-for="entry in CONNECTOR_FILTERS"
+          :key="entry.id"
+          size="xs"
+          :variant="filter === entry.id ? 'default' : 'outline'"
+          :aria-pressed="filter === entry.id"
+          @click="setFilter(entry.id)"
+        >
+          {{ entry.label }}
+        </Button>
+      </div>
+
+      <small class="ml-auto">{{ summary }}</small>
     </div>
 
-    <Alert v-if="troubled > 0" class="mt-4">
+    <Alert v-if="troubled > 0" class="mt-2.5">
       <CircleAlert />
       <AlertTitle>{{ CONNECTOR_COPY.errorTitle }}</AlertTitle>
       <AlertDescription>{{ CONNECTOR_COPY.errorBody }}</AlertDescription>
     </Alert>
 
-    <p class="mt-4 text-caption text-ink-muted">{{ summary }}</p>
-
-    <div v-if="loading" class="mt-3 flex flex-col gap-4" aria-busy="true">
-      <Skeleton v-for="slot in 3" :key="slot" class="h-52 rounded-xl" />
+    <div v-if="loading" class="mt-2.5 flex flex-col gap-3" aria-busy="true">
+      <Skeleton v-for="slot in 3" :key="slot" class="h-40 rounded-xl" />
     </div>
 
-    <ul v-else-if="visible.length > 0" class="mt-3 flex flex-col gap-4">
+    <ul v-else-if="visible.length > 0" class="mt-2.5 flex flex-col gap-3">
       <li v-for="connector in visible" :key="connector.id">
         <SourceCard :connector="connector" @open="openDetail" @configure="openConfig" />
       </li>
@@ -101,15 +104,14 @@ const summary = computed(() => `${visible.value.length} de ${connectors.value.le
 
     <div
       v-else
-      class="mt-3 flex flex-col items-center gap-3 rounded-panel border border-dashed border-line px-6 py-12 text-center"
+      class="mt-2.5 flex flex-col items-center gap-2.5 rounded-panel border border-dashed border-line px-5 py-10 text-center"
     >
-      <span class="grid size-11 place-items-center rounded-full bg-elevated text-ink-muted">
-        <Boxes class="size-5" aria-hidden="true" />
+      <span class="grid size-10 place-items-center rounded-full bg-elevated text-ink-muted">
+        <Boxes class="size-4.5" aria-hidden="true" />
       </span>
       <strong class="text-title-sm">{{ CONNECTOR_COPY.emptyTitle }}</strong>
-      <p class="text-body-sm text-ink-muted">{{ CONNECTOR_COPY.emptyBody }}</p>
-      <Button variant="outline" size="sm" @click="clearFilters()">{{ CONNECTOR_COPY.clearFilters }}</Button>
+      <p class="text-caption text-ink-muted">{{ CONNECTOR_COPY.emptyBody }}</p>
+      <Button variant="outline" size="xs" @click="clearFilters()">{{ CONNECTOR_COPY.clearFilters }}</Button>
     </div>
   </section>
 </template>
-

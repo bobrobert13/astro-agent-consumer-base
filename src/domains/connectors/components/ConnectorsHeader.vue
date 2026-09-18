@@ -40,9 +40,9 @@ const refreshLabel = computed(() => (loading.value ? CONNECTOR_COPY.refreshBusy 
 </script>
 
 <template>
-  <header class="flex shrink-0 items-center gap-1 border-b border-line px-3 py-3">
-    <span class="grid size-8 shrink-0 place-items-center rounded-control bg-brand-050 text-brand-600">
-      <component :is="activeTab.icon" class="size-4" aria-hidden="true" />
+  <header class="flex shrink-0 items-center gap-1 border-b border-line px-3 py-2">
+    <span class="grid size-7 shrink-0 place-items-center rounded-control bg-brand-050 text-brand-600">
+      <component :is="activeTab.icon" class="size-3.5" aria-hidden="true" />
     </span>
 
     <div class="min-w-0 flex-1 pr-1">

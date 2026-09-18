@@ -1,18 +1,22 @@
 <script setup lang="ts">
 /**
  * @file src/domains/connectors/views/sources/SourceDetail.vue
- * @description Detalle de una fuente externa: qué es, qué ha indexado, qué
- * permisos tiene y a qué se puede ir desde aquí.
+ * @description Detalle de una fuente externa: qué es, qué ha indexado, qué permisos
+ * tiene y a qué se puede ir desde aquí.
  *
- * **Es un panel dentro de la pestaña, no un modal.** El modal está reservado para
- * la configuración, y separar "ver" de "editar" evita el malentendido clásico:
- * quien abre el detalle de un conector suele estar comprobando qué se va a leer,
- * no cambiando una credencial.
+ * **Es un panel dentro de la sección, no un modal.** El modal está reservado para la
+ * configuración, y separar "ver" de "editar" evita el malentendido clásico: quien
+ * abre el detalle suele estar comprobando qué se va a leer, no cambiando una
+ * credencial.
  *
- * Los valores se enseñan en modo lectura, incluidos los campos que en el modal son
- * controles. Los secretos no se pintan **ni aquí**: un valor que se enseña en
- * pantalla deja de ser secreto, y esta vista no tiene nada que la autorice a
- * mostrarlo.
+ * **Compacto y en una columna.** Los pares etiqueta/valor van en línea
+ * (`justify-between`) y no en rejilla de dos columnas: en 340 px la columna se queda
+ * en ~120 px y "Última sincronización" ya no cabía, así que la rejilla obligaba a
+ * partir las etiquetas en dos líneas. Las acciones bajan a `xs` y envuelven en dos
+ * filas como mucho.
+ *
+ * Los secretos no se pintan **ni aquí**: un valor que se enseña en pantalla deja de
+ * ser secreto, y esta vista no tiene nada que la autorice a mostrarlo.
  */
 import { ArrowLeft, ExternalLink, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
@@ -45,56 +49,56 @@ function displayValue(field: ConnectorField): string {
 </script>
 
 <template>
-  <section :aria-label="props.connector.name" class="flex flex-col gap-5">
-    <Button variant="ghost" size="sm" class="self-start" @click="closeDetail()">
+  <section :aria-label="props.connector.name" class="flex flex-col gap-3">
+    <Button variant="ghost" size="xs" class="self-start" @click="closeDetail()">
       <ArrowLeft aria-hidden="true" />
       {{ CONNECTOR_COPY.backToList }}
     </Button>
 
-    <header class="flex flex-wrap items-start gap-4">
-      <span class="grid size-12 shrink-0 place-items-center rounded-control bg-brand-050 text-brand-600">
-        <component :is="icon" class="size-6" aria-hidden="true" />
+    <header class="flex items-start gap-2.5">
+      <span class="grid size-10 shrink-0 place-items-center rounded-control bg-brand-050 text-brand-600">
+        <component :is="icon" class="size-5" aria-hidden="true" />
       </span>
 
       <div class="min-w-0 flex-1">
-        <strong class="block text-title-sm">{{ props.connector.name }}</strong>
-        <small class="block">{{ props.connector.provider }}</small>
+        <strong class="block truncate text-label text-ink">{{ props.connector.name }}</strong>
+        <small class="block truncate">{{ props.connector.provider }}</small>
       </div>
 
       <SourceStatus :status="props.connector.status" />
     </header>
 
-    <p class="text-body-sm text-ink-muted">{{ props.connector.description }}</p>
+    <p class="text-caption text-ink-muted">{{ props.connector.description }}</p>
 
-    <dl class="grid grid-cols-2 gap-3 rounded-panel border border-line bg-surface p-4">
-      <div>
+    <dl class="flex flex-col gap-1.5 rounded-panel border border-line bg-surface p-3">
+      <div class="flex items-baseline justify-between gap-3">
         <dt class="text-caption text-ink-muted">{{ CONNECTOR_COPY.documents }}</dt>
-        <dd class="text-label text-ink">{{ documents }}</dd>
+        <dd class="truncate text-label text-ink">{{ documents }}</dd>
       </div>
-      <div>
+      <div class="flex items-baseline justify-between gap-3">
         <dt class="text-caption text-ink-muted">{{ CONNECTOR_COPY.lastSync }}</dt>
-        <dd class="text-label text-ink">{{ props.connector.lastSync }}</dd>
+        <dd class="truncate text-label text-ink">{{ props.connector.lastSync }}</dd>
       </div>
-      <div>
-        <dt class="text-caption text-ink-muted">{{ CONNECTOR_COPY.status }}</dt>
-        <dd class="text-label text-ink">{{ props.connector.statusNote }}</dd>
+      <div class="flex items-baseline justify-between gap-3">
+        <dt class="shrink-0 text-caption text-ink-muted">{{ CONNECTOR_COPY.status }}</dt>
+        <dd class="truncate text-right text-label text-ink">{{ props.connector.statusNote }}</dd>
       </div>
     </dl>
 
-    <div class="flex flex-wrap gap-2">
-      <Button size="sm" @click="openConfig(props.connector)">
+    <div class="flex flex-wrap gap-1.5">
+      <Button size="xs" @click="openConfig(props.connector)">
         <Settings2 aria-hidden="true" />
         {{ CONNECTOR_COPY.configure }}
       </Button>
-      <Button variant="outline" size="sm" @click="notYet(CONNECTOR_COPY.sync)">
+      <Button variant="outline" size="xs" @click="notYet(CONNECTOR_COPY.sync)">
         <RefreshCw aria-hidden="true" />
         {{ CONNECTOR_COPY.sync }}
       </Button>
-      <Button variant="outline" size="sm" @click="notYet(CONNECTOR_COPY.docs)">
+      <Button variant="outline" size="xs" @click="notYet(CONNECTOR_COPY.docs)">
         <ExternalLink aria-hidden="true" />
         {{ CONNECTOR_COPY.docs }}
       </Button>
-      <Button variant="outline" size="sm" class="text-danger" @click="notYet(CONNECTOR_COPY.remove)">
+      <Button variant="outline" size="xs" class="text-danger" @click="notYet(CONNECTOR_COPY.remove)">
         <Trash2 aria-hidden="true" />
         {{ CONNECTOR_COPY.remove }}
       </Button>
@@ -102,9 +106,9 @@ function displayValue(field: ConnectorField): string {
 
     <section>
       <h2>{{ CONNECTOR_COPY.fieldSection }}</h2>
-      <dl class="mt-3 grid gap-3">
-        <div v-for="field in props.connector.fields" :key="field.id" class="flex flex-col gap-0.5">
-          <dt class="text-caption text-ink-muted">{{ field.label }}</dt>
+      <dl class="mt-2 flex flex-col gap-1.5">
+        <div v-for="field in props.connector.fields" :key="field.id" class="flex items-baseline justify-between gap-3">
+          <dt class="shrink-0 text-caption text-ink-muted">{{ field.label }}</dt>
           <dd class="truncate text-label text-ink">{{ displayValue(field) }}</dd>
         </div>
       </dl>
@@ -112,7 +116,7 @@ function displayValue(field: ConnectorField): string {
 
     <section>
       <h2>{{ CONNECTOR_COPY.scopeSection }}</h2>
-      <p class="mt-1 mb-3 text-body-sm text-ink-muted">{{ CONNECTOR_COPY.scopeHint }}</p>
+      <p class="mt-0.5 mb-2 text-caption text-ink-muted">{{ CONNECTOR_COPY.scopeHint }}</p>
       <ScopeList :scopes="props.connector.scopes" />
     </section>
   </section>

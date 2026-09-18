@@ -3,16 +3,21 @@
  * @file src/domains/connectors/views/templates/TemplateCard.vue
  * @description Una plantilla: un flujo guardado que se lanza con un clic.
  *
- * Muestra de dónde se alimenta (`sources`) y cuántos pasos tiene, que es lo que
- * decide si alguien la usa o la ignora. Como en base de conocimiento, lanzarla
- * todavía no está implementado y la tarjeta lo dice en vez de fingirlo.
+ * **Compacta como sus hermanas**: `Card` con `gap-0 py-0` y bloque `p-3`,
+ * descripción a dos líneas, píldoras de fuentes en línea con su etiqueta y la
+ * acción en `xs`. La categoría va en la cabecera como píldora, así que no necesita
+ * fila propia.
+ *
+ * Muestra de dónde se alimenta y cuántos pasos tiene, que es lo que decide si
+ * alguien la usa o la ignora. Lanzarla todavía no está implementado y la tarjeta lo
+ * dice en vez de fingirlo.
  */
 import { LayoutTemplate } from '@lucide/vue';
 import { computed } from 'vue';
 
 import { Badge } from '@components/ui/badge';
 import { Button } from '@components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader } from '@components/ui/card';
+import { Card } from '@components/ui/card';
 
 import { CONNECTOR_COPY } from '../../data/connectors.seed';
 import { useConnectors } from '../../composables/useConnectors';
@@ -30,11 +35,11 @@ const steps = computed(() => `${props.template.steps} ${CONNECTOR_COPY.steps}`);
 </script>
 
 <template>
-  <Card>
-    <CardHeader>
-      <div class="flex items-start gap-3">
-        <span class="grid size-10 shrink-0 place-items-center rounded-control bg-brand-500/10 text-brand-600">
-          <LayoutTemplate class="size-5" aria-hidden="true" />
+  <Card class="gap-0 py-0">
+    <div class="flex flex-col gap-2.5 p-3">
+      <div class="flex items-start gap-2.5">
+        <span class="grid size-9 shrink-0 place-items-center rounded-control bg-brand-500/10 text-brand-600">
+          <LayoutTemplate class="size-4" aria-hidden="true" />
         </span>
 
         <div class="min-w-0 flex-1">
@@ -44,19 +49,17 @@ const steps = computed(() => `${props.template.steps} ${CONNECTOR_COPY.steps}`);
 
         <Badge variant="secondary">{{ props.template.category }}</Badge>
       </div>
-    </CardHeader>
 
-    <CardContent>
-      <p class="text-body-sm text-ink-muted">{{ props.template.description }}</p>
+      <p class="line-clamp-2 text-caption text-ink-muted">{{ props.template.description }}</p>
 
-      <p class="mt-4 mb-1.5 text-caption text-ink-muted">{{ CONNECTOR_COPY.sources }}</p>
-      <div class="flex flex-wrap gap-1.5">
+      <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+        <small>{{ CONNECTOR_COPY.sources }}</small>
         <Badge v-for="source in props.template.sources" :key="source" variant="outline">{{ source }}</Badge>
       </div>
-    </CardContent>
 
-    <CardFooter class="justify-end">
-      <Button size="sm" @click="notYet(CONNECTOR_COPY.use)">{{ CONNECTOR_COPY.use }}</Button>
-    </CardFooter>
+      <div class="flex justify-end">
+        <Button size="xs" @click="notYet(CONNECTOR_COPY.use)">{{ CONNECTOR_COPY.use }}</Button>
+      </div>
+    </div>
   </Card>
 </template>

@@ -3,8 +3,8 @@
 Una sola fuente: el bloque `@theme` de **`src/styles/theme.css`**. Tailwind v4
 genera las utilidades desde ahí (`bg-surface`, `text-title`, `gap-gutter`,
 `rounded-panel`) y **no existe `tailwind.config.js`**. `global.css` importa ese
-archivo y se queda con lo que no es token: plugins, la variante de tema, el
-documento base y la rejilla del shell.
+archivo y se queda con lo que no es token: plugins, la variante de tema, el documento
+base y los fotogramas de las animaciones.
 
 ## Escala tipográfica
 
@@ -16,6 +16,7 @@ fluido con `clamp()`: el mínimo es el de móvil y el máximo el de escritorio, 
 | Token | Utilidad | Para qué |
 |---|---|---|
 | `--text-display` | `text-display` | portada o métrica grande (28 → 44 px) |
+| `--text-hero` | `text-hero` | titular del estado vacío del estudio (36 px, fijo) |
 | `--text-title` | `text-title` | `h1` de página, titular de sección (20 → 28 px) |
 | `--text-title-sm` | `text-title-sm` | `h2` de panel, título de barra (15 → 18 px) |
 | `--text-lede` | `text-lede` | entradilla bajo un titular |
@@ -45,10 +46,18 @@ no es DRY, es ofuscar: `gap-1` entre un icono y su texto es más legible que
 | `--container-measure` | `max-w-measure` | ancho de un globo del chat (85ch) |
 | `--container-prose` | `max-w-prose` | ancho de un texto de lectura (72ch) |
 | `--container-column` | `max-w-column` | columna central de una vista (48rem) |
-| `--container-rail` | `max-w-rail`, `w-rail` | rail de navegación y de ajustes (16rem) |
+| `--spacing-sidebar` | `w-sidebar` | rail del estudio (320 px) |
+| `--spacing-context` | `w-context` | panel de contexto y su margen de cierre (340 px) |
+| `--spacing-composer` | `max-w-composer` | composer y hilo (728 px) |
+| `--spacing-preview` | `max-w-preview` | modal de vista previa (760 px) |
 
-`--container-rail` es también el ancho de la rejilla del shell: `global.css` lo
-lee con `theme()` para no repetir el literal.
+Las medidas del estudio están en el espacio de nombres de **espaciado** y no en el de
+contenedores a propósito: el panel de contexto se cierra con un margen negativo, y así
+el ancho y su margen no pueden desincronizarse.
+
+El estudio mide como la plantilla —valores fijos, tomados de un mockup— y no con la
+escala fluida: su geometría (rail, cabecera, composer, panel) es una rejilla de
+aplicación, no texto corrido. La escala fluida sigue siendo la del contenido.
 
 ## Color
 
@@ -105,7 +114,7 @@ sigue mandando dentro de `MarkdownBlock`.
 4. **Las variantes de los componentes propios se declaran con `variants()`**
    (`@shared/ui/variants`), no con clases sueltas: el mismo helper lo usan
    `.astro` y `.vue`, así que un botón y su isla no pueden divergir.
-5. **El markdown del agente se pinta con `prose`** dentro de `MarkdownBlock.vue`, y
+5. **El markdown del agente se pinta con `prose`** dentro de `StudioMarkdown.vue`, y
    sin `v-html`: el contenido del agente es entrada no confiable.
 6. **Movimiento**: `prefers-reduced-motion` anula las duraciones en la capa base.
    Nada de animaciones que no puedan desactivarse así.
@@ -113,24 +122,18 @@ sigue mandando dentro de `MarkdownBlock`.
 ## Componentes de app (`src/components/`)
 
 Primitivas `.astro`, cero JS, con slots de la lista cerrada (`default`, `header`,
-`footer`, `actions`, `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`):
-`AppShell`, `SideNav`, `TopBar`, `Panel`, `PanelHeader`, `PageTitle`,
-`ButtonLink`, `Badge`, `Icon`, `EmptyState`, `Spinner`, `KeyHint`,
-`IslandFallback`.
+`footer`, `actions`, `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`): hoy
+solo `IslandFallback`, el `slot="fallback"` estándar de toda isla con `client:only`.
 
-Un `.vue` de un slice que pidan dos slices se **promociona** a
-`src/components/ui/*.vue` (o a `.astro` en esta carpeta si no necesita
-reactividad); la decisión se toma ahí, con el segundo consumidor en frente, no por
-adelantado.
-
-`Badge.astro` está **deprecado** en favor de `@components/ui/badge`: sobrevive
-solo para el chrome sin isla de las pantallas heredadas, y no admite consumidores
-nuevos.
+El chrome del producto ya no vive aquí: lo compone **`chat-studio`**, que es una isla,
+y sus reglas están en su propio `AGENTS.md`. Un `.vue` de un slice que pidan dos
+slices se **promociona** a `src/components/ui/*.vue` (o a `.astro` en esta carpeta si
+no necesita reactividad); la decisión se toma ahí, con el segundo consumidor en
+frente, no por adelantado.
 
 ## Iconografía
 
-`src/components/icon.paths.ts` es la lista cerrada de glifos para `.astro`: un
-`<svg>` inline por `use`, same-origin, `currentColor` para heredar de `text-*`.
-Añadir un icono es añadir una clave; el tipo `IconName` hace el resto. Dentro de
-una isla `.vue` se usan los iconos de `@lucide/vue`, que es lo que usa el
-registry.
+Los iconos salen de `@lucide/vue`, que es lo que usa el registry: un componente por
+glifo, `currentColor` para heredar de `text-*` y `size-*` para el tamaño. La carpeta
+`.astro` que mantenía su propia lista cerrada de glifos se retiró con las pantallas
+que la usaban.

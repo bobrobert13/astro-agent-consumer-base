@@ -25,18 +25,13 @@ no va aquí: va a la carpeta `components/` de su slice, o a
 
 ## Inventario
 
-`AppShell` (rejilla del producto) · `SideNav` · `TopBar` · `Panel` ·
-`PanelHeader` · `PageTitle` · `ButtonLink` · `Badge` · `Icon` · `EmptyState` ·
-`Spinner` · `KeyHint` · `IslandFallback`.
+`IslandFallback`. Es lo único que queda: `AppShell`, `SideNav`, `TopBar`, `Panel`,
+`PanelHeader`, `PageTitle`, `ButtonLink`, `Badge`, `Icon`, `EmptyState`, `Spinner` y
+`KeyHint` se retiraron con las pantallas heredadas, y el chrome actual lo compone el
+estudio, que es una isla (`chat-studio`).
 
-`Icon` lee su lista cerrada de `icon.paths.ts`; `IslandFallback` es el
-`slot="fallback"` estándar de toda isla con `client:only` y pinta la primitiva
-`Skeleton` del registry (en un `.astro` sin directiva, cero JS).
-
-`Badge.astro` está **deprecado** en favor de `@components/ui/badge`: dos badges
-con la misma función son la duplicación que el registry vino a quitar. Sobrevive
-solo para el chrome sin isla de las pantallas heredadas y no admite consumidores
-nuevos.
+`IslandFallback` es el `slot="fallback"` estándar de toda isla con `client:only` y
+pinta la primitiva `Skeleton` del registry (en un `.astro` sin directiva, cero JS).
 
 ## `src/components/ui/**` (shadcn-vue)
 
@@ -63,9 +58,11 @@ slices. Reglas propias:
 
 `RootLayout` es el **único** `<html>`/`<head>`/`<body>`: no existe
 `<Meta framework="vue">` en Astro 7, así que el `<head>` se escribe a mano, con
-`viewport-fit=cover` para el notch en desktop. `AppLayout` añade el shell con
-slots y monta una única isla, `ShellShortcuts` (`client:only`, sin UI): los
-atajos globales que `/settings` anuncia; `BareLayout` es para onboarding y
+`viewport-fit=cover` para el notch en desktop.
+
+`AppLayout` monta el estudio (`ChatStudio`, `client:only` + `transition:persist`) y la
+barra de navegación, y **no** tiene chrome propio: el rail, el panel central y las
+capas los compone la isla (ADR-008). `BareLayout` sigue siendo para onboarding y
 errores.
 
 Dos trampas de Astro 7 que afectan a esta carpeta:

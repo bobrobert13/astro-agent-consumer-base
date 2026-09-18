@@ -1,26 +1,22 @@
 # AGENTS.md — `src/domains/app-shell`
 
-Navegación, atajos, tema, progreso de navegación y puente con el escritorio.
-**Esqueleto funcional**: la isla `ShellShortcuts`, `useShortcuts`, la barra
-`NavigationProgress` y el store global existen; el menú nativo de desktop y el
-centro de notificaciones están por escribir.
+Estado global del chrome —el rail y el tema— y la barra de progreso de navegación.
+El slice quedó reducido a eso: los atajos, la tarjeta de apariencia y el chrome
+`.astro` de la navegación se fueron con las pantallas heredadas.
 
 ## Superficie
 
-- `@domains/app-shell` → `ShellShortcuts` (isla sin UI), `NavigationProgress` (barra),
-  `useShortcuts`, `useAppShellStore`.
+- `@domains/app-shell` → `NavigationProgress` (barra), `useAppShellStore` y
+  `ShellTheme`.
 
-## Atajos
-
-`ShellShortcuts.vue` se monta **una sola vez** en `AppLayout` con
-`client:only="vue"`: toca `document` y el store de Pinia, así que nunca debe
-renderizarse en el servidor. Sin esa isla, los atajos que `/settings` anuncia no
-existen. El atajo de detener el stream (Escape) **no** es global: vive en
-`ChatIsland.vue` y solo actúa con una ejecución viva.
+Los atajos del producto los registra el estudio (`chat-studio`): es una isla única
+presente en todas las rutas, así que tenerlos en una segunda isla hermana solo servía
+para que las dos reaccionaran a la misma tecla. El conmutador de tema vive en el menú
+de la tarjeta de usuario del rail, que es quien escribe `setTheme`.
 
 ## Barra de navegación
 
-`NavigationProgress.vue` también se monta una sola vez en `AppLayout`, con
+`NavigationProgress.vue` se monta **una sola vez** en `AppLayout`, con
 `client:only="vue"` + `transition:persist`: tiene que ser **la misma instancia** en
 todas las rutas, porque su estado es el ciclo de vida del `ClientRouter`
 (`astro:before-preparation` arranca, `astro:page-load` cierra). Remontarla en cada
@@ -32,18 +28,24 @@ Tres decisiones que no son de estilo:
   "la página está lista", y solo lo sabe el evento de fin.
 - **Red de seguridad de 8 s**: si la navegación se cancela, `page-load` no llega
   nunca y la barra se quedaría avanzando sola.
-- **`aria-hidden`**: aparece en cada navegación, y un `role="progressbar"`
-  anunciado cada vez es ruido para un lector de pantalla. El cambio de página ya se
-  anuncia por sí solo.
+- **`aria-hidden`**: aparece en cada navegación, y un `role="progressbar"` anunciado
+  cada vez es ruido para un lector de pantalla. El cambio de página ya se anuncia por
+  sí solo.
 
-Se dibuja con el `Progress` del registry (`src/components/ui/progress`), así que el
-color sale de los tokens y el indicador es el mismo que en cualquier otro progreso.
+Se dibuja con el `Progress` del registry, así que el color sale de los tokens y el
+indicador es el mismo que en cualquier otro progreso.
 
 ## Estado
 
-`src/stores/app-shell.ts` es el **único** store Pinia del repo y el ejemplo del
-disparador correcto: varias islas, sobrevive a la navegación y conviene verlo en
-devtools. Todo lo demás se comparte por URL, por el bus o por composable.
+`src/stores/app-shell.ts` es el **único** store Pinia del repo, y sigue teniendo los
+tres disparadores de `AGENTS.md`: lo lee y escribe más de una isla (`NavigationProgress`
+y el estudio), sobrevive a la navegación —donde `transition:persist` no aplica porque
+la isla de la barra es otra— y conviene verlo en devtools. Guarda `sidebarOpen`,
+`theme` y `busy`, y persiste los dos primeros en `localStorage`.
+
+El estudio lo lee para el rail y el tema, pero **no** lo usa para su propio estado:
+el resto del chrome vive en `useStudioShell` (`provide`/`inject`), porque no cruza
+ninguna frontera de isla.
 
 ## Desktop frente a web
 
@@ -54,7 +56,7 @@ user-agent. Cada capacidad tiene degradación explícita:
 |---|---|---|
 | Abrir enlace externo | `bridge().openExternal` | `window.open` con `noopener` |
 | Notificar | `bridge().notify` | Notification API |
-| Preferencias | atajo nativo o `/settings` | `/settings` |
+| Preferencias | atajo nativo | menú del usuario en el rail |
 
 Si `electron/` cambia sus canales, se actualiza aquí y en
 `src/shared/desktop/types.ts` a la vez.

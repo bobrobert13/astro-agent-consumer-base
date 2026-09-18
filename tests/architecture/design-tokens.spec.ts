@@ -22,13 +22,11 @@ import { describe, expect, it } from 'vitest';
 const SRC = fileURLToPath(new URL('../../src/', import.meta.url));
 
 /**
- * Excepciones, y por qué cada una:
- *  - `src/components/ui` lo genera el CLI de shadcn-vue; editarlo rompe `add`.
- *  - `src/pages` son las pantallas heredadas, en la lista de borrado del
- *    producto. El día que desaparezcan se quita esta línea y el guardián cubre
- *    todo el repo.
+ * Excepción, y por qué: `src/components/ui` lo genera el CLI de shadcn-vue, así que
+ * editarlo a mano rompe `add`. El resto del repo, **páginas incluidas**, pasa por
+ * el guardián: las pantallas heredadas que lo obligaban a excluirse ya no están.
  */
-const EXCLUDED = ['components/ui', 'pages'];
+const EXCLUDED = ['components/ui'];
 
 function sourceFiles(dir: string, found: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {

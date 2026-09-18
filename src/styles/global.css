@@ -4,8 +4,8 @@
  * Los tokens (familias, escala tipográfica, ritmo, medidas, radios, sombras,
  * color) y la tipografía por defecto de los elementos viven en `theme.css`.
  * Aquí queda solo lo que no es un token: los plugins, la variante de tema, el
- * documento base, la rejilla del shell y los fotogramas de las animaciones que
- * `theme.css` declara con `--animate-…`.
+ * documento base y los fotogramas de las animaciones que `theme.css` declara con
+ * `--animate-…`.
  *
  * Tailwind CSS v4 en Astro: no existe `tailwind.config.js`. Todo el sistema
  * visual se declara en CSS y `src/config/ui/tokens.ts` solo guarda lo que JS
@@ -72,25 +72,6 @@
       animation-duration: 0.01ms !important;
       transition-duration: 0.01ms !important;
     }
-  }
-}
-
-/* Rejilla del shell. Vive aquí y no en un componente para que `AppLayout` sea
- * legible sin un <style> incrustado por vista.
- *
- * El ancho del rail se lee del token con `theme()` en vez de repetir el literal:
- * `@theme inline` no publica las escalas como variables de runtime, así que
- * `var(--container-rail)` no existiría aquí. `theme()` lo resuelve en build. */
-.aac-shell {
-  display: grid;
-  grid-template-rows: auto 1fr;
-  height: 100svh;
-}
-
-@media (width >= 48rem) {
-  .aac-shell {
-    grid-template-columns: theme(--container-rail) 1fr;
-    grid-template-rows: 1fr;
   }
 }
 

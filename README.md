@@ -44,23 +44,21 @@ MASTRA_URL=http://localhost:4111 npm run dev
 
 ```
 src/
-├── domains/                 five bounded contexts
-│   ├── agent-chat/          ← implemented end to end: this is the pattern to copy
-│   ├── agent-registry/      ┐
-│   ├── agent-sessions/      │ skeletons: BFF + cached hook + types + AGENTS.md
-│   ├── agent-config/        │
-│   └── app-shell/           ┘
+├── domains/                 three bounded contexts
+│   ├── agent-chat/          the engine: transport, composables, types and the BFF
+│   ├── chat-studio/         the screen: one island with the rail, thread and panels
+│   └── app-shell/           global chrome state + the navigation progress bar
 ├── shared/                  kernel with zero domain dependencies
-├── components/              app-wide `.astro` primitives, zero JS
+├── components/              app-wide `.astro` primitives (today: `IslandFallback`)
 ├── layouts/                 Root / App / Bare
 ├── pages/                   routes + `api/` (the BFF)
 └── stores/                  one global Pinia store, and why it's only one
 electron/                    desktop shell: main, preload, lib/
 tests/                       unit · contracts · BFF · DOM · architecture boundaries
-docs/adr/                    six decisions, each with the cost it accepted
+docs/adr/                    eight decisions, each with the cost it accepted
 ```
 
-### Architecture, in six decisions
+### Architecture, in the ADRs
 
 - **[ADR-001](./docs/adr/001-relay-sse-verbatim.md) — the relay copies bytes.** The BFF rewrites
   the path, injects the credential, forces the right cache headers and propagates cancellation,
@@ -91,14 +89,21 @@ docs/adr/                    six decisions, each with the cost it accepted
   by). The relay opens the request body in exactly one place to bound its size and inject the
   server-decided identity, while the *response* keeps streaming byte for byte.
 
+- **[ADR-008](./docs/adr/008-el-estudio-es-una-isla.md) — the chat studio is one island.** The
+  screen shares state across rail, header, thread and panels, and the chat engine only exists in
+  the browser, so the island owns its whole chrome: `client:only` + `transition:persist`, with a
+  skeleton fallback. It is a declared exception to the "zero-JS chrome" rule, and the ADR writes
+  down what it costs.
+
 ### Also, because these bite later
 
 - **Vertical slicing with teeth.** `src/domains/x` is only importable through its `index.ts`
   (and a separate `server/index.ts`), so server code can't leak into the browser bundle.
   `tests/architecture/boundaries.spec.ts` fails the build otherwise.
-- **Hydration policy per surface** — `client:only` + `transition:persist` for the chat so a
-  stream survives navigation, `client:idle` for the sidebar, `client:media` for mobile-only
-  controls, and plain `.astro` for everything that needs no JS.
+- **Hydration policy per surface** — `client:only` + `transition:persist` for the studio, so a
+  stream survives navigation and the state its chrome shares stays honest; `client:media` for
+  mobile-only controls, and plain `.astro` for everything that needs no JS. The studio is the one
+  island that carries its own chrome (ADR-008).
 - **One source of visual truth.** Tailwind v4 `@theme` tokens in a single CSS file
   (`src/styles/theme.css`), including a fluid type scale and the base typography of the document;
   the same `variants()` helper is callable from `.astro` frontmatter and from `<script setup>`,
@@ -111,10 +116,10 @@ This is the part most templates skip.
 
 | Command | What it proves |
 |---|---|
-| `npm run all` | ESLint, `astro check`, 130 Vitest tests, production build. |
-| `npm run verify:bundle` | The agent provider's client lives only in a deferred chunk, outside the island's static import graph. |
+| `npm run all` | ESLint, `astro check`, the Vitest suite, production build. |
+| `npm run verify:bundle` | The island's static import graph carries no server code and no secrets, and reports how big it is. |
 | `npm run verify:relay` | Against a fake agent backend: the relay forwards the SSE stream **byte for byte**, forces `no-transform`, leaks no cookies, and `checkOrigin` still blocks cross-site POSTs. |
-| `npm run verify:electron` | Boots the built server inside Electron, opens a real Chromium window, verifies the `contextBridge` preload, **types a prompt and waits until the streamed answer settles on screen**, opens a `/settings` dropdown against the production CSP and fails on any policy violation, then writes `smoke/electron-chat.png`. |
+| `npm run verify:electron` | Boots the built server inside Electron, opens a real Chromium window, verifies the `contextBridge` preload, **types a prompt and waits until the streamed answer settles on screen**, opens the context panel and a reka-ui dropdown against the production CSP and fails on any policy violation, then writes `smoke/electron-chat.png`. |
 
 The last one is the only check that sees what the user sees — and the only one that runs the
 build with CSP enabled, since dev switches it off for HMR. It found five bugs that every unit
@@ -144,8 +149,9 @@ before the first check. Packaging is unaffected.
 
 1. Rename in `package.json` and `electron-builder.yml` (`appId`, `productName`); replace the
    placeholder `author` / `homepage` (the `deb` target requires them).
-2. Delete what you won't use: the `agent-chat` example, `pages/agents`, `pages/history`,
-   `pages/settings`, and any skeleton slice that won't exist.
+2. Delete what you won't use. The base already ships lean — three slices, two routes and one
+   island per screen — so the usual candidate is the example copy and seed data in
+   `chat-studio/data/studio.seed.ts`.
 3. Point `env.schema` at your real backend and set timeouts your model actually respects.
 4. Let the boundary test tell you what you broke.
 

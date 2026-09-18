@@ -71,17 +71,16 @@ montarla (véase `src/vue-app.ts` y `astro.config.mjs`).
 
 | Superficie | Directiva |
 |---|---|
-| Isla de chat (transcript + composer) | `client:only="vue"` + `transition:persist` + `slot="fallback"` |
-| Atajos globales (`ShellShortcuts`, sin UI) | `client:only="vue"`, una sola vez en `AppLayout` |
+| Estudio de chat (rail, hilo, panel de contexto, capas) | `client:only="vue"` + `transition:persist` + `slot="fallback"` |
 | Barra de navegación (`NavigationProgress`) | `client:only="vue"` + `transition:persist`, una vez en `AppLayout` |
-| Contenido interactivo que ya está en pantalla (ajustes) | `client:visible` |
 | Listas por debajo del pliegue | `client:visible` |
 | UI solo para móvil | `client:media="(max-width: 60rem)"` |
 | Datos por-request sin JS | `server:defer` |
 | Chrome, navegación, paneles | `.astro` sin directiva (cero JS) |
 
-**`client:idle` no se usa para contenido de página, y está medido**: se probó en
-`/settings` para hidratar sin esperar al observer y `requestIdleCallback` se difiere
+**`client:idle` no se usa para contenido de página, y está medido**: se probó en la
+pantalla de ajustes (ya retirada) para hidratar sin esperar al observer, y
+`requestIdleCallback` se difiere
 mientras la página no está visible, así que con la ventana en segundo plano la isla
 no hidrataba nunca (el `Select` de ajustes no llegaba a abrirse; lo cazó
 `verify:electron`). Donde importa que la isla responda al primer gesto, `visible`.
@@ -93,9 +92,10 @@ diseño: el usuario ve controles deshabilitados y lo lee como que la app va lent
 Si la lectura del servidor puede tardar, se le pone presupuesto (`AbortSignal`) y
 la isla cae a pedirlo ella misma si se agota.
 
-Prohibido `client:load` en `agent-chat`: la isla es `client:only` porque su transcript
-nace vacío —no hay nada que server-renderizar— y porque su núcleo es el AI SDK, que
-solo existe en el navegador (ADR-007).
+Prohibido `client:load` en el estudio: la isla es `client:only` porque su núcleo es
+el AI SDK, que solo existe en el navegador, y porque el chrome no aporta nada que
+merezca renderizarse en servidor (ADR-007). El porqué largo, en
+`src/domains/chat-studio/AGENTS.md`.
 
 ## Rendimiento del streaming
 
@@ -104,7 +104,7 @@ solo existe en el navegador (ADR-007).
 2. El texto en vuelo **no** es un mensaje de la lista: `adapt-ui-messages.ts` saca el
    último globo del asistente de `messages` y lo expone como `streamingText`; al
    cerrar, entra en la lista con todas sus piezas (texto y herramientas). Es lo que
-   mantiene barato el scroll, porque `chat.memo.ts` memoriza los globos cerrados.
+   mantiene barato el scroll, porque `studio.memo.ts` memoriza los globos cerrados.
 3. `markRaw` sobre clientes HTTP, `Response`, `ReadableStream`, `AbortController` y
    payloads opacos de tool-call. Vue no debe hacer proxy de un stream.
 4. **El vocabulario del AI SDK solo se conoce en `agent-chat/ai/`** —y en
@@ -244,12 +244,13 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   semánticos del registry (`text-muted-foreground`, `bg-accent`) se usan **solo**
   dentro de `src/components/ui/**`. Son las mismas variables por debajo, pero
   mezclarlas en un archivo hace ilegible qué cambia el tema.
-- Consumidores reales: la isla de chat (`agent-chat/components/**`) usa
-  `Button`, `Textarea`, `ScrollArea`, `Collapsible`, `Dialog`, `DropdownMenu`,
-  `Alert`, `Badge`, `Skeleton`, `Kbd`, `Label`. `IslandFallback` monta `Skeleton`
-  en un `.astro` sin directiva (cero JS).
-- `Badge.astro` está **deprecado** a favor de `ui/badge`: solo sobrevive para el
-  chrome sin isla de las pantallas heredadas, que están en la lista de borrado.
+- Consumidores reales: el estudio (`chat-studio/components/**`) usa `Button`,
+  `Textarea`, `ScrollArea`, `Collapsible`, `Dialog`, `DropdownMenu`, `Alert`,
+  `Badge`, `Skeleton`, `Slider`, `Tooltip` y `Toaster`. `IslandFallback` monta
+  `Skeleton` en un `.astro` sin directiva (cero JS).
+- Las primitivas `.astro` propias quedaron en `IslandFallback`: el resto se retiró
+  con las pantallas heredadas. Un componente nuevo se escribe en el slice que lo usa,
+  o se promociona a `src/components/ui/*.vue` cuando lo pidan dos.
 - Un `.vue` del registry en un `.astro` sin directiva se renderiza en el servidor
   (cero JS); los interactivos (Dialog, Dropdown…) exigen isla hidratada.
 - **CSP:** `security.csp` lleva `style-src 'self' 'unsafe-inline'` y deja
@@ -294,9 +295,9 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
 - `npm run test` corre en dos proyectos: `node` (kernel, servicios, BFF) y `dom`
   (jsdom + `@vue/test-utils`, para montar componentes). El plugin de Vue del
   proyecto `dom` es obligatorio: sin él Vite parsea el `.vue` como JS. Cubre, entre
-  otras cosas, la isla de chat completa contra el transporte mock
-  (`tests/dom/chat-island.spec.ts`) y las dependencias de `v-memo` del globo en
-  vuelo (`tests/dom/chat-message.spec.ts`).
+  otras cosas, el estudio completo contra el transporte mock
+  (`tests/dom/studio-chat.spec.ts`) y las dependencias de `v-memo` del globo en
+  vuelo (`tests/dom/studio-message.spec.ts`).
 - `tests/architecture/design-tokens.spec.ts` es el guardián del lenguaje visual:
   falla con un tamaño arbitrario, un blanco literal o un color escrito a mano.
 - `npm run verify:bundle` → el cierre estático de la isla no arrastra código de
@@ -309,8 +310,8 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   cross-site.
 - `npm run verify:electron` → abre Chromium, levanta el servidor construido, verifica
   el `contextBridge` del preload, **escribe un prompt y espera a que la respuesta se
-  asiente en pantalla**, abre un `Select` de `/settings` contra el CSP de producción y
-  deja `smoke/electron-chat.png`. Es la única prueba de lo que el usuario ve: ningún
+  asiente en pantalla**, abre el panel de contexto y un desplegable del estudio contra
+  el CSP de producción y deja `smoke/electron-chat.png`. Es la única prueba de lo que el usuario ve: ningún
   test de Vitest puede sustituirla. Es también el guardián del CSP (ADR-004), porque
   corre la build y no dev.
   En Linux sin `chrome-sandbox` SUID-root el lanzador desactiva el sandbox del

@@ -4,7 +4,7 @@
  * modelo activo y modal de vista previa.
  *
  * **Por qué `provide`/`inject` y no un store de Pinia.** El estudio entero es
- * **una sola isla** (`client:only` en `StudioLayout`), así que su estado no cruza
+ * **una sola isla** (`client:only` en `AppLayout`), así que su estado no cruza
  * ninguna frontera de isla: no hay nada que compartir por módulo. Un store aquí
  * sería un singleton global para un estado que vive y muere con el componente, y
  * el repositorio reserva Pinia para lo que sí cruza islas (`AGENTS.md`).

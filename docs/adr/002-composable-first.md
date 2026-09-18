@@ -42,9 +42,9 @@ Ahí se instalan Pinia y colada una sola vez, con el `pinia` de
   Un `.vue` sin directiva se renderiza en el servidor, y allí un singleton de
   módulo mezclaría estado entre peticiones de usuarios distintos. La corta
   `tests/architecture/boundaries.spec.ts`.
-- El transcript en vuelo **no** es estado global: lo posee `ChatIsland`. Evita el
-  modo "estado global por defecto", que es como un store acaba siendo el basurero
-  de la app.
+- El transcript en vuelo **no** es estado global: lo posee el composable del chat
+  (`useAgentChat`) y lo pinta la vista. Evita el modo "estado global por defecto",
+  que es como un store acaba siendo el basurero de la app.
 
 ## Lección verificada en navegador
 
@@ -52,7 +52,8 @@ Ahí se instalan Pinia y colada una sola vez, con el `pinia` de
 desenvuelve los refs de nivel superior del `setup()`. Escribir `chat.messages` en
 una plantilla entrega el `Ref`: `v-for` itera sus claves internas y el resultado es
 un transcript de burbujas vacías con un `[object Object]` en el composer. Se
-soluciona **desestructurando en el componente** (`ChatIsland.vue`), no envolviendo
+soluciona **desestructurando en el componente** (hoy lo hacen los del estudio, que
+  consumen `useAgentChat`), no envolviendo
 en `reactive()` — eso volvería a proxyear la lista de mensajes y anularía el
 `shallowRef`.
 

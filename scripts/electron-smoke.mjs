@@ -13,9 +13,10 @@
  *  - que el servidor Astro construido arranca desde Electron y responde a su
  *    propio `/api/health`;
  *  - que el `contextBridge` del preload llega realmente al renderer;
- *  - que el CSP de producción no rompe la UI: `/settings` abre un popper de
- *    reka-ui (escribe `style=""`) y se exige que se vea posicionado y que no
- *    haya ningún aviso de Content Security Policy en el proceso.
+ *  - que el CSP de producción no rompe la UI: el estudio abre capas de reka-ui
+ *    (un desplegable y el modal de vista previa, que escriben `style=""`) y se
+ *    exige que se vean y que no haya ningún aviso de Content Security Policy en
+ *    el proceso.
  *
  * Deja una captura en `smoke/electron-chat.png`. Sale con 0 si todo pasó.
  *
@@ -27,6 +28,13 @@ import { app, BrowserWindow, screen } from 'electron';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
+
+// Chromium no avanza las transiciones CSS de una ventana oculta si la página
+// todavía no ha pintado; esta sonda mide el resultado de una de ellas (el panel
+// de contexto se abre moviendo su margen), así que se fuerzan todas las etapas
+// del compositor antes de dibujar. Es el mismo remedio que documenta la guía de
+// la plantilla para capturas de estados con transición.
+app.commandLine.appendSwitch('run-all-compositor-stages-before-draw');
 
 import { startAstroServer } from '../electron/lib/astro-server.mjs';
 import { registerIpc } from '../electron/lib/register-ipc.mjs';
@@ -123,7 +131,7 @@ async function exerciseApp(baseUrl) {
   record('la isla Vue hidrata en Chromium', hydrated, 'se esperaba #aac-composer');
 
   if (hydrated) await driveChat(win);
-  await exerciseSettings(win, baseUrl);
+  await exerciseStudio(win, baseUrl);
 
   record('bootstrap es el canal declarado en lib/ipc.mjs', CHANNELS.rendererToMain.bootstrap === 'desktop:bootstrap');
   record('la pantalla primaria es consultable desde el main', Number.isFinite(screen.getPrimaryDisplay().scaleFactor));
@@ -222,17 +230,59 @@ async function clickAt(win, point) {
 }
 
 /**
- * `/settings` es la página que en dev no prueba el CSP: allí está apagado por
- * HMR, así que ni los atributos `style=""` que reka-ui y vue-sonner sacan del
- * SSR ni los que escribe el CSSOM en runtime se han evaluado contra una política
- * real. Abrir un `Select` y elegir una opción recorre los dos caminos.
+ * El estudio es la pantalla que en dev no prueba el CSP: allí está apagado por
+ * HMR, así que ni los atributos `style=""` que reka-ui escribe al posicionar un
+ * desplegable ni los que el CSSOM pone en runtime se han evaluado contra una
+ * política real. Abrir el panel de contexto y el desplegable de la cabecera
+ * recorre los dos caminos.
+ *
+ * Las comprobaciones son funcionales, no discriminadores del CSP: lo que delata a
+ * la política son los avisos de `watchViolations`, que es la razón de ser de esta
+ * sección (ADR-004).
  */
-async function exerciseSettings(win, baseUrl) {
-  await win.loadURL(`${baseUrl}/settings`);
+/**
+ * ¿Está abierto el panel de contexto? Se mira el **estado**, no la caja.
+ *
+ * Medir la geometría aquí sería medir el entorno: en una ventana oculta Chromium no
+ * avanza la transición del margen con el que el panel entra, así que el estado
+ * lógico cambia y el `left` se queda en el valor de partida. Lo que este guardián
+ * tiene que probar es que el clic abre la capa y que la página sigue sin
+ * violaciones de CSP; el tamaño de la columna es CSS.
+ */
+function isPanelOpen(win) {
+  return win.webContents.executeJavaScript(`(() => {
+    const toggle = document.querySelector('[aria-label="Panel de contexto"]');
+    const panel = document.querySelector('aside[aria-label="Panel de contexto"]');
+    if (!toggle || !panel) return false;
+    return toggle.getAttribute('aria-expanded') === 'true' && panel.offsetWidth > 200;
+  })()`);
+}
 
-  // El `data-state` vive en el contenido, no en el wrapper del popper. Y se
-  // comprueba el estado lógico y no la caja: en una ventana oculta Chromium no
-  // avanza las animaciones CSS, así que al cerrar el nodo sigue montado con
+async function exerciseStudio(win, baseUrl) {
+  await win.loadURL(`${baseUrl}/`);
+
+  const ready = await waitFor(
+    () => win.webContents.executeJavaScript('!!document.querySelector("#aac-composer")'),
+    15_000,
+  );
+  record('la raíz hidrata el estudio', ready);
+  if (!ready) return;
+
+  // El centro se recalcula en cada intento: si el panel llega a abrirse, la
+  // cabecera se estrecha y el botón se mueve, así que insistir con las coordenadas
+  // viejas cerraría lo que se acaba de abrir.
+  let panelOpen = false;
+  for (let attempt = 0; attempt < 3 && !panelOpen; attempt += 1) {
+    const target = await centerOf(win, '[aria-label="Panel de contexto"]');
+    if (target === null) break;
+    await clickAt(win, target);
+    panelOpen = await waitFor(() => isPanelOpen(win), 3_000);
+  }
+  record('el panel de contexto se abre', panelOpen);
+
+  // Popper de reka-ui: no está en el wrapper, `data-state` vive en su contenido. Y
+  // se comprueba el estado lógico y no la caja porque, en una ventana oculta,
+  // Chromium no avanza las animaciones CSS: al cerrar, el nodo sigue montado con
   // `data-state="closed"` esperando un `animationend` que nunca llega.
   const popperState = `(() => {
     const el = document.querySelector('[data-reka-popper-content-wrapper]');
@@ -250,28 +300,14 @@ async function exerciseSettings(win, baseUrl) {
   const readPopper = () => win.webContents.executeJavaScript(popperState);
   const isOpen = async () => (await readPopper()).state === 'open';
 
-  const ready = await waitFor(
-    () => win.webContents.executeJavaScript('!!document.querySelector("[role=combobox]")'),
-    15_000,
-  );
-  record('las islas de /settings hidratan (hay un Select renderizado)', ready);
-
-  // El CSP no puede romperse en silencio: si `style-src` volviera a exigir hashes,
-  // los atributos `style=""` que emite el SSR se descartarían al parsear y esta
-  // variable del `Slider` llegaría vacía, aunque nada más en la página lo note.
-  const ssrVar = await win.webContents.executeJavaScript(
-    "(() => { const el = document.querySelector('[data-slider-impl]'); return el ? getComputedStyle(el).getPropertyValue('--reka-slider-thumb-transform').trim() : 'sin slider'; })()",
-  );
-  record('los atributos style="" del SSR sobreviven al CSP', ssrVar === 'translateX(-50%)', JSON.stringify(ssrVar));
-
-  if (!ready) return;
-
-  const trigger = await centerOf(win, '[role=combobox]');
-  record('el trigger del Select es medible', trigger !== null, JSON.stringify(trigger));
+  // El primer desplegable del documento. Es un menú del registry, así que escribe
+  // `style=""` al posicionarse: ese es el camino que el CSP tiene que dejar pasar.
+  const trigger = await centerOf(win, '[aria-haspopup="menu"]');
+  record('el selector de modelo del estudio es medible', trigger !== null, JSON.stringify(trigger));
   if (trigger === null) return;
 
-  // Un `mouseDown` de verdad: reka-ui abre el desplegable en `pointerdown`, y un
-  // `.click()` sintético desde `executeJavaScript` no lo dispara.
+  // Un `mouseDown` de verdad: reka-ui abre en `pointerdown`, y un `.click()`
+  // sintético desde `executeJavaScript` no lo dispara.
   await clickAt(win, trigger);
   let appeared = await waitFor(isOpen, 6_000);
   if (!appeared) {
@@ -280,55 +316,11 @@ async function exerciseSettings(win, baseUrl) {
     appeared = await waitFor(isOpen, 6_000);
   }
   const popper = await readPopper();
-  // Comprobación funcional, no discriminador del CSP: un popper con `top > 0`
-  // bajo su trigger significa que el `Select` hidratado funciona en la build.
-  // Lo que delata al CSP son los avisos de `watchViolations`, que es la razón de
-  // ser de esta sección (ADR-004).
   record(
-    'el popper del Select llega a posicionarse (estilos inline aplicados)',
-    appeared && popper.inline > 0 && popper.ancho > 60 && popper.alto > 20 && popper.top > 0,
+    'el popper del selector de modelo se posiciona (estilos en línea aplicados)',
+    appeared && popper.inline > 0 && popper.ancho > 60 && popper.alto > 20,
     JSON.stringify(popper),
   );
-
-  const optionCount = await win.webContents.executeJavaScript(
-    'document.querySelectorAll("[role=option]").length',
-  ).catch(() => 0);
-  record('el popper trae las opciones del tema', Number(optionCount) >= 2, `${optionCount} opciones`);
-
-  if (!appeared) return;
-
-  // Se elige una opción de verdad en lugar de comprobar el cierre por Escape:
-  // elegir cierra el desplegable, escribe en el store y deja el valor visible en
-  // el trigger, así que en un solo gesto se comprueba que el popper posicionado
-  // también recibe entrada. Las teclas no: una ventana fuera de pantalla nunca
-  // tiene el foco del sistema y Chromium no reparte `keydown` sin él.
-  const options = await win.webContents.executeJavaScript(
-    "Array.from(document.querySelectorAll('[role=option]')).map((el) => { const box = el.getBoundingClientRect(); return { label: el.textContent.trim(), x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) }; })",
-  );
-  const wanted = options?.[1] ?? options?.[0];
-  if (wanted !== undefined) await clickAt(win, { x: wanted.x, y: wanted.y });
-
-  const hidden = await waitFor(async () => !(await isOpen()), 4_000);
-  const closedState = await readPopper();
-  const shown = await win.webContents.executeJavaScript(
-    "document.querySelector('[role=combobox]')?.textContent?.trim() ?? ''",
-  );
-  record(
-    'elegir una opción del Select cierra el popper y deja ver el valor',
-    hidden && wanted !== undefined && shown === wanted.label,
-    `${JSON.stringify(wanted?.label)} → trigger ${JSON.stringify(shown)}, popper: ${closedState.state || 'desmontado'}`,
-  );
-
-  const toggled = await win.webContents.executeJavaScript(
-    "(() => { const el = document.querySelector('[role=switch]'); if (!el) return 'sin switch'; const before = el.getAttribute('data-state'); el.click(); return before; })()",
-  );
-  const after = await waitFor(
-    () => win.webContents.executeJavaScript(
-      "document.querySelector('[role=switch]')?.getAttribute('data-state') ?? 'desaparecido'",
-    ).then((state) => state !== toggled),
-    3_000,
-  );
-  record('el Switch alterna de estado', after, String(toggled));
 }
 
 async function pagePolicy(url) {

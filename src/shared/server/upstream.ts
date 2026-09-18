@@ -1,11 +1,11 @@
 /**
- * @file src/shared/upstream/headers.ts
+ * @file src/shared/server/upstream.ts
  * @description Único lugar del repo que lee la credencial y el host del backend de
  * agentes.
  *
- * Vive en `shared` y no dentro de un slice porque lo consumen varios: el relay de
- * `agent-chat`, el catálogo de `agent-registry` y los hilos de `agent-sessions`.
- * Un helper en `agent-chat/server/` obligaría a que otra slice importara internos
+ * Vive en `shared` y no dentro de un slice porque es infraestructura que cualquier
+ * slice puede necesitar (hoy lo consumen el relay y las sondas de `agent-chat`). Un
+ * helper en `agent-chat/server/` obligaría a que otra slice importara internos
  * ajenos, que es justo lo que prohíbe la regla de fronteras.
  *
  * Solo importable desde carpetas `server` de un slice y desde `src/pages/api`

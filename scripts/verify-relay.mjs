@@ -53,7 +53,7 @@ const server = start(['./dist/server/entry.mjs'], {
 const browserHeaders = { 'content-type': 'application/json', origin: APP };
 
 try {
-  check('el stub del backend de agentes levanta', await waitReady(`${UPSTREAM}/api/agents`));
+  check('el stub del backend de agentes levanta', await waitReady(`${UPSTREAM}/health/version`));
   const appUp = await waitReady(`${APP}/api/health`);
   check('el servidor construido de Astro levanta', appUp);
 
@@ -138,12 +138,10 @@ try {
     });
     check('checkOrigin sigue bloqueando el cross-site', cross.status === 403, `status=${cross.status}`);
 
-    const agents = await (await fetch(`${APP}/api/agents`)).text();
-    check('/api/agents normaliza el catálogo', agents.includes('"id":"research"'), agents.slice(0, 90));
-    check(
-      '/api/agents recorta instrucciones internas y costos',
-      !agents.includes('INSTRUCCIONES-INTERNAS') && !agents.includes('cost')
-    );
+    // Aquí se comprobaba que `/api/agents` normalizaba y recortaba el catálogo. Ese
+    // endpoint se fue con su slice, así que lo que queda es el relay y las sondas.
+    // La garantía de recorte no se pierde: la sostiene el schema en
+    // `tests/bff/normalizers.spec.ts`, que es donde vive la regla.
   }
 } finally {
   stub.kill('SIGTERM');

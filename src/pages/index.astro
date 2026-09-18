@@ -10,10 +10,10 @@
  * leer aquí en el servidor; el estudio lo resuelve en el cliente al montar. La
  * ruta `/chat/<hilo>`, que sí es SSR, lo lee en el servidor.
  */
-import StudioLayout from '@layouts/StudioLayout.astro';
+import AppLayout from '@layouts/AppLayout.astro';
 import { APP_NAME } from '@shared/env/client';
 
 export const prerender = true;
 ---
 
-<StudioLayout title={APP_NAME} description="Estudio de chat sobre agentes de IA." />
+<AppLayout title={APP_NAME} description="Estudio de chat sobre agentes de IA." />

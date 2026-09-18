@@ -3,7 +3,7 @@
  * @description Vocabulario del estudio de chat: la **forma** de los datos que
  * consume la vista, sin decir de dónde salen.
  *
- * El estudio arranca con datos semilla estáticos (`useStudioSeed`), así que estos
+ * El estudio arranca con datos semilla estáticos (`data/studio.seed.ts`), así que estos
  * contratos son la frontera estable del slice: mientras los componentes solo
  * hablen de `ResourceRow` o `HistoryGroup`, sustituir la semilla por una lectura
  * real no toca un solo `.vue`.

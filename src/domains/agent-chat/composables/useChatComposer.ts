@@ -9,7 +9,8 @@ import { computed, ref } from 'vue';
  * re-evaluar el historial en cada tecla.
  *
  * La lógica de teclas (Enter envía, Shift+Enter salta línea) vive en
- * `ChatComposer.vue`, que es el único sitio donde existe un `KeyboardEvent`:
+ * `StudioComposer.vue` (chat-studio), que es el único sitio donde existe un
+ * `KeyboardEvent`:
  * duplicarla aquí "por si acaso" es exactamente la deriva que este slice prohíbe.
  */
 export function useChatComposer(options: { disabled?: () => boolean } = {}) {

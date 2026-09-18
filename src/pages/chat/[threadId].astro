@@ -13,7 +13,7 @@
  * `output: 'server'` hace que esta página se resuelva bajo demanda, que es lo que
  * quiere decir "SPA por defecto con servidor propio".
  */
-import StudioLayout from '@layouts/StudioLayout.astro';
+import AppLayout from '@layouts/AppLayout.astro';
 import { DEFAULT_AGENT_ID, NEW_THREAD_ID } from '@config/app';
 
 const threadId = Astro.params.threadId ?? NEW_THREAD_ID;
@@ -22,7 +22,7 @@ const threadId = Astro.params.threadId ?? NEW_THREAD_ID;
 const agentId = Astro.url.searchParams.get('agente') ?? DEFAULT_AGENT_ID;
 ---
 
-<StudioLayout
+<AppLayout
   title={threadId === NEW_THREAD_ID ? 'Hilo nuevo' : `Hilo ${threadId}`}
   description="Conversación con el agente."
   threadId={threadId}

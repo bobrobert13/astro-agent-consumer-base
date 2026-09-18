@@ -20,22 +20,6 @@ const sleep = (ms) => (ms === 0 ? Promise.resolve() : new Promise((r) => setTime
 createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', `http://localhost:${port}`);
 
-  if (url.pathname === '/api/agents') {
-    res.writeHead(200, { 'content-type': 'application/json' });
-    res.end(JSON.stringify({
-      agents: {
-        research: {
-          id: 'research',
-          name: 'Investigación',
-          description: 'Agente de ejemplo del stub.',
-          instructions: 'INSTRUCCIONES-INTERNAS-NO-PUBLICABLES',
-          cost: { cents: 9999 },
-        },
-      },
-    }));
-    return;
-  }
-
   if (url.pathname === '/health/version') {
     res.writeHead(200, { 'content-type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', version: '0.0.0-stub', env: 'test' }));

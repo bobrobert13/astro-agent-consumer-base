@@ -2,12 +2,11 @@
  * @file tests/bff/normalizers.spec.ts
  * @description Los normalizadores son la frontera real contra el proveedor: si
  * cambian su forma de responder, esto es lo que absorbe el golpe. Se prueba sobre
- * las tres formas que Mastra ha usado y sobre el recorte de campos.
+ * las formas que Mastra ha usado y sobre el recorte de campos. Los normalizadores
+ * del catálogo de agentes y del historial se fueron con sus slices.
  */
 import { describe, expect, it } from 'vitest';
 
-import { listAgents } from '@domains/agent-registry/server/list-agents';
-import { listThreads } from '@domains/agent-sessions/server/list-threads';
 import { parseRunRequest } from '@domains/agent-chat/server/normalize-agent-run';
 import { resolveScope, sanitizeThread } from '@domains/agent-chat/server/session-scope';
 import { agentListSchema } from '@domains/agent-chat/server/normalize-agent-run';
@@ -72,33 +71,6 @@ describe('resolveScope', () => {
     const scope = resolveScope(new Request('http://localhost/api/sessions'));
     expect(scope.resource).toMatch(/^[0-9a-f]{32}$/);
     expect(scope.setCookie).toContain(`aac_resource=${scope.resource}`);
-  });
-});
-
-describe('listAgents / normalización', () => {
-  it('descarta la forma desconocida en vez de reventar la vista', async () => {
-    // `fetch` global no apunta a ningún servidor en los tests de normalizadores:
-    // se simula la respuesta del upstream.
-    const original = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response(JSON.stringify({ inesperado: true }), { headers: { 'content-type': 'application/json' } })) as typeof fetch;
-
-    await expect(listAgents()).resolves.toMatchObject({ ok: true, data: [] });
-    globalThis.fetch = original;
-  });
-});
-
-describe('listThreads / normalización', () => {
-  it('devuelve la página vacía si el upstream no entiende nada', async () => {
-    const original = globalThis.fetch;
-    globalThis.fetch = (async () =>
-      new Response(JSON.stringify([]), { headers: { 'content-type': 'application/json' } })) as typeof fetch;
-
-    const result = await listThreads('usuario-7');
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.data).toEqual({ items: [], total: 0 });
-
-    globalThis.fetch = original;
   });
 });
 

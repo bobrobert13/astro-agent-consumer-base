@@ -11,15 +11,36 @@ import { aliases } from './aliases.mjs';
 /**
  * Astro NO puebla `process.env` desde `.env` para el propio archivo de config
  * (docs: "You cannot use it in astro.config.mjs"), y aquí leemos variables para
- * decidir el CSP según entorno. Cargador mínimo, sin dependencias: solo claves
- * aún no definidas en el entorno real.
+ * decidir el CSP según entorno. Cargador mínimo, sin dependencias.
+ *
+ * Los dos archivos se leen **en orden de prioridad**: `.env.local` gana a `.env`
+ * —igual que dentro de Vite—, y el entorno real gana a los dos. Sin esto, el
+ * valor de `.env` se escribía en `process.env` y Vite lo prefiere al de
+ * `.env.local` (copia `process.env` sobre lo parseado), así que
+ * `npm run transport:mock` no surtía efecto: el interruptor decía `mock` y la app
+ * seguía hablando con el backend real. Verificado.
  */
-function loadDotEnv(file = '.env') {
-  if (!existsSync(file)) return;
-  for (const line of readFileSync(file, 'utf8').split('\n')) {
-    const [, key, value] = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$/) ?? [];
-    if (key !== undefined && value !== undefined && process.env[key] === undefined) {
+function loadDotEnv(files = ['.env', '.env.local']) {
+  const fromFiles = new Set();
+  for (const file of files) {
+    if (!existsSync(file)) continue;
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+      const key = match?.[1];
+      const raw = match?.[2];
+      if (key === undefined || raw === undefined) continue;
+      // Comentario al final de la línea (como dotenv) y comillas opcionales: el
+      // `#` solo abre comentario si le precede un espacio, así que una URL con
+      // fragmento sobrevive.
+      const value = raw
+        .replace(/\s+#.*$/, '')
+        .trim()
+        .replace(/^(['"])(.*)\1$/, '$2');
+      // Lo que ya venía del entorno del proceso no se pisa; lo que puso un archivo
+      // anterior sí, que es como se resuelve la prioridad entre `.env` y `.env.local`.
+      if (process.env[key] !== undefined && !fromFiles.has(key)) continue;
       process.env[key] = value;
+      fromFiles.add(key);
     }
   }
 }

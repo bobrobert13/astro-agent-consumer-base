@@ -6,11 +6,11 @@
  * panel es una columna del estudio —no otra pantalla—, así que abrirlo no cambia
  * la URL ni desmonta la isla; lo único observable es qué dejó abierto cada botón, y
  * eso es justo lo que hay que fijar: la franja del composer entra por "fuentes", el
- * rail entra por la sección de cada una de sus dos entradas, y "Explorar" no abre
- * nada porque no tiene destino.
+ * rail entra por la sección de cada una de sus entradas, y la herramienta del
+ * composer entra por donde la franja.
  *
- * Las tres puertas comparten el mismo estado, así que se prueban contra el mismo
- * arnés: el estudio de verdad (con su `provideStudioShell`) y no una copia.
+ * Las puertas comparten el mismo estado, así que se prueban contra el mismo arnés:
+ * el estudio de verdad (con su `provideStudioShell`) y no una copia.
  */
 import { createPinia } from 'pinia';
 import { defineComponent, h, type Component } from 'vue';
@@ -68,14 +68,18 @@ describe('puertas hacia el panel de conectores', () => {
     expect(shell.connectorsTab.value).toBe('plantillas');
   });
 
-  it('"Explorar" no abre nada: avisa', async () => {
+  it('todas las secciones del rail tienen destino', async () => {
     const { wrapper, shell } = mountInsideStudio(StudioNav);
 
-    await wrapper.findAll('button').find((node) => node.text().includes('Explorar'))?.trigger('click');
+    // El rail ya no tiene ninguna sección de esqueleto: si alguien añade una y no
+    // le da destino, el mapa exhaustivo de `StudioNav` no compila.
+    const sections = wrapper.findAll('button');
+    expect(sections.length).toBeGreaterThan(0);
 
-    // Sin destino no hay panel; el aviso lo pone el toast, que es lo que el
-    // repositorio pide para una zona de esqueleto.
-    expect(shell.connectorsOpen.value).toBe(false);
+    for (const section of sections) {
+      await section.trigger('click');
+      expect(shell.connectorsOpen.value).toBe(true);
+    }
   });
 
   it('la herramienta del composer abre lo mismo que la franja', async () => {

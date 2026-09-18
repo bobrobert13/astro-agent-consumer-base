@@ -3,33 +3,28 @@
  * @file src/domains/chat-studio/components/StudioNav.vue
  * @description Secciones de la navegación lateral.
  *
- * Dos de las tres ya tienen destino: abren el panel de conectores en su sección
- * —base de conocimiento y plantillas— **sin cambiar de pantalla**. "Explorar" sigue
- * sin destino, así que en vez de dejar un botón mudo, que el usuario lee como una
- * app rota, lo dice con un aviso.
+ * Las dos abren el panel lateral en su sección **sin cambiar de pantalla**. Como
+ * todas tienen destino, el mapa de abajo es exhaustivo por tipo (`NavId` es una
+ * unión cerrada): no hay rama de "esto todavía no existe" que se pueda quedar
+ * mintiendo, y añadir una sección al rail obliga a decidir a dónde va antes de que
+ * compile.
  */
 import type { ConnectorTab } from '@domains/connectors';
 
 import { STUDIO_NAV } from '../data/studio.seed';
 import { useStudioShell } from '../composables/useStudioShell';
-import type { NavItem } from '../types/studio.types';
+import type { NavId, NavItem } from '../types/studio.types';
 
-const { notYet, openConnectors } = useStudioShell();
+const { openConnectors } = useStudioShell();
 
 /** Secciones que viven dentro del panel de conectores. */
-const DESTINATIONS: Record<string, ConnectorTab> = {
+const DESTINATIONS: Record<NavId, ConnectorTab> = {
   knowledge: 'conocimiento',
   templates: 'plantillas',
 };
 
 function onNav(item: NavItem): void {
-  const tab = DESTINATIONS[item.id];
-  if (tab === undefined) {
-    notYet(item.label);
-    return;
-  }
-
-  openConnectors(tab);
+  openConnectors(DESTINATIONS[item.id]);
 }
 </script>
 

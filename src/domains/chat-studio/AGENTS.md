@@ -72,13 +72,13 @@ seguir: el slice se lee por partes, no por archivos grandes.
    del hero y con conversación se acopla abajo; son excluyentes, así que nunca hay
    dos campos con el id `aac-composer`. El borrador vive en el composable
    compartido, así que cambiar de sitio no lo pierde.
-4. **Las zonas de esqueleto avisan, no callan.** Nav ("Explorar"), "más opciones",
-   compartir o las herramientas del composer que no hacen nada emiten un toast con
-   `notYet()`. Un botón mudo se lee como una app rota. Conectar fuentes **ya no está
-   aquí**: tiene panel propio (`ConnectorsDrawer`, slice `connectors`), que se monta
-   en esta misma fila y se abre con `shell.openConnectors(tab)`. Las tres puertas
-   —la franja del composer, las dos secciones del rail con destino y la herramienta
-   del composer— entran por el mismo sitio y dicen cada una su sección.
+4. **Las zonas de esqueleto avisan, no callan.** Abrir una fuente, descargar un
+   recurso del modal de vista previa o "cerrar sesión" siguen siéndolo y lo dicen con
+   `notYet()`. Un botón mudo se lee como una app rota. **El rail ya no tiene
+   ninguna**: sus dos secciones abren el panel lateral en la suya con
+   `shell.openConnectors(tab)`, y el mapa de destinos es exhaustivo —`NavId` es una
+   unión cerrada—, así que añadir una sección obliga a decidir a dónde va antes de
+   que compile.
 
 5. **La fila tiene dos paneles a la derecha, como mucho.** El de contexto pertenece a
    la conversación y el de conectores es un espacio de trabajo: son estados

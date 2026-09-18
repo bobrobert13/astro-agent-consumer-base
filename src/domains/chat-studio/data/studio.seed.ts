@@ -16,7 +16,6 @@ import {
   AudioLines,
   BookOpen,
   Boxes,
-  Compass,
   Database,
   FileImage,
   FileSpreadsheet,
@@ -53,7 +52,6 @@ export const STUDIO_MODELS: StudioModel[] = [
 export const DEFAULT_STUDIO_MODEL: StudioModel = BASE_MODEL;
 
 export const STUDIO_NAV: NavItem[] = [
-  { id: 'explore', label: 'Explorar', icon: Compass },
   { id: 'knowledge', label: 'Base de conocimiento', icon: BookOpen },
   { id: 'templates', label: 'Plantillas', icon: LayoutGrid },
 ];
@@ -225,9 +223,8 @@ export const STUDIO_USER = {
 /** Textos del estudio que no son datos de ninguna lista. */
 export const STUDIO_COPY = {
   newChat: 'Nuevo chat',
+  heroSlogan: 'Pregunta. Contrasta. Decide.',
   heroTitle: '¿Con qué quieres empezar?',
-  heroPillStrong: 'Amplía',
-  heroPill: 'tu plan para conectar más fuentes',
   composerPlaceholder: 'Escribe tu consulta…',
   composerLabel: 'Mensaje para el asistente',
   /** Solo en el primer envío del hilo: después la conexión ya está hecha. */

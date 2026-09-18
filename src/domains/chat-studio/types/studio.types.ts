@@ -27,9 +27,17 @@ export interface StudioModel {
   tag?: string | undefined;
 }
 
+/**
+ * Secciones del rail. El id es una unión **cerrada** a propósito: el estudio mapea
+ * cada una a su destino en el panel lateral, y un `string` abierto dejaría ese mapa
+ * incompleto sin que nada avisara —habría una sección que no abre nada, o una que
+ * abre lo de otra.
+ */
+export type NavId = 'knowledge' | 'templates';
+
 /** Un destino de la navegación lateral con su glifo. */
 export interface NavItem {
-  id: string;
+  id: NavId;
   label: string;
   icon: Component;
 }

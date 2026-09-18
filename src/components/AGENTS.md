@@ -13,8 +13,8 @@ no va aquí: va a la carpeta `components/` de su slice, o a
    (`@shared/ui/variants`). Nada de clases sueltas concatenadas a mano: el mismo
    helper lo usan las islas `.vue`, y así un botón y su isla no divergen.
 3. **Slots nombrados y cerrados**: `default`, `header`, `footer`, `actions`,
-   `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
-   añade en el componente, no en el consumidor.
+   `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`, `layer`. Un slot
+   nuevo se añade en el componente, no en el consumidor.
 4. **Sin scoped slots.** Si un padre necesita pasar datos a un slot, eso es un
    componente `.vue` o se renderiza en el servidor con props.
 5. **`class:list` para lo condicional**, `class` para lo fijo.
@@ -64,6 +64,12 @@ slices. Reglas propias:
 barra de navegación, y **no** tiene chrome propio: el rail, el panel central y las
 capas los compone la isla (ADR-008). `BareLayout` sigue siendo para onboarding y
 errores.
+
+Su slot `layer` es la excepción que confirma lo anterior: existe para las vistas a
+pantalla completa que se abren **encima** del estudio —hoy la de conectores— y se
+pinta después de `ChatStudio` a propósito, para que montarla no obligue a
+desmontar la isla del chat. No lleva `transition:persist`: es una pantalla, y su
+estado (filtros, búsqueda) no tiene por qué sobrevivir a salir de ella.
 
 Dos trampas de Astro 7 que afectan a esta carpeta:
 

@@ -206,8 +206,11 @@ los lee `dist/server/entry.mjs` directamente.
   shadcn-vue. No unificar los dos `cn`: el de `variants.ts` concatena sin merge
   y sus tests fijan esa semántica.
 - Nombres de slot en todo el repo: `default`, `header`, `footer`, `actions`,
-  `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
-  añade a esta lista **y** al componente, no al consumidor.
+  `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`, `layer`. Un slot
+  nuevo se añade a esta lista **y** al componente, no al consumidor. `layer` es el
+  de `AppLayout`: una capa a pantalla completa que se pinta **después** del
+  estudio, para que una vista como la de conectores se abra encima sin desmontar
+  la isla del chat.
 - UI y catálogos de error en **español**. Un código de error sin mensaje en
   `<scope>.e.ts` no puede llegar a la pantalla.
 - **Nunca escribir un glob `**/` dentro de un comentario `/** ... */`**: la
@@ -246,8 +249,15 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   mezclarlas en un archivo hace ilegible qué cambia el tema.
 - Consumidores reales: el estudio (`chat-studio/components/**`) usa `Button`,
   `Textarea`, `ScrollArea`, `Collapsible`, `Dialog`, `DropdownMenu`, `Alert`,
-  `Badge`, `Skeleton`, `Slider`, `Tooltip` y `Toaster`. `IslandFallback` monta
+  `Badge`, `Skeleton`, `Slider`, `Tooltip` y `Toaster`; los conectores
+  (`connectors/**`) usan `Tabs`, `Card`, `Badge`, `Input`, `Button`, `Switch`,
+  `Select`, `Separator`, `Alert`, `Skeleton` y `Dialog`. `IslandFallback` monta
   `Skeleton` en un `.astro` sin directiva (cero JS).
+- **Las pestañas del registry se usan tal cual.** El estudio se maqueta las suyas
+  porque necesita un indicador inferior y un contador en píldora, y eso obligaría a
+  pelear con las clases internas; la vista de conectores quería justo la forma que
+  el registry trae, así que solo ajusta maquetación (el ancho de la barra y el aire
+  sobre el contenido).
 - Las primitivas `.astro` propias quedaron en `IslandFallback`: el resto se retiró
   con las pantallas heredadas. Un componente nuevo se escribe en el slice que lo usa,
   o se promociona a `src/components/ui/*.vue` cuando lo pidan dos.

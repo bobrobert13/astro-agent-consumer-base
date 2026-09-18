@@ -40,6 +40,7 @@ composables/
   useStudioShell.ts     estado del chrome (rail, cajón, panel, modelo) + provide
   useStudioShortcuts.ts atajos del estudio
   useStudioSessions.ts  sesiones creadas ("nuevo chat"), mock de historial
+  useStudioConnectors.ts abre la vista de conectores; qué viaja en su URL y por qué
 components/             .vue del slice
   ChatStudio.vue        raíz: composición, provide y atadura de la URL al chat
   StudioSidebar/Nav/History/UserCard      el rail
@@ -71,9 +72,14 @@ seguir: el slice se lee por partes, no por archivos grandes.
    del hero y con conversación se acopla abajo; son excluyentes, así que nunca hay
    dos campos con el id `aac-composer`. El borrador vive en el composable
    compartido, así que cambiar de sitio no lo pierde.
-4. **Las zonas de esqueleto avisan, no callan.** Nav, "más opciones", compartir o
-   conectar fuentes emiten un toast con `notYet()`. Un botón mudo se lee como una
-   app rota.
+4. **Las zonas de esqueleto avisan, no callan.** Nav ("Explorar"), "más opciones",
+   compartir o las herramientas del composer que no hacen nada emiten un toast con
+   `notYet()`. Un botón mudo se lee como una app rota. Conectar fuentes **ya no está
+   aquí**: tiene pantalla propia (`/conectores`), y se abre con
+   `useStudioConnectors`, que decide qué viaja en la URL (pestaña, hilo vivo, agente
+   vivo y camino de vuelta). El hilo y el agente van porque `ChatStudio` escucha sus
+   props: sin ellos, abrir la capa cambiaría de hilo y cortaría la respuesta en
+   curso.
 5. **Cero imágenes de marca.** Cada imagen es un `StudioImageSlot`, con su nombre en
    `data-image-slot`; para poner la definitiva basta con pasarle `src`.
 6. **"Nuevo chat" abre una sesión con hilo propio.** No limpia y vuelve a la raíz:

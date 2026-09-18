@@ -44,9 +44,10 @@ MASTRA_URL=http://localhost:4111 npm run dev
 
 ```
 src/
-├── domains/                 three bounded contexts
+├── domains/                 four bounded contexts
 │   ├── agent-chat/          the engine: transport, composables, types and the BFF
 │   ├── chat-studio/         the screen: one island with the rail, thread and panels
+│   ├── connectors/          external sources, knowledge bases and templates
 │   └── app-shell/           global chrome state + the navigation progress bar
 ├── shared/                  kernel with zero domain dependencies
 ├── components/              app-wide `.astro` primitives (today: `IslandFallback`)

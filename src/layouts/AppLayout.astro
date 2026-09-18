@@ -14,13 +14,6 @@
  *
  * Sustituye al `AppLayout` del shell anterior (chrome `.astro` + islas hermanas),
  * que se retiró con las pantallas heredadas.
- *
- * **`layer` es el slot de las capas de pantalla completa.** Existe para que una
- * vista como la de conectores se pinte *encima* del estudio sin desmontarlo: se
- * renderiza después de `ChatStudio`, así que su `fixed inset-0` la deja delante y
- * el hilo —incluso a mitad de respuesta— sobrevive. Montarla en un layout aparte
- * habría duplicado el punto de montaje del estudio, que es justo donde se
- * sincronizan el hilo y el agente de la URL.
  */
 import RootLayout from './RootLayout.astro';
 import IslandFallback from '@components/IslandFallback.astro';
@@ -60,10 +53,4 @@ const { title, description, threadId = NEW_THREAD_ID, agentId = DEFAULT_AGENT_ID
   >
     <IslandFallback slot="fallback" lines={6} height="h-svh" />
   </ChatStudio>
-
-  <!--
-    Capas a pantalla completa (hoy, la vista de conectores). Van aquí y no dentro
-    del estudio: así se pintan encima del chat sin obligarlo a desmontarse.
-  -->
-  <slot name="layer" />
 </RootLayout>

@@ -1,14 +1,13 @@
 # AGENTS.md — `src/pages/`
 
-Árbol de rutas. Las tres montan el mismo estudio, y una añade una capa encima.
+Árbol de rutas. Solo hay dos, y las dos montan el mismo estudio.
 
 | Ruta | Archivo | Render | Notas |
 |---|---|---|---|
 | `/` | `index.astro` | estático (`prerender = true`) | estado vacío; el `?agente=` lo aplica la isla al montar, porque una página estática no puede leerlo en el servidor |
 | `/chat/[threadId]` | `chat/[threadId].astro` | SSR | el hilo viaja en la ruta y el agente en `?agente=`, resueltos en el servidor |
-| `/conectores` | `conectores.astro` | SSR | fuentes externas, conocimiento y plantillas; la pestaña viaja en `?pestana=` |
 
-Las tres usan `@layouts/AppLayout.astro` y montan `ChatStudio` con
+Las dos usan `@layouts/AppLayout.astro` y montan `ChatStudio` con
 `transition:persist="chat-studio"`: navegar entre ellas **no reinicia el estudio**, y
 por eso saltar de hilo no corta una respuesta en curso.
 
@@ -17,22 +16,15 @@ demuestra el modo mixto de Astro 7 (`output: 'server'` con una página consolida
 `dist/client`). La contrapartida —no poder leer la query en el servidor— está
 resuelta en el cliente, no oculta.
 
-## `/conectores`: una capa, no otra pantalla
+## Lo que **no** se hace aquí: una página por panel
 
-Es SSR porque su estado inicial está en la URL (`?pestana=`) y la página no pide
-datos, así que resolverla en el servidor no cuesta nada y evita abrir siempre en
-"Conectores" para saltar después.
+El panel de conectores no tiene ruta. Es una columna del estudio, como el panel de
+contexto, y se abre con `useStudioShell` sin cambiar de URL ni desmontar la isla: la
+persona sigue en su conversación mientras configura una fuente. Convertirlo en
+página habría exigido arrastrar el hilo y el agente por la query para que el estudio
+no se reiniciara al entrar, y volver a salir.
 
-La vista se monta en el slot `layer` de `AppLayout`, **después** de `ChatStudio`, y
-la URL carga además `hilo`, `agente` y `volver`. Las tres primeras no son adorno: la
-capa se abre también a mitad de conversación desde el rail, y `ChatStudio` escucha
-sus props, así que si la página las perdiera el estudio cambiaría de hilo y cortaría
-la respuesta en curso. `volver` es la ruta exacta de salida, porque de `/` no se
-vuelve igual que de `/chat/<hilo>` (los dos pueden ser `nuevo`) y solo el hilo no lo
-distingue. Quien navega hacia aquí es `useStudioConnectors` (slice del estudio).
-
-A diferencia del estudio, la capa **no** se persiste: es una pantalla, y sus filtros
-no tienen por qué sobrevivir a salir de ella.
+La regla general: **si al abrirlo no se abandona el estudio, no es una ruta.**
 
 ## Dos tipos de archivo
 

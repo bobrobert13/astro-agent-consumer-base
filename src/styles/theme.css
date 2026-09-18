@@ -128,6 +128,16 @@
   --breakpoint-nav: 56.25rem; /* 900 px */
   --breakpoint-context: 68.75rem; /* 1100 px */
 
+  /*
+   * A partir de aquí el panel de conectores deja de ser una capa y pasa a ser una
+   * columna más de la fila. La cuenta que fija el corte: rail (320) + panel de
+   * contexto (340) + panel de conectores (340) = 1000, así que a 1200 al chat le
+   * quedan 200 —el mínimo que el estudio ya tolera con sus dos paneles—. Por
+   * debajo, el panel se superpone en lugar de comerse el chat; si los dos están
+   * abiertos y la ventana es justa, contrayendo el rail se recuperan 320 px.
+   */
+  --breakpoint-drawer: 75rem; /* 1200 px */
+
   --color-canvas: var(--aac-canvas);
   --color-surface: var(--aac-surface);
   --color-elevated: var(--aac-elevated);

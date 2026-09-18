@@ -1,7 +1,13 @@
 /**
  * @file src/domains/chat-studio/composables/useStudioShell.ts
  * @description Estado del chrome del estudio: navegación, panel de contexto,
- * modelo activo y modal de vista previa.
+ * panel de conectores, modelo activo y modal de vista previa.
+ *
+ * **Dos paneles a la derecha, como mucho.** El de contexto pertenece a la
+ * conversación (archivos, fuentes citadas) y el de conectores es un espacio de
+ * trabajo; son estados independientes porque cerrar uno no tiene por qué cerrar el
+ * otro. La fila los coloca —el de contexto pegado al chat, conectores en el borde
+ * exterior— y el CSS decide cuándo el segundo se superpone en vez de empujar.
  *
  * **Por qué `provide`/`inject` y no un store de Pinia.** El estudio entero es
  * **una sola isla** (`client:only` en `AppLayout`), así que su estado no cruza
@@ -17,6 +23,7 @@ import { computed, inject, provide, ref, type ComputedRef, type InjectionKey, ty
 
 import { navigate } from 'astro:transitions/client';
 
+import type { ConnectorTab } from '@domains/connectors';
 import { routes } from '@config/routes';
 import { useAppShellStore } from '@stores/app-shell';
 import { DEFAULT_STUDIO_MODEL, STUDIO_COPY } from '../data/studio.seed';
@@ -39,6 +46,15 @@ export interface StudioShell {
   /** Cajón lateral en móvil. Estado propio: arranca cerrado en cada carga. */
   drawerOpen: Ref<boolean>;
   contextOpen: Ref<boolean>;
+  /**
+   * Panel de conectores, a la derecha del de contexto. Son **dos** estados
+   * distintos porque son dos paneles distintos: el de contexto es de la
+   * conversación y el otro es un espacio de trabajo, así que se abren y se cierran
+   * por su cuenta (**como mucho, dos a la vez**).
+   */
+  connectorsOpen: Ref<boolean>;
+  /** Sección con la que abre el panel de conectores. */
+  connectorsTab: Ref<ConnectorTab>;
   tab: Ref<PanelTab>;
   scope: Ref<SourceScope>;
   model: Ref<StudioModel>;
@@ -47,6 +63,9 @@ export interface StudioShell {
   openNav: () => void;
   closeNav: () => void;
   toggleContext: (open?: boolean) => void;
+  openConnectors: (tab?: ConnectorTab) => void;
+  setConnectorsTab: (tab: ConnectorTab) => void;
+  closeConnectors: () => void;
   setTab: (tab: PanelTab) => void;
   setScope: (scope: SourceScope) => void;
   setModel: (model: StudioModel) => void;
@@ -70,6 +89,8 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
 
   const drawerOpen = ref(false);
   const contextOpen = ref(false);
+  const connectorsOpen = ref(false);
+  const connectorsTab = ref<ConnectorTab>('fuentes');
   const tab = ref<PanelTab>('recursos');
   const scope = ref<SourceScope>('interaction');
   const model = ref<StudioModel>(DEFAULT_STUDIO_MODEL);
@@ -103,6 +124,29 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     contextOpen.value = open ?? !contextOpen.value;
   }
 
+  /**
+   * Abrir el panel **trae la sección pedida**: se entra desde sitios distintos
+   * —la franja del composer, el rail, las herramientas—, así que la pestaña la
+   * decide quien abre y no el panel, que no sabe por qué lo llaman.
+   */
+  function openConnectors(tab?: ConnectorTab): void {
+    if (tab !== undefined) connectorsTab.value = tab;
+    connectorsOpen.value = true;
+  }
+
+  /**
+   * Lo que emite el propio panel al cambiar de sección. Se guarda aunque el panel
+   * esté abierto para que, si se cierra y se vuelve a abrir desde el rail, la
+   * sección se recuerde; el rail siempre entra diciendo la suya.
+   */
+  function setConnectorsTab(tab: ConnectorTab): void {
+    connectorsTab.value = tab;
+  }
+
+  function closeConnectors(): void {
+    connectorsOpen.value = false;
+  }
+
   function setTab(next: PanelTab): void {
     tab.value = next;
   }
@@ -131,6 +175,9 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
    * "Nuevo chat" **crea una sesión** (ver `useStudioSessions`) y navega a su hilo;
    * la raíz del estudio es quien la crea y devuelve la ruta. Sin ese callback se
    * cae a la raíz, que es el estado vacío de siempre.
+   *
+   * El panel de conectores **no** se cierra: no es estado de la conversación, y
+   * quien estuviera copiando una credencial no espera perderla por empezar un chat.
    */
   function newChat(): void {
     closeNav();
@@ -162,6 +209,8 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     railLabel,
     drawerOpen,
     contextOpen,
+    connectorsOpen,
+    connectorsTab,
     tab,
     scope,
     model,
@@ -170,6 +219,9 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     openNav,
     closeNav,
     toggleContext,
+    openConnectors,
+    setConnectorsTab,
+    closeConnectors,
     setTab,
     setScope,
     setModel,

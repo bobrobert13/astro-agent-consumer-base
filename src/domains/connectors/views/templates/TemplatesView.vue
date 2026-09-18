@@ -15,7 +15,7 @@ import { CONNECTOR_COPY, TEMPLATES } from '../../data/connectors.seed';
   <section aria-label="Plantillas" class="flex flex-col gap-4">
     <p class="text-body-sm text-ink-muted">{{ CONNECTOR_COPY.templatesHint }}</p>
 
-    <ul class="grid gap-5 nav:grid-cols-2">
+    <ul class="flex flex-col gap-4">
       <li v-for="template in TEMPLATES" :key="template.id">
         <TemplateCard :template="template" />
       </li>

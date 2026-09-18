@@ -3,21 +3,22 @@
  * @file src/domains/chat-studio/components/StudioConnectBar.vue
  * @description Franja pegada al composer que invita a conectar fuentes externas.
  *
- * Es la puerta principal a la vista de conectores: abre `/conectores` en la
- * pestaña de fuentes. Dejó de ser esqueleto, así que ya no avisa con `notYet()`; lo
- * que sigue siendo de relleno son los datos de la vista, y de eso informa ella
- * misma. Se dibuja pegada a la caja del composer (sin borde superior y con el
- * radio inferior) porque en la plantilla las dos forman un solo bloque.
+ * Es la puerta principal al panel de conectores: lo abre en la sección de fuentes
+ * **sin salir del estudio** —el chat sigue detrás, escribible—. Dejó de ser
+ * esqueleto, así que ya no avisa con `notYet()`; lo que sigue siendo de relleno son
+ * los datos del panel, y de eso informa él mismo. Se dibuja pegada a la caja del
+ * composer (sin borde superior y con el radio inferior) porque en la plantilla las
+ * dos forman un solo bloque.
  *
  * Los avatares de la plantilla eran retratos; aquí son puntos con el token de
  * marca en distintas opacidades, que dan el mismo ritmo sin inventar imágenes.
  */
 import { ChevronRight } from '@lucide/vue';
 
-import { useStudioConnectors } from '../composables/useStudioConnectors';
+import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_COPY } from '../data/studio.seed';
 
-const { open } = useStudioConnectors();
+const { openConnectors } = useStudioShell();
 
 const DOTS = [
   'bg-brand-500',
@@ -32,7 +33,7 @@ const DOTS = [
   <button
     type="button"
     class="-mt-px flex w-full items-center justify-between gap-4 rounded-b-shell border border-line bg-elevated px-6 py-3 text-left text-body-sm text-ink-muted transition-colors hover:bg-line/40"
-    @click="open('fuentes')"
+    @click="openConnectors('fuentes')"
   >
     <span class="truncate">{{ STUDIO_COPY.connectBar }}</span>
 

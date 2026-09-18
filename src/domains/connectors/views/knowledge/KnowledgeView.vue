@@ -15,7 +15,7 @@ import { CONNECTOR_COPY, KNOWLEDGE_BASES } from '../../data/connectors.seed';
   <section aria-label="Base de conocimiento" class="flex flex-col gap-4">
     <p class="text-body-sm text-ink-muted">{{ CONNECTOR_COPY.knowledgeHint }}</p>
 
-    <ul class="grid gap-5 nav:grid-cols-2">
+    <ul class="flex flex-col gap-4">
       <li v-for="base in KNOWLEDGE_BASES" :key="base.id">
         <KnowledgeCard :base="base" />
       </li>

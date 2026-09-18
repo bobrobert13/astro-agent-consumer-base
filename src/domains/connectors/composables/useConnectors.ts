@@ -34,6 +34,7 @@ import {
 } from '../data/connectors.seed';
 import type {
   Connector,
+  ConnectorField,
   ConnectorFilter,
   ConnectorKind,
   ConnectorTab,
@@ -105,6 +106,19 @@ function cloneConnector(connector: Connector): Connector {
 
 /** Contador para que dos altas del mismo milisegundo no compartan id. */
 let sequence = 0;
+
+/**
+ * ¿Falta algún campo obligatorio en este borrador? La usa el asistente para no
+ * dejar avanzar de paso.
+ *
+ * Solo miran los campos de texto: un conmutador obligatorio apagado no es un
+ * formulario incompleto, es una decisión, y rechazarla sería inventarse la regla.
+ */
+export function hasMissingRequired(fields: ConnectorField[]): boolean {
+  return fields.some(
+    (field) => field.required === true && typeof field.value === 'string' && field.value.trim() === ''
+  );
+}
 
 /**
  * Un conector recién creado. Arranca de la plantilla de su familia —el formulario

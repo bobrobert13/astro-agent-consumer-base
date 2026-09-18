@@ -66,7 +66,7 @@ function displayValue(field: ConnectorField): string {
 
     <p class="text-body-sm text-ink-muted">{{ props.connector.description }}</p>
 
-    <dl class="grid gap-4 rounded-panel border border-line bg-surface p-4 nav:grid-cols-3">
+    <dl class="grid grid-cols-2 gap-3 rounded-panel border border-line bg-surface p-4">
       <div>
         <dt class="text-caption text-ink-muted">{{ CONNECTOR_COPY.documents }}</dt>
         <dd class="text-label text-ink">{{ documents }}</dd>
@@ -102,7 +102,7 @@ function displayValue(field: ConnectorField): string {
 
     <section>
       <h2>{{ CONNECTOR_COPY.fieldSection }}</h2>
-      <dl class="mt-3 grid gap-3 nav:grid-cols-2">
+      <dl class="mt-3 grid gap-3">
         <div v-for="field in props.connector.fields" :key="field.id" class="flex flex-col gap-0.5">
           <dt class="text-caption text-ink-muted">{{ field.label }}</dt>
           <dd class="truncate text-label text-ink">{{ displayValue(field) }}</dd>

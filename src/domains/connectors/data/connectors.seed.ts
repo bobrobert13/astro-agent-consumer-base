@@ -410,6 +410,7 @@ export const CONNECTOR_COPY = {
   stepFamily: 'Familia',
   stepOf: 'Paso',
   of: 'de',
+  nameLabel: 'Nombre',
   familyHint: 'Elige de qué tipo es la fuente que vas a conectar.',
   connectionHint: 'Los campos son de ejemplo: al guardar se actualiza el catálogo en memoria.',
   requiredHint: 'Completa los campos obligatorios para continuar.',

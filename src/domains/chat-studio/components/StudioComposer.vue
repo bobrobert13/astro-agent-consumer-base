@@ -24,7 +24,6 @@ import { Label } from '@components/ui/label';
 import { Textarea } from '@components/ui/textarea';
 import { useAgentChat } from '@domains/agent-chat';
 import StudioComposerTools from './StudioComposerTools.vue';
-import { useStudioConnectors } from '../composables/useStudioConnectors';
 import { useStudioSessions } from '../composables/useStudioSessions';
 import { useStudioShell } from '../composables/useStudioShell';
 import { COMPOSER_TOOLS_TRAILING, STUDIO_COPY } from '../data/studio.seed';
@@ -33,8 +32,7 @@ import type { ComposerTool } from '../types/studio.types';
 // `text` es la fuente del borrador y vive en el composable compartido: por eso
 // cambiar el composer de sitio (dentro del hero o acoplado abajo) no lo pierde.
 const { canSubmit, isRunning, stop, submit, text, threadId } = useAgentChat();
-const { notYet } = useStudioShell();
-const { open: openConnectors } = useStudioConnectors();
+const { notYet, openConnectors } = useStudioShell();
 const sessions = useStudioSessions();
 
 function onSubmit(): void {

@@ -206,11 +206,8 @@ los lee `dist/server/entry.mjs` directamente.
   shadcn-vue. No unificar los dos `cn`: el de `variants.ts` concatena sin merge
   y sus tests fijan esa semántica.
 - Nombres de slot en todo el repo: `default`, `header`, `footer`, `actions`,
-  `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`, `layer`. Un slot
-  nuevo se añade a esta lista **y** al componente, no al consumidor. `layer` es el
-  de `AppLayout`: una capa a pantalla completa que se pinta **después** del
-  estudio, para que una vista como la de conectores se abra encima sin desmontar
-  la isla del chat.
+  `aside`, `fallback`, `leading`, `trailing`, `empty`, `head`. Un slot nuevo se
+  añade a esta lista **y** al componente, no al consumidor.
 - UI y catálogos de error en **español**. Un código de error sin mensaje en
   `<scope>.e.ts` no puede llegar a la pantalla.
 - **Nunca escribir un glob `**/` dentro de un comentario `/** ... */`**: la

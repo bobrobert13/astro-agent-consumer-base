@@ -37,10 +37,10 @@ index.ts            barrel: ChatStudio
 types/              vocabulario del slice (NavItem, ResourceRow, PanelTab…)
 data/studio.seed.ts datos semilla y copy, en un solo módulo
 composables/
-  useStudioShell.ts     estado del chrome (rail, cajón, panel, modelo) + provide
+  useStudioShell.ts     estado del chrome (rail, cajón, panel de contexto, panel de
+                        conectores, modelo) + provide
   useStudioShortcuts.ts atajos del estudio
   useStudioSessions.ts  sesiones creadas ("nuevo chat"), mock de historial
-  useStudioConnectors.ts abre la vista de conectores; qué viaja en su URL y por qué
 components/             .vue del slice
   ChatStudio.vue        raíz: composición, provide y atadura de la URL al chat
   StudioSidebar/Nav/History/UserCard      el rail
@@ -75,19 +75,27 @@ seguir: el slice se lee por partes, no por archivos grandes.
 4. **Las zonas de esqueleto avisan, no callan.** Nav ("Explorar"), "más opciones",
    compartir o las herramientas del composer que no hacen nada emiten un toast con
    `notYet()`. Un botón mudo se lee como una app rota. Conectar fuentes **ya no está
-   aquí**: tiene pantalla propia (`/conectores`), y se abre con
-   `useStudioConnectors`, que decide qué viaja en la URL (pestaña, hilo vivo, agente
-   vivo y camino de vuelta). El hilo y el agente van porque `ChatStudio` escucha sus
-   props: sin ellos, abrir la capa cambiaría de hilo y cortaría la respuesta en
-   curso.
-5. **Cero imágenes de marca.** Cada imagen es un `StudioImageSlot`, con su nombre en
+   aquí**: tiene panel propio (`ConnectorsDrawer`, slice `connectors`), que se monta
+   en esta misma fila y se abre con `shell.openConnectors(tab)`. Las tres puertas
+   —la franja del composer, las dos secciones del rail con destino y la herramienta
+   del composer— entran por el mismo sitio y dicen cada una su sección.
+
+5. **La fila tiene dos paneles a la derecha, como mucho.** El de contexto pertenece a
+   la conversación y el de conectores es un espacio de trabajo: son estados
+   independientes (`contextOpen` y `connectorsOpen`) y **el orden importa** —el
+   panel de conectores se monta después, así que vive en el borde exterior y la
+   conversación se queda pegada a su propio panel—. El cierre de los dos va con
+   margen negativo; quién empuja y quién se superpone lo decide el CSS
+   (`src/domains/connectors/AGENTS.md`). `newChat` cierra el de contexto pero **no**
+   el de conectores: no es estado de la conversación.
+6. **Cero imágenes de marca.** Cada imagen es un `StudioImageSlot`, con su nombre en
    `data-image-slot`; para poner la definitiva basta con pasarle `src`.
-6. **"Nuevo chat" abre una sesión con hilo propio.** No limpia y vuelve a la raíz:
+7. **"Nuevo chat" abre una sesión con hilo propio.** No limpia y vuelve a la raíz:
    crea un hilo en `useStudioSessions` (mock en memoria; el día que haya historial
    real, ese archivo es el único que cambia) y navega a `/chat/<hilo>`, que es el
    contrato de URL del estudio. La entrada aparece en el historial al momento y se
    bautiza con el primer prompt.
-7. **Ningún nodo del DOM de una isla persistente lleva el atributo de persistencia.**
+8. **Ningún nodo del DOM de una isla persistente lleva el atributo de persistencia.**
    Astro copia `transition:persist="…"` a las props de la isla
    (`data-astro-transition-persist`) y Vue lo reenviaría al elemento raíz como
    atributo de paso. Con dos nodos marcados igual, `swapBodyElement` empareja los dos

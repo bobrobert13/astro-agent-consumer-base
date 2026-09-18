@@ -26,7 +26,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { railOpen, drawerOpen, railLabel, closeNav, newChat, notYet } = useStudioShell();
+const { railOpen, drawerOpen, railLabel, closeNav, newChat, openSettings } = useStudioShell();
 </script>
 
 <template>
@@ -74,7 +74,7 @@ const { railOpen, drawerOpen, railLabel, closeNav, newChat, notYet } = useStudio
       <button
         type="button"
         class="flex h-9 w-full items-center gap-2 rounded-control px-1.5 text-left text-label text-ink transition-colors hover:bg-line/60"
-        @click="notYet('Configuración')"
+        @click="openSettings()"
       >
         <Settings class="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
         <span>Configuración</span>

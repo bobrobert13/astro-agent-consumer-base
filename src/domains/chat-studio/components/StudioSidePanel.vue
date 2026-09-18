@@ -31,6 +31,7 @@
 import { computed } from 'vue';
 
 import { ConnectorsPanel } from '@domains/connectors';
+import { SettingsPanel } from '@domains/settings';
 
 import { STUDIO_COPY } from '../data/studio.seed';
 import type { PanelScope } from '../types/studio.types';
@@ -72,5 +73,7 @@ const label = computed(() =>
       @update:tab="emit('update:connectors-tab', $event)"
       @close="emit('close')"
     />
+
+    <SettingsPanel v-else-if="props.panel === 'configuracion'" @close="emit('close')" />
   </aside>
 </template>

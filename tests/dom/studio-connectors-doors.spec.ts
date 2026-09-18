@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 import StudioComposer from '@domains/chat-studio/components/StudioComposer.vue';
 import StudioConnectBar from '@domains/chat-studio/components/StudioConnectBar.vue';
 import StudioNav from '@domains/chat-studio/components/StudioNav.vue';
+import StudioSidebar from '@domains/chat-studio/components/StudioSidebar.vue';
 import { provideStudioShell, type StudioShell } from '@domains/chat-studio/composables/useStudioShell';
 import { TooltipProvider } from '@components/ui/tooltip';
 
@@ -80,6 +81,16 @@ describe('puertas hacia el panel de conectores', () => {
       await section.trigger('click');
       expect(shell.panel.value).toBe('conectores');
     }
+  });
+
+  it('el pie del rail abre la configuración, en el mismo panel', async () => {
+    const { wrapper, shell } = mountInsideStudio(StudioSidebar);
+
+    await wrapper.findAll('button').find((node) => node.text().includes('Configuración'))?.trigger('click');
+
+    // El panel es el mismo; lo que cambia es el espacio. Si esto abriera otro panel,
+    // habría dos cajones compitiendo por la misma esquina.
+    expect(shell.panel.value).toBe('configuracion');
   });
 
   it('la herramienta del composer abre lo mismo que la franja', async () => {

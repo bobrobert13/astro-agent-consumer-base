@@ -9,16 +9,25 @@
  * specs (`connectors-panel.spec.ts`), que es la ventaja de haber separado el cajón
  * del contenido: se pueden probar por separado.
  */
+import { createPinia } from 'pinia';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import StudioSidePanel from '@domains/chat-studio/components/StudioSidePanel.vue';
 import { CONNECTORS, TEMPLATES } from '@domains/connectors/data/connectors.seed';
+import { SETTINGS_COPY } from '@domains/settings/data/settings.seed';
 import type { PanelScope } from '@domains/chat-studio/types/studio.types';
 import type { ConnectorTab } from '@domains/connectors';
 
+/**
+ * Con `createPinia` porque el espacio de configuración lee el tema del store global:
+ * es el mismo trato que recibe dentro del estudio, donde la app ya la tiene montada.
+ */
 function mountPanel(panel: PanelScope | null, tab: ConnectorTab = 'fuentes') {
-  return mount(StudioSidePanel, { props: { panel, connectorsTab: tab } });
+  return mount(StudioSidePanel, {
+    props: { panel, connectorsTab: tab },
+    global: { plugins: [createPinia()] },
+  });
 }
 
 describe('StudioSidePanel', () => {
@@ -60,6 +69,16 @@ describe('StudioSidePanel', () => {
 
     // Es lo que permite que un espacio nuevo herede la densidad sin repetirla.
     expect(wrapper.get('aside').attributes('data-density')).toBe('compact');
+  });
+
+  it('el espacio de configuración ocupa el mismo cajón', () => {
+    const wrapper = mountPanel('configuracion');
+
+    // Mismo cajón, otro contenido: ni las pestañas de conectores ni su listado.
+    expect(wrapper.text()).toContain(SETTINGS_COPY.title);
+    expect(wrapper.text()).toContain(SETTINGS_COPY.appearance);
+    expect(wrapper.findAll('[role="tab"]')).toHaveLength(0);
+    expect(wrapper.text()).not.toContain('fuentes');
   });
 
   it('cerrar y cambiar de sección los decide el estudio', async () => {

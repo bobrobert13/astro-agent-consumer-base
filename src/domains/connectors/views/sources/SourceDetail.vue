@@ -105,7 +105,7 @@ function displayValue(field: ConnectorField): string {
     </div>
 
     <section>
-      <h2>{{ CONNECTOR_COPY.fieldSection }}</h2>
+      <h2 class="text-label text-ink">{{ CONNECTOR_COPY.fieldSection }}</h2>
       <dl class="mt-2 flex flex-col gap-1.5">
         <div v-for="field in props.connector.fields" :key="field.id" class="flex items-baseline justify-between gap-3">
           <dt class="shrink-0 text-caption text-ink-muted">{{ field.label }}</dt>
@@ -115,7 +115,7 @@ function displayValue(field: ConnectorField): string {
     </section>
 
     <section>
-      <h2>{{ CONNECTOR_COPY.scopeSection }}</h2>
+      <h2 class="text-label text-ink">{{ CONNECTOR_COPY.scopeSection }}</h2>
       <p class="mt-0.5 mb-2 text-caption text-ink-muted">{{ CONNECTOR_COPY.scopeHint }}</p>
       <ScopeList :scopes="props.connector.scopes" />
     </section>

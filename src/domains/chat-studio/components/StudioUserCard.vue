@@ -4,14 +4,17 @@
  * @description Tarjeta de usuario del pie del rail, con su menú.
  *
  * El menú es donde ha quedado el **conmutador de tema**: la plantilla no traía
- * ninguno y `/settings` desaparece con el resto de los slices de esqueleto, así
- * que sin esto el modo oscuro quedaría implementado pero inalcanzable.
+ * ninguno y `/settings` desaparece con el resto de los slices de esqueleto, así que
+ * sin esto el modo oscuro quedaría implementado pero inalcanzable. Desde que existe
+ * el panel de configuración hay dos sitios para cambiarlo, así que **la lista de
+ * temas es una sola** —la del slice de ajustes— y este menú la lee: con dos listas,
+ * un tema nuevo aparecería en un sitio y no en el otro.
  *
  * Se usa un grupo de opciones y no un interruptor porque el store distingue tres
  * estados —claro, oscuro y seguir al sistema— y un booleano no puede expresarlos:
  * con el tema en `system` y el sistema en oscuro, un interruptor apagado mentiría.
  */
-import { ChevronsUpDown, Monitor, Moon, Sun } from '@lucide/vue';
+import { ChevronsUpDown } from '@lucide/vue';
 
 import {
   DropdownMenu,
@@ -23,18 +26,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@components/ui/dropdown-menu';
-import { useAppShellStore, type ShellTheme } from '@stores/app-shell';
+import { THEME_OPTIONS } from '@domains/settings';
+import { useAppShellStore } from '@stores/app-shell';
 import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_USER } from '../data/studio.seed';
 
 const appShell = useAppShellStore();
 const { notYet } = useStudioShell();
-
-const THEMES: { id: ShellTheme; label: string; icon: typeof Sun }[] = [
-  { id: 'light', label: 'Claro', icon: Sun },
-  { id: 'dark', label: 'Oscuro', icon: Moon },
-  { id: 'system', label: 'Seguir al sistema', icon: Monitor },
-];
 
 /** reka-ui entrega el valor sin tipar; se estrecha aquí y no en el store. */
 function onTheme(value: unknown): void {
@@ -67,7 +65,7 @@ function onTheme(value: unknown): void {
       <DropdownMenuSeparator />
 
       <DropdownMenuRadioGroup :model-value="appShell.theme" @update:model-value="onTheme">
-        <DropdownMenuRadioItem v-for="theme in THEMES" :key="theme.id" :value="theme.id">
+        <DropdownMenuRadioItem v-for="theme in THEME_OPTIONS" :key="theme.id" :value="theme.id">
           <component :is="theme.icon" class="size-4" aria-hidden="true" />
           <span>{{ theme.label }}</span>
         </DropdownMenuRadioItem>

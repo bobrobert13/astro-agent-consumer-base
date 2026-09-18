@@ -260,8 +260,9 @@ reservaba `src/components/AGENTS.md` para primitivas `.vue` compartidas.
   `Textarea`, `ScrollArea`, `Collapsible`, `Dialog`, `DropdownMenu`, `Alert`,
   `Badge`, `Skeleton`, `Slider`, `Tooltip` y `Toaster`; los conectores
   (`connectors/**`) usan `Tabs`, `Card`, `Badge`, `Input`, `Button`, `Switch`,
-  `Select`, `Separator`, `Alert`, `Skeleton` y `Dialog`. `IslandFallback` monta
-  `Skeleton` en un `.astro` sin directiva (cero JS).
+  `Select`, `Separator`, `Stepper`, `Alert`, `Skeleton` y `Dialog`; y la
+  configuración (`settings/**`), `Button`, `Select` y `Switch`.
+  `IslandFallback` monta `Skeleton` en un `.astro` sin directiva (cero JS).
 - **Las pestañas del registry se usan tal cual.** El estudio se maqueta las suyas
   porque necesita un indicador inferior y un contador en píldora, y eso obligaría a
   pelear con las clases internas; la vista de conectores quería justo la forma que

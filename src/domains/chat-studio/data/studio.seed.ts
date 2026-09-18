@@ -13,7 +13,6 @@
  *    vive en el componente que lo pinta (`StudioResourceRow`), no en el dato.
  */
 import {
-  AudioLines,
   BookOpen,
   Boxes,
   Database,
@@ -21,9 +20,7 @@ import {
   FileSpreadsheet,
   FileText,
   Globe,
-  Image,
   LayoutGrid,
-  Lightbulb,
   Link2,
   Music,
   Paperclip,
@@ -118,20 +115,15 @@ export const STUDIO_SUGGESTIONS: SuggestionCard[] = [
 ];
 
 /**
- * Herramientas del composer, en los dos grupos de la plantilla: las dos primeras
- * van dentro de la caja que agrupa los atajos de análisis y el resto a la
- * derecha, junto al botón de enviar.
+ * Herramientas del composer. Son las que **hacen algo**: abrir el panel de
+ * conectores y adjuntar un archivo. Las que se fueron —buscar en la web, modo de
+ * voz y las dos que estaban tras un bloque comentado— solo sacaban un aviso de que
+ * no estaban implementadas, y un botón que promete algo y no lo cumple se lee como
+ * una app rota: mejor no tenerlo.
  */
-export const COMPOSER_TOOLS_LEADING: ComposerTool[] = [
-  { id: 'image', label: 'Adjuntar imagen', icon: Image },
-  { id: 'ideas', label: 'Sugerencias de análisis', icon: Lightbulb },
-];
-
 export const COMPOSER_TOOLS_TRAILING: ComposerTool[] = [
   { id: 'connectors', label: 'Conectores externos', icon: Boxes },
-  { id: 'web', label: 'Buscar en la web', icon: Globe },
   { id: 'attach', label: 'Adjuntar archivo', icon: Paperclip },
-  { id: 'voice', label: 'Modo de voz', icon: AudioLines },
 ];
 
 export const STUDIO_RESOURCES: ResourceRow[] = [
@@ -227,6 +219,10 @@ export const STUDIO_COPY = {
   heroTitle: '¿Con qué quieres empezar?',
   composerPlaceholder: 'Escribe tu consulta…',
   composerLabel: 'Mensaje para el asistente',
+  /** Prefijo de la línea que acompaña al mensaje cuando lleva adjuntos. */
+  attachmentPrefix: 'Adjuntos:',
+  attachmentsNote: 'Se añaden al mensaje; todavía no se suben a ningún sitio.',
+  removeAttachment: 'Quitar adjunto',
   /** Solo en el primer envío del hilo: después la conexión ya está hecha. */
   connecting: 'Conectando con el agente…',
   /** Texto para lectores de pantalla mientras el turno está en curso. */

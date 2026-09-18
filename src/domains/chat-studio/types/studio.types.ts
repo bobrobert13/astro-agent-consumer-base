@@ -67,9 +67,16 @@ export interface SuggestionCard {
   icon: Component;
 }
 
-/** Una herramienta del composer (adjuntar, buscar, voz…). */
+/**
+ * Herramientas del composer. Unión **cerrada** por el mismo motivo que `NavId`: el
+ * composer mapea cada una a lo que hace, y con un `string` abierto una herramienta
+ * nueva aparecería en pantalla sin acción y en silencio.
+ */
+export type ComposerToolId = 'connectors' | 'attach';
+
+/** Una herramienta del composer (adjuntar, conectores…). */
 export interface ComposerTool {
-  id: string;
+  id: ComposerToolId;
   label: string;
   icon: Component;
 }

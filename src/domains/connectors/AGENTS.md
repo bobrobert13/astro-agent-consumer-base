@@ -39,9 +39,10 @@ views/
   templates/                plantillas
 components/
   ConnectorsHeader.vue      cabecera compacta: sección activa y acciones
+  ConnectorSteps.vue        riel de pasos (y su relevo en pantallas estrechas)
   ConnectorFields.vue       formulario de campos (asistente y configuración)
-  ConnectorConfigDialog.vue configuración, sobre un borrador
-  ConnectorAddDialog.vue    asistente de alta por pasos
+  ConnectorConfigDialog.vue configurar: conexión › permisos › resumen
+  ConnectorAddDialog.vue    añadir: familia › conexión › permisos
 ```
 
 ## Reglas del slice
@@ -93,11 +94,23 @@ components/
    salta a "Conectores" al terminar: crear algo que no aparece donde estás mirando
    se lee como que no se creó.
 
-7. **Los modales por pasos son para lo que tiene pasos.** El alta (familia →
-   conexión → permisos) y —pendiente— la configuración. El `Stepper` del registry
-   es `linear`: no se salta hacia adelante, y la familia se elige antes de escribir
-   campos, así que cambiar de familia no borra trabajo hecho. Los separadores van
-   **dentro** de su `StepperItem`, que es donde reka-ui espera encontrarlos.
+7. **Los modales por pasos son para lo que tiene pasos.** Los dos modales del panel
+   lo son —configurar (conexión › permisos › resumen) y añadir (familia › conexión ›
+   permisos)— porque en una sola columna la segunda mitad del formulario no se ve.
+   El `Stepper` del registry es `linear`: no se salta hacia adelante, y en el alta la
+   familia se elige antes de escribir campos, así que cambiar de familia no borra
+   trabajo hecho. Tres detalles que cuestan un rato si no se saben:
+
+   - Los separadores van **dentro** de su `StepperItem`: fuera, la inyección del
+     contexto de item no existe y el árbol entra en bucle de renders.
+   - Los pasos son **1-based**, no índices de array.
+   - Los obligatorios vacíos bloquean el "Siguiente" del paso donde están, que es
+     donde se puede decir qué falta; dejarlo para el final obligaría a volver atrás
+     sin señalar el paso. Es lo que hace que la credencial caducada de la semilla se
+     lea como lo que es.
+
+   El resumen del paso 3 da **cifras**, no una copia del formulario: repetir los
+   campos sería un segundo sitio donde mirar lo mismo.
 
 8. **Los estados que no se ven, en la semilla.** Tres fuentes, una por estado
    (conectada, con error, sin conectar), que son exactamente los tres filtros: así
@@ -118,7 +131,8 @@ components/
 ## Cómo se prueba
 
 ```bash
-npm run test          # tests/dom/connectors-panel.spec.ts: panel, secciones, filtros, detalle y alta
+npm run test          # tests/dom/connectors-panel.spec.ts: panel, secciones, filtros,
+                      #   detalle, alta y los pasos de la configuración
 npm run test          # tests/dom/studio-connectors-doors.spec.ts: las puertas desde el estudio
 ```
 

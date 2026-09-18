@@ -108,6 +108,16 @@ export interface ConnectorTabItem {
   icon: Component;
 }
 
+/**
+ * Un paso de un asistente. El número es el que espera el `Stepper` de reka-ui y
+ * **empieza en 1**, no en 0: usarlo como índice de un array es el error clásico de
+ * esta primitiva.
+ */
+export interface WizardStep {
+  step: number;
+  label: string;
+}
+
 /** Una familia de fuente, como la ofrece el asistente de alta. */
 export interface ConnectorKindItem {
   id: ConnectorKind;

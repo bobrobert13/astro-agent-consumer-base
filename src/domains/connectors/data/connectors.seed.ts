@@ -408,6 +408,7 @@ export const CONNECTOR_COPY = {
   addTitle: 'Añadir conector',
   configureTitle: 'Configurar',
   stepFamily: 'Familia',
+  stepSummary: 'Resumen',
   stepOf: 'Paso',
   of: 'de',
   nameLabel: 'Nombre',

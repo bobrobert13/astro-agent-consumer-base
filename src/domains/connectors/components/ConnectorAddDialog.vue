@@ -33,29 +33,22 @@ import {
 } from '@components/ui/dialog';
 import { Input } from '@components/ui/input';
 import { Label } from '@components/ui/label';
-import {
-  Stepper,
-  StepperIndicator,
-  StepperItem,
-  StepperSeparator,
-  StepperTitle,
-  StepperTrigger,
-} from '@components/ui/stepper';
 
 import ConnectorFields from './ConnectorFields.vue';
+import ConnectorSteps from './ConnectorSteps.vue';
 import ScopeList from '../views/sources/ScopeList.vue';
 import { CONNECTOR_COPY, CONNECTOR_ICONS, CONNECTOR_KINDS } from '../data/connectors.seed';
 import { hasMissingRequired, useConnectors } from '../composables/useConnectors';
-import type { ConnectorKind } from '../types/connector.types';
+import type { ConnectorKind, WizardStep } from '../types/connector.types';
 
 const { adding, closeAdd, saveAdd, setAddingKind } = useConnectors();
 
 /** Los pasos, en orden. El número es el que espera el `Stepper` (empieza en 1). */
-const STEPS = [
+const STEPS: WizardStep[] = [
   { step: 1, label: CONNECTOR_COPY.stepFamily },
   { step: 2, label: CONNECTOR_COPY.fieldSection },
   { step: 3, label: CONNECTOR_COPY.scopeSection },
-] as const;
+];
 
 const step = ref(1);
 
@@ -72,7 +65,6 @@ watch(open, (isOpen) => {
   if (isOpen) step.value = 1;
 });
 
-const currentStep = computed(() => STEPS.find((entry) => entry.step === step.value) ?? STEPS[0]);
 const lastStep = STEPS.length;
 
 /** Nombre y obligatorios del paso de conexión. */
@@ -117,33 +109,7 @@ function toggleScope(id: string, granted: boolean): void {
       </DialogHeader>
 
       <div class="max-h-[70svh] overflow-y-auto p-5">
-        <!--
-          Cada separador va **dentro** de su item: es lo que reka-ui espera (lo
-          pinta con el estado de ese paso, para que se vea hasta dónde se ha
-          llegado) y fuera de él la inyección del contexto de item no existe. Los
-          items crecen (`flex-1`) para que la línea rellene el hueco.
-        -->
-        <Stepper class="hidden items-center nav:flex" :model-value="step" @update:model-value="onStepChange">
-          <StepperItem
-            v-for="entry in STEPS"
-            :key="entry.step"
-            :step="entry.step"
-            class="flex-1 items-center gap-3"
-          >
-            <StepperTrigger class="flex-row items-center gap-2">
-              <StepperIndicator class="size-7">
-                <span class="text-caption font-semibold">{{ entry.step }}</span>
-              </StepperIndicator>
-              <StepperTitle class="text-label">{{ entry.label }}</StepperTitle>
-            </StepperTrigger>
-
-            <StepperSeparator v-if="entry.step < lastStep" class="h-px flex-1" />
-          </StepperItem>
-        </Stepper>
-
-        <p class="text-label text-ink-muted nav:hidden">
-          {{ CONNECTOR_COPY.stepOf }} {{ step }} {{ CONNECTOR_COPY.of }} {{ lastStep }} · {{ currentStep.label }}
-        </p>
+        <ConnectorSteps :steps="STEPS" :current="step" @update:current="onStepChange" />
 
         <!-- Paso 1: familia. -->
         <fieldset v-if="step === 1" class="mt-4">

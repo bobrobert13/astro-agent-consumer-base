@@ -18,7 +18,7 @@
  * de reka-ui no se prueba aquí —el mismo trato que el modal del estudio—. Lo que sí
  * se prueba es nuestro cableado: que cada modal aparezca con lo que se pulsó.
  */
-import { defineComponent, h } from 'vue';
+import { defineComponent, h, nextTick } from 'vue';
 import { mount } from '@vue/test-utils';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -92,6 +92,24 @@ function dialogWith(text: string): Element | null {
   return (
     [...document.querySelectorAll('[role="dialog"]')].find((node) => node.textContent?.includes(text)) ?? null
   );
+}
+
+/**
+ * El botón del diálogo, ya montado fuera del `wrapper` (las capas se teletransportan
+ * a `document.body`), así que se pulsa con un `click` nativo: es el evento que
+ * escucha un botón normal del registry.
+ */
+function dialogButton(text: string, within: string): HTMLButtonElement | null {
+  const dialog = dialogWith(within);
+  const buttons = [...(dialog?.querySelectorAll('button') ?? [])];
+  return buttons.find((node) => node.textContent?.includes(text)) ?? null;
+}
+
+/** Abre la configuración de la fuente n-ésima del listado y espera su modal. */
+async function openConfigOf(wrapper: ReturnType<typeof mountPanel>, index: number, name: string) {
+  const buttons = wrapper.findAll('button').filter((node) => node.text().includes('Configurar'));
+  await buttons[index]?.trigger('click');
+  await vi.waitFor(() => expect(dialogWith(name)).not.toBeNull(), { timeout: 3_000, interval: 20 });
 }
 
 describe('ConnectorsDrawer', () => {
@@ -194,6 +212,61 @@ describe('ConnectorsDrawer', () => {
 
     const dialog = dialogWith(connector.name);
     expect(dialog?.textContent).toContain(first(connector.fields).label);
+  });
+
+  it('configurar recorre los pasos hasta el resumen', async () => {
+    const wrapper = mountPanel();
+    const connector = first(CONNECTORS);
+
+    await openConfigOf(wrapper, 0, connector.name);
+
+    // Paso 1, conexión: el formulario y el avance disponible (los obligatorios
+    // de esta fuente están puestos).
+    expect(dialogWith(connector.name)?.textContent).toContain('Conexión');
+    expect(dialogButton('Siguiente', connector.name)?.hasAttribute('disabled')).toBe(false);
+
+    dialogButton('Siguiente', connector.name)?.click();
+    await nextTick();
+
+    // Paso 2, permisos: los que la fuente concede, con su conmutador (en modo
+    // editable el permiso se conmuta, no se etiqueta).
+    expect(dialogWith(connector.name)?.textContent).toContain('Lo que el agente puede hacer con esta fuente');
+    expect(dialogWith(connector.name)?.textContent).toContain(first(connector.scopes).label);
+
+    dialogButton('Siguiente', connector.name)?.click();
+    await nextTick();
+
+    // Paso 3, resumen: lo que se va a guardar, en cifras.
+    expect(dialogWith(connector.name)?.textContent).toContain('Esto es lo que se va a guardar');
+    expect(dialogWith(connector.name)?.textContent).toContain(
+      `${connector.fields.length} / ${connector.fields.length}`
+    );
+    expect(dialogButton('Guardar cambios', connector.name)).not.toBeNull();
+  });
+
+  it('un obligatorio vacío bloquea el avance', async () => {
+    const wrapper = mountPanel();
+    // La fuente con error de la semilla lo está justo por esto: le falta la
+    // credencial, que es un campo obligatorio.
+    const broken = CONNECTORS.find((entry) => entry.status === 'error');
+    if (broken === undefined) throw new Error('la semilla dejó de tener una fuente con error');
+
+    await openConfigOf(wrapper, 1, broken.name);
+
+    expect(dialogWith(broken.name)?.textContent).toContain('Completa los campos obligatorios');
+    expect(dialogButton('Siguiente', broken.name)?.hasAttribute('disabled')).toBe(true);
+
+    // Al rellenarla, el aviso desaparece y el paso se abre.
+    const secret = dialogWith(broken.name)?.querySelector<HTMLInputElement>('input[type="password"]');
+    expect(secret).not.toBeNull();
+    if (secret != null) {
+      secret.value = 'credencial-nueva';
+      secret.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    await nextTick();
+
+    expect(dialogWith(broken.name)?.textContent).not.toContain('Completa los campos obligatorios');
+    expect(dialogButton('Siguiente', broken.name)?.hasAttribute('disabled')).toBe(false);
   });
 
   it('añadir abre el asistente por el primer paso', async () => {

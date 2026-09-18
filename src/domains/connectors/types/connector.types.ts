@@ -15,9 +15,9 @@
 import type { Component } from 'vue';
 
 /**
- * Pestañas del espacio. Los valores son el contrato del `?pestana=` de la URL, así
- * que renombrar uno es romper un enlace: se cambian a la vez el tipo, la semilla y
- * `routes.connectors`.
+ * Pestañas del panel. El orden de los valores es el orden en que se pintan, y los
+ * usa también el estudio para decir en qué sección abrir el panel: renombrar uno
+ * es cambiar el tipo, la semilla y el shell del estudio a la vez.
  */
 export type ConnectorTab = 'fuentes' | 'conocimiento' | 'plantillas';
 
@@ -108,10 +108,33 @@ export interface ConnectorTabItem {
   icon: Component;
 }
 
+/** Una familia de fuente, como la ofrece el asistente de alta. */
+export interface ConnectorKindItem {
+  id: ConnectorKind;
+  label: string;
+  description: string;
+}
+
 /**
- * Guarda del `?pestana=` de la URL. Una query es entrada de usuario: sin esto, un
- * enlace manipulado deja la vista con una pestaña que no existe y el panel en
- * blanco, sin un error que lo explique.
+ * El formulario en blanco de una familia: de dónde arranca una fuente nueva. No
+ * es una copia del catálogo —esas ya están configuradas y traen sus valores—, pero
+ * sí comparte con él los campos imprescindibles y los permisos.
+ */
+export interface ConnectorTemplate {
+  name: string;
+  provider: string;
+  description: string;
+  fields: ConnectorField[];
+  scopes: ConnectorScope[];
+}
+
+/**
+ * Guarda de una pestaña que llega sin tipo.
+ *
+ * La necesita el `Tabs` del registry, cuyo `update:modelValue` es `string | number`
+ * —la unión ancha de reka-ui—: sin esto, el panel aceptaría cualquier valor y se
+ * quedaría en blanco sin un error que lo explique. El tipo se declara aquí, junto a
+ * la unión, para que no haya dos listas de pestañas válidas.
  */
 export function isConnectorTab(value: string | undefined): value is ConnectorTab {
   return value === 'fuentes' || value === 'conocimiento' || value === 'plantillas';

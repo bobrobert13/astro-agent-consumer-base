@@ -56,19 +56,22 @@ const props = withDefaults(
 // El shell se provee aquí y se reparte a mano. Este componente no puede inyectar
 // lo que acaba de proveer (`inject` resuelve desde el padre), así que trabaja con
 // el objeto que le devuelve `provideConnectors`.
-const shell = provideConnectors({ initialTab: props.tab ?? 'fuentes' });
+const shell = provideConnectors();
 const { counts, notYet, setTab, tab } = shell;
 
 /**
  * La pestaña puede cambiar desde fuera —el rail navega a `/conectores?pestana=…`
  * y esta isla ya está montada—, así que la prop se escucha igual que el estudio
- * escucha su hilo.
+ * escucha su hilo. El `immediate` es lo que aplica la pestaña con la que se abre,
+ * que el composable ya no recibe por opciones: el estado lo abre y lo cierra quien
+ * monta el panel.
  */
 watch(
   () => props.tab,
   (next) => {
     if (next !== undefined) setTab(next);
-  }
+  },
+  { immediate: true }
 );
 
 function onTabChange(value: string | number): void {

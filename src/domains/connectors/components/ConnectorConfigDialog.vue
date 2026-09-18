@@ -82,7 +82,7 @@ function toggleScope(id: string, granted: boolean): void {
     <DialogContent class="max-w-preview gap-0 overflow-hidden p-0 sm:max-w-preview">
       <DialogHeader class="gap-1 border-b border-line p-5 text-left">
         <DialogTitle>{{ CONNECTOR_COPY.configure }} · {{ editing?.name ?? '' }}</DialogTitle>
-        <DialogDescription>{{ CONNECTOR_COPY.configureBody }}</DialogDescription>
+        <DialogDescription>{{ CONNECTOR_COPY.connectionHint }}</DialogDescription>
       </DialogHeader>
 
       <div class="max-h-[70svh] overflow-y-auto p-5">
@@ -143,7 +143,7 @@ function toggleScope(id: string, granted: boolean): void {
 
       <DialogFooter class="border-t border-line p-5 sm:justify-end">
         <Button variant="outline" @click="closeConfig()">{{ CONNECTOR_COPY.cancel }}</Button>
-        <Button @click="saveConfig()">{{ CONNECTOR_COPY.save }}</Button>
+        <Button @click="saveConfig()">{{ CONNECTOR_COPY.finish }}</Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

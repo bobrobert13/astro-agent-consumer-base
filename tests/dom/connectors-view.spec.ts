@@ -116,7 +116,7 @@ describe('ConnectorsView', () => {
     await wrapper.get('input[type="search"]').setValue('zzz-no-existe');
 
     expect(wrapper.findAllComponents(SourceCard)).toHaveLength(0);
-    expect(wrapper.text()).toContain('Ningún conector coincide');
+    expect(wrapper.text()).toContain('Ninguna fuente coincide');
 
     await buttonWith(wrapper, 'Quitar filtros')?.trigger('click');
 

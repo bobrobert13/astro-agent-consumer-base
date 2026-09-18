@@ -36,7 +36,6 @@ const { loading, refresh } = useConnectors();
 
       <div class="min-w-0 flex-1">
         <strong class="block truncate text-title-sm">{{ CONNECTOR_COPY.title }}</strong>
-        <small class="block truncate">{{ CONNECTOR_COPY.subtitle }}</small>
       </div>
 
       <Button

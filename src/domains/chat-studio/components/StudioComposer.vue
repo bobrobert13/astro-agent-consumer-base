@@ -13,6 +13,12 @@
  * de forma nativa, así que no hay `watch` midiendo `scrollHeight`. El suelo y el
  * techo son de token (`min-h-12`, `max-h-42`), no números sueltos.
  *
+ * El campo va **plano** dentro de su caja: el registry lo trae con borde, sombra y
+ * relleno propios. `bg-transparent` basta en claro, pero no en oscuro: su
+ * `dark:bg-input/30` es una variante y vuelve a pintar un parche más claro justo
+ * detrás del placeholder. `dark:bg-transparent` lo deja igual que en claro; no es
+ * una clase redundante que se pueda borrar.
+ *
  * **Adjuntar es de verdad, y es un mock.** El botón abre el selector del sistema y
  * el archivo aparece como ficha con su nombre y su tamaño; al enviar, esa lista
  * viaja **dentro del texto** del mensaje para que el simulacro lo muestre, porque
@@ -149,7 +155,7 @@ function onKeydown(event: KeyboardEvent): void {
         v-model="text"
         rows="1"
         :placeholder="STUDIO_COPY.composerPlaceholder"
-        class="max-h-42 min-h-12 w-full resize-none border-0 bg-transparent px-0 py-0 text-body shadow-none focus-visible:ring-0"
+        class="max-h-42 min-h-12 w-full resize-none border-0 bg-transparent px-0 py-0 text-body shadow-none focus-visible:ring-0 dark:bg-transparent"
         @keydown="onKeydown"
       />
 

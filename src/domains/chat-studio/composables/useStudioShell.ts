@@ -27,7 +27,7 @@ import { navigate } from 'astro:transitions/client';
 import type { ConnectorTab } from '@domains/connectors';
 import { routes } from '@config/routes';
 import { useAppShellStore } from '@stores/app-shell';
-import { DEFAULT_STUDIO_MODEL, STUDIO_COPY } from '../data/studio.seed';
+import { DEFAULT_STUDIO_MODEL } from '../data/studio.seed';
 import type { PanelScope, PanelTab, ResourceRow, SourceScope, StudioModel } from '../types/studio.types';
 
 export interface StudioShellOptions {
@@ -75,10 +75,7 @@ export interface StudioShell {
   openPreview: (resource: ResourceRow) => void;
   closePreview: () => void;
   newChat: () => void;
-  /** Aviso para las zonas que todavía son esqueleto. */
-  notYet: (label: string) => void;
 }
-
 const STUDIO_SHELL: InjectionKey<StudioShell> = Symbol('chat-studio/shell');
 
 /**
@@ -197,21 +194,6 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     void navigate(options.onNewChat?.() ?? routes.home());
   }
 
-  /**
-   * `vue-sonner` entra por `import()` al primer aviso, no en el arranque del
-   * estudio: son ~20 KB que no hacen falta para ver la pantalla, y el grafo
-   * inicial de la isla ya carga el AI SDK. Es el mismo trato que hace la tarjeta
-   * de configuración, y por eso el `Toaster` de `ChatStudio` también es asíncrono.
-   */
-  function notYet(label: string): void {
-    void notify(label);
-  }
-
-  async function notify(label: string): Promise<void> {
-    const { toast } = await import('vue-sonner');
-    toast(label, { description: STUDIO_COPY.notImplemented });
-  }
-
   const shell: StudioShell = {
     railOpen,
     railLabel,
@@ -237,7 +219,6 @@ export function provideStudioShell(options: StudioShellOptions = {}): StudioShel
     openPreview,
     closePreview,
     newChat,
-    notYet,
   };
 
   provide(STUDIO_SHELL, shell);

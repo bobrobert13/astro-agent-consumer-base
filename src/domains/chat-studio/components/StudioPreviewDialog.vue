@@ -13,10 +13,9 @@
  * mantiene viva la comprobación de CSP del smoke de Electron (ADR-004), que
  * necesita justo eso.
  */
-import { Download, ExternalLink, Pause, Play } from '@lucide/vue';
+import { Pause, Play } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
-import { Button } from '@components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -30,7 +29,7 @@ import StudioImageSlot from './StudioImageSlot.vue';
 import { useStudioShell } from '../composables/useStudioShell';
 import { PREVIEW_BODY, PREVIEW_SHEET_ROWS, RESOURCE_ICONS } from '../data/studio.seed';
 
-const { preview, closePreview, notYet } = useStudioShell();
+const { preview, closePreview } = useStudioShell();
 
 /** El modal se abre y se cierra con el recurso seleccionado: una sola verdad. */
 const open = computed({
@@ -132,18 +131,8 @@ const progress = ref<number[]>([35]);
         </div>
       </div>
 
-      <DialogFooter class="flex-row items-center justify-between gap-3 border-t border-line p-4 sm:justify-between">
+      <DialogFooter class="border-t border-line p-4">
         <small>Vista previa de ejemplo</small>
-        <span class="flex gap-2">
-          <Button variant="outline" size="sm" @click="notYet('Abrir recurso')">
-            <ExternalLink aria-hidden="true" />
-            <span>Abrir</span>
-          </Button>
-          <Button size="sm" @click="notYet('Descargar recurso')">
-            <Download aria-hidden="true" />
-            <span>Descargar</span>
-          </Button>
-        </span>
       </DialogFooter>
     </DialogContent>
   </Dialog>

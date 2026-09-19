@@ -9,18 +9,17 @@
  * fila propia.
  *
  * Muestra de dónde se alimenta y cuántos pasos tiene, que es lo que decide si
- * alguien la usa o la ignora. Lanzarla todavía no está implementado y la tarjeta lo
- * dice en vez de fingirlo.
+ * alguien la usa o la ignora. **Sin acción, a propósito**: lanzarla no está
+ * implementado, así que la tarjeta no lo promete en vez de avisar de que no hay
+ * nada —un botón que solo avisa se lee como una app rota—.
  */
 import { LayoutTemplate } from '@lucide/vue';
 import { computed } from 'vue';
 
 import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 
 import { CONNECTOR_COPY } from '../../data/connectors.seed';
-import { useConnectors } from '../../composables/useConnectors';
 import type { TemplateRow } from '../../types/connector.types';
 
 interface Props {
@@ -28,8 +27,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const { notYet } = useConnectors();
 
 const steps = computed(() => `${props.template.steps} ${CONNECTOR_COPY.steps}`);
 </script>
@@ -55,10 +52,6 @@ const steps = computed(() => `${props.template.steps} ${CONNECTOR_COPY.steps}`);
       <div class="flex min-w-0 flex-wrap items-center gap-1.5">
         <small>{{ CONNECTOR_COPY.sources }}</small>
         <Badge v-for="source in props.template.sources" :key="source" variant="outline">{{ source }}</Badge>
-      </div>
-
-      <div class="flex justify-end">
-        <Button size="xs" @click="notYet(CONNECTOR_COPY.use)">{{ CONNECTOR_COPY.use }}</Button>
       </div>
     </div>
   </Card>

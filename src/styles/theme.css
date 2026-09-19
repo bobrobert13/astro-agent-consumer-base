@@ -191,6 +191,14 @@
 
   /* Puntos de "escribiendo" del transcript. El fotograma vive en `global.css`. */
   --animate-blink: blink 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+
+  /*
+   * Despliegue de una fila en su sitio (el `Collapsible` del registry), con la
+   * misma curva que el resto de transiciones del estudio. Los fotogramas también
+   * viven en `global.css`.
+   */
+  --animate-collapsible-down: collapsible-down 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  --animate-collapsible-up: collapsible-up 0.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* ── Tokens de concepto reasignables por tema ──────────────────────────────── */

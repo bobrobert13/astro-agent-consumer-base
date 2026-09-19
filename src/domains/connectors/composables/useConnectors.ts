@@ -77,8 +77,6 @@ export interface ConnectorsShell {
   setAddingKind: (kind: ConnectorKind) => void;
   saveAdd: () => void;
   refresh: () => void;
-  /** Aviso para las acciones que todavía son esqueleto. */
-  notYet: (label: string) => void;
 }
 
 const CONNECTORS_SHELL: InjectionKey<ConnectorsShell> = Symbol('connectors/shell');
@@ -240,7 +238,7 @@ export function provideConnectors(): ConnectorsShell {
 
     connectors.value = connectors.value.map((connector) => (connector.id === draft.id ? draft : connector));
     editing.value = null;
-    void notify(CONNECTOR_COPY.saved, true);
+    void notify(CONNECTOR_COPY.saved);
   }
 
   function openAdd(): void {
@@ -273,7 +271,7 @@ export function provideConnectors(): ConnectorsShell {
     connectors.value = [draft, ...connectors.value];
     adding.value = null;
     setTab('fuentes');
-    void notify(CONNECTOR_COPY.created, true);
+    void notify(CONNECTOR_COPY.created);
   }
 
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -298,19 +296,14 @@ export function provideConnectors(): ConnectorsShell {
     if (timer !== undefined) clearTimeout(timer);
   });
 
-  function notYet(label: string): void {
-    void notify(label);
-  }
-
   /**
-   * `vue-sonner` entra por `import()` al primer aviso y no en el arranque: son
-   * ~20 KB que no hacen falta para ver el panel. Es el mismo trato que hace el
-   * estudio, y dentro de un componente ya hidratado, así que no exige nada nuevo.
+   * Confirmación de lo que **sí** se ha hecho —guardar una configuración, dar de
+   * alta una fuente—. `vue-sonner` entra por `import()` al primer aviso y no en el
+   * arranque: son ~20 KB que no hacen falta para ver el panel.
    */
-  async function notify(message: string, success = false): Promise<void> {
+  async function notify(message: string): Promise<void> {
     const { toast } = await import('vue-sonner');
-    if (success) toast.success(message);
-    else toast(message, { description: CONNECTOR_COPY.notYetBody });
+    toast.success(message);
   }
 
   const shell: ConnectorsShell = {
@@ -340,7 +333,6 @@ export function provideConnectors(): ConnectorsShell {
     setAddingKind,
     saveAdd,
     refresh,
-    notYet,
   };
 
   provide(CONNECTORS_SHELL, shell);

@@ -93,3 +93,30 @@
     transform: translateY(-2px);
   }
 }
+
+/*
+ * Despliegue de una fila que se abre en su sitio (el `Collapsible` del registry).
+ * La altura no se puede animar de `auto` a `0`, así que reka-ui publica la altura
+ * real del contenido en `--reka-collapsible-content-height` mientras está abierto y
+ * el fotograma la usa como destino. El token que los nombra está en `theme.css`
+ * (`--animate-collapsible-…`), igual que el de los puntos.
+ */
+@keyframes collapsible-down {
+  from {
+    height: 0;
+  }
+
+  to {
+    height: var(--reka-collapsible-content-height);
+  }
+}
+
+@keyframes collapsible-up {
+  from {
+    height: var(--reka-collapsible-content-height);
+  }
+
+  to {
+    height: 0;
+  }
+}

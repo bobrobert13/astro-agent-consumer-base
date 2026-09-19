@@ -19,7 +19,6 @@ import { ChevronsUpDown } from '@lucide/vue';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -28,11 +27,9 @@ import {
 } from '@components/ui/dropdown-menu';
 import { THEME_OPTIONS } from '@domains/settings';
 import { useAppShellStore } from '@stores/app-shell';
-import { useStudioShell } from '../composables/useStudioShell';
 import { STUDIO_USER } from '../data/studio.seed';
 
 const appShell = useAppShellStore();
-const { notYet } = useStudioShell();
 
 /** reka-ui entrega el valor sin tipar; se estrecha aquí y no en el store. */
 function onTheme(value: unknown): void {
@@ -70,9 +67,6 @@ function onTheme(value: unknown): void {
           <span>{{ theme.label }}</span>
         </DropdownMenuRadioItem>
       </DropdownMenuRadioGroup>
-
-      <DropdownMenuSeparator />
-      <DropdownMenuItem @select="notYet('Cerrar sesión')">Cerrar sesión</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>
 </template>

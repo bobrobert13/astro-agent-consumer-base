@@ -4,11 +4,10 @@
  * @description Franja pegada al composer que invita a conectar fuentes externas.
  *
  * Es la puerta principal al panel de conectores: lo abre en la sección de fuentes
- * **sin salir del estudio** —el chat sigue detrás, escribible—. Dejó de ser
- * esqueleto, así que ya no avisa con `notYet()`; lo que sigue siendo de relleno son
- * los datos del panel, y de eso informa él mismo. Se dibuja pegada a la caja del
- * composer (sin borde superior y con el radio inferior) porque en la plantilla las
- * dos forman un solo bloque.
+ * **sin salir del estudio** —el chat sigue detrás, escribible—. Lo que sigue siendo
+ * de relleno son los datos del panel, y de eso informa él mismo. Se dibuja pegada a
+ * la caja del composer (sin borde superior y con el radio inferior) porque en la
+ * plantilla las dos forman un solo bloque.
  *
  * Los avatares de la plantilla eran retratos; aquí son puntos con el token de
  * marca en distintas opacidades, que dan el mismo ritmo sin inventar imágenes.

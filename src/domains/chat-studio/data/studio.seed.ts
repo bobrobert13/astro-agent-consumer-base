@@ -236,5 +236,7 @@ export const STUDIO_COPY = {
   disclaimer: 'El asistente puede cometer errores. Verifica la información antes de usarla.',
   disclaimerLink: 'Preferencias de cookies',
   contextHint: 'Archivos y enlaces disponibles en esta conversación. Pulsa cualquiera para verlo.',
-  notImplemented: 'Todavía no está implementado en este esqueleto.',
+  /** Ámbito de una fuente, en palabras: la mitad del valor de su desglose. */
+  sourceScopeInteraction: 'Solo se usó al responder a este mensaje.',
+  sourceScopeSession: 'Sigue disponible para el resto de la conversación.',
 } as const;

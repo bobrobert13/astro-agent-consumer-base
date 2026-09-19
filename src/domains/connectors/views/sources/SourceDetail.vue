@@ -18,7 +18,7 @@
  * Los secretos no se pintan **ni aquí**: un valor que se enseña en pantalla deja de
  * ser secreto, y esta vista no tiene nada que la autorice a mostrarlo.
  */
-import { ArrowLeft, ExternalLink, RefreshCw, Settings2, Trash2 } from '@lucide/vue';
+import { ArrowLeft, RefreshCw, Settings2 } from '@lucide/vue';
 import { computed } from 'vue';
 
 import { Button } from '@components/ui/button';
@@ -35,7 +35,7 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const { closeDetail, notYet, openConfig } = useConnectors();
+const { closeDetail, loading, openConfig, refresh } = useConnectors();
 
 const icon = computed(() => CONNECTOR_ICONS[props.connector.kind]);
 const documents = computed(() => props.connector.documents.toLocaleString('es-ES'));
@@ -85,22 +85,21 @@ function displayValue(field: ConnectorField): string {
       </div>
     </dl>
 
+    <!--
+      Dos acciones, y las dos hacen algo: "Sincronizar ahora" recarga de verdad
+      —levanta el estado de carga de la cabecera y refresca la fecha— y "Configurar"
+      abre su modal. Las que no tenían destino (ver documentación, quitar) se fueron
+      con el aviso: un botón que promete algo y no lo cumple se lee como una app
+      rota.
+    -->
     <div class="flex flex-wrap gap-1.5">
       <Button size="xs" @click="openConfig(props.connector)">
         <Settings2 aria-hidden="true" />
         {{ CONNECTOR_COPY.configure }}
       </Button>
-      <Button variant="outline" size="xs" @click="notYet(CONNECTOR_COPY.sync)">
-        <RefreshCw aria-hidden="true" />
+      <Button variant="outline" size="xs" :disabled="loading" @click="refresh()">
+        <RefreshCw :class="loading ? 'animate-spin' : ''" aria-hidden="true" />
         {{ CONNECTOR_COPY.sync }}
-      </Button>
-      <Button variant="outline" size="xs" @click="notYet(CONNECTOR_COPY.docs)">
-        <ExternalLink aria-hidden="true" />
-        {{ CONNECTOR_COPY.docs }}
-      </Button>
-      <Button variant="outline" size="xs" class="text-danger" @click="notYet(CONNECTOR_COPY.remove)">
-        <Trash2 aria-hidden="true" />
-        {{ CONNECTOR_COPY.remove }}
       </Button>
     </div>
 

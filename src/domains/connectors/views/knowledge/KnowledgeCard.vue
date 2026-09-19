@@ -9,22 +9,23 @@
  * etiqueta de fuentes va **en la misma línea** que sus píldoras —y no encima— porque
  * con una sola fuente la etiqueta sola ocupaba una fila entera.
  *
+ * **Sin acción, a propósito.** Abrir un conjunto no está implementado, así que la
+ * tarjeta no lo promete: se limita a decir qué es, de qué fuentes se compone y
+ * cuántos documentos tiene. Un botón que solo avisa de que no hay nada es peor que
+ * no tenerlo —fue la regla que se aplicó al composer—, y aquí el conjunto se puede
+ * evaluar sin él.
+ *
  * Los nombres de las fuentes se resuelven desde `connectorIds` en vez de guardarse
  * escritos: así renombrar una fuente no deja dos verdades, y el contrato puede
  * seguir describiendo relaciones en lugar de copias.
- *
- * La acción es una sola y honesta: abrir el conjunto todavía no está implementado,
- * así que lo dice en vez de fingir que navega.
  */
 import { BookOpenCheck } from '@lucide/vue';
 import { computed } from 'vue';
 
 import { Badge } from '@components/ui/badge';
-import { Button } from '@components/ui/button';
 import { Card } from '@components/ui/card';
 
 import { CONNECTOR_COPY, CONNECTORS } from '../../data/connectors.seed';
-import { useConnectors } from '../../composables/useConnectors';
 import type { KnowledgeBase } from '../../types/connector.types';
 
 interface Props {
@@ -32,8 +33,6 @@ interface Props {
 }
 
 const props = defineProps<Props>();
-
-const { notYet } = useConnectors();
 
 const sources = computed(() =>
   props.base.connectorIds.map((id) => CONNECTORS.find((connector) => connector.id === id)?.name ?? id)
@@ -65,7 +64,6 @@ const documents = computed(() => props.base.documents.toLocaleString('es-ES'));
 
       <div class="flex items-center justify-between gap-2">
         <small>{{ documents }} {{ CONNECTOR_COPY.documents }}</small>
-        <Button size="xs" @click="notYet(CONNECTOR_COPY.open)">{{ CONNECTOR_COPY.open }}</Button>
       </div>
     </div>
   </Card>

@@ -50,7 +50,6 @@ components/             .vue del slice
   StudioComposer/ComposerTools/ConnectBar/Suggestions   la caja de escritura
   StudioThread/Message/Markdown/ToolCall/Notice/RunStatus/MemoryNotice  el hilo
   StudioContextPanel/ResourceRow/SourceRow/PreviewDialog  el panel derecho
-  StudioFabs/HelpMenu   las acciones del pie
   StudioImageSlot       hueco vacío para una imagen
   studio.memo.ts        dependencias de `v-memo` del globo
 ```
@@ -74,13 +73,17 @@ seguir: el slice se lee por partes, no por archivos grandes.
    del hero y con conversación se acopla abajo; son excluyentes, así que nunca hay
    dos campos con el id `aac-composer`. El borrador vive en el composable
    compartido, así que cambiar de sitio no lo pierde.
-4. **Las zonas de esqueleto avisan, no callan.** Abrir una fuente, descargar un
-   recurso del modal de vista previa o "cerrar sesión" siguen siéndolo y lo dicen con
-   `notYet()`. Un botón mudo se lee como una app rota. **El rail ya no tiene
-   ninguna**: sus dos secciones abren el panel lateral en la suya con
-   `shell.openConnectors(tab)`, y el mapa de destinos es exhaustivo —`NavId` es una
-   unión cerrada—, así que añadir una sección obliga a decidir a dónde va antes de
-   que compile.
+4. **Un control que no puede hacer nada no se pinta.** Existió un `notYet()` que
+   sacaba un aviso de "todavía no está implementado" y se retiró entero: interrumpir
+   para decir que no hay nada es peor que no ofrecer el control. La regla que quedó,
+   aplicada primero al composer y después al panel: si un botón no tiene destino, se
+   va; si puede hacer algo de verdad, se hace (es el caso de "Sincronizar ahora",
+   que recarga) y si lo que pide es **ver más**, se despliega **en su sitio** —la
+   fila de una fuente, con el `Collapsible` del registry y `animate-collapsible-…`—
+   sin abrir nada por encima. **El rail tampoco tiene ninguna pendiente**: sus dos
+   secciones abren el panel lateral en la suya con `shell.openConnectors(tab)`, y el
+   mapa de destinos es exhaustivo —`NavId` es una unión cerrada—, así que añadir una
+   sección obliga a decidir a dónde va antes de que compile.
 
 5. **La fila tiene dos paneles a la derecha, como mucho.** El de contexto pertenece a
    la conversación y el **panel lateral** es un espacio de trabajo con dos contenidos
